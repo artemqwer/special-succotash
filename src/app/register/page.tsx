@@ -144,7 +144,7 @@ export default function RegisterPage() {
           <div className="flex items-start gap-2.5">
             <div
               onClick={() => { setAgreed(!agreed); setTouched((t) => ({ ...t, agreed: true })); setErrors(validate({ email, password, agreed: !agreed })); }}
-              className={`mt-[2px] w-4 h-4 shrink-0 border rounded flex items-center justify-center cursor-pointer transition ${
+              className={`mt-[2px] w-4 h-4 shrink-0 border rounded flex items-center justify-center cursor-pointer ${
                 touched.agreed && errors.agreed
                   ? "border-red-400 bg-red-50"
                   : agreed

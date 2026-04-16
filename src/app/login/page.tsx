@@ -129,7 +129,7 @@ export default function LoginPage() {
         <div className="flex items-center justify-between mb-5">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <div onClick={() => setRememberMe(!rememberMe)}
-              className={`w-4 h-4 border rounded flex items-center justify-center transition ${
+              className={`w-4 h-4 border rounded flex items-center justify-center ${
                 rememberMe ? "bg-blue-600 border-blue-600" : "border-gray-300 bg-white"
               }`}>
               {rememberMe && (
