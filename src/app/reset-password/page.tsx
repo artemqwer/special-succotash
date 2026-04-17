@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import DataRocksLogo from "@/components/DataRocksLogo";
 
 const RESEND_TIMEOUT = 60;
@@ -20,7 +20,7 @@ export default function ResetPasswordPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
-  const startTimer = () => {
+  const startTimer = useCallback(() => {
     setCanResend(false);
     setCountdown(RESEND_TIMEOUT);
     if (timerRef.current) clearInterval(timerRef.current);
@@ -34,12 +34,11 @@ export default function ResetPasswordPage() {
         return prev - 1;
       });
     }, 1000);
-  };
+  }, []);
 
   useEffect(() => {
-    if (step === "code") startTimer();
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [step]);
+  }, []);
 
   const validateEmail = (value: string) => {
     if (!value.trim()) return "Email is required";
@@ -54,6 +53,7 @@ export default function ResetPasswordPage() {
     setEmailError(err);
     if (err) return;
     setStep("code");
+    startTimer();
   };
 
   const handleCodeChange = (index: number, value: string) => {
