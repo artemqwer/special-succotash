@@ -167,7 +167,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-[720px] mx-auto px-8 py-8">
+    <div className="max-w-[720px] mx-auto px-4 sm:px-8 py-6 sm:py-8">
       <h1 className="text-[22px] font-bold text-gray-900 mb-1">Profile Settings</h1>
       <p className="text-[13px] text-gray-500 mb-7">Manage your personal information and account security</p>
 
@@ -197,7 +197,7 @@ export default function ProfilePage() {
       <form onSubmit={handleProfileSave} noValidate>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
           <h2 className="text-[15px] font-semibold text-gray-800 mb-4">Personal Information</h2>
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-[12px] font-medium text-gray-600 mb-1.5">First Name</label>
               <InputField
@@ -221,7 +221,7 @@ export default function ProfilePage() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-[12px] font-medium text-gray-600 mb-1.5">Email</label>
               <InputField
