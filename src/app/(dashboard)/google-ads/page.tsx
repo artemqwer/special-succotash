@@ -260,6 +260,30 @@ const renderConvLabel = (props: unknown) => {
   );
 };
 
+const renderProfitLabel = (props: unknown) => {
+  const p = props as { x?: number; y?: number; width?: number; height?: number; value?: number };
+  const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, h = p.height ?? 0, val = p.value ?? 0;
+  if (w < 34 || h < 16 || val <= 0) return null;
+  return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={9} fontWeight={700} textAnchor="middle">${(val / 1000).toFixed(1)}K</text>;
+};
+
+const renderCostLabel = (props: unknown) => {
+  const p = props as { x?: number; y?: number; width?: number; height?: number; index?: number };
+  const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, h = p.height ?? 0, idx = p.index ?? 0;
+  if (w < 34 || h < 16) return null;
+  const item = adPerfData[idx];
+  if (!item) return null;
+  const label = item.profit >= 0 ? item.cost : item.convValue;
+  return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={9} fontWeight={700} textAnchor="middle">${(label / 1000).toFixed(1)}K</text>;
+};
+
+const renderLossLabel = (props: unknown) => {
+  const p = props as { x?: number; y?: number; width?: number; height?: number; value?: number };
+  const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, h = p.height ?? 0, val = p.value ?? 0;
+  if (w < 28 || h < 12 || val >= 0) return null;
+  return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={9} fontWeight={700} textAnchor="middle">-${(Math.abs(val) / 1000).toFixed(1)}K</text>;
+};
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function GoogleAdsPage() {
@@ -421,32 +445,38 @@ export default function GoogleAdsPage() {
         {activeTab === 1 && (
           <>
             <div className="overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
-              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-480px)] lg:min-h-[380px] min-w-[760px]">
+              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-480px)] lg:min-h-[380px] min-w-[1800px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={adPerfData} barCategoryGap="10%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
+                  <ComposedChart data={adPerfData} barCategoryGap="2%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
                     <XAxis dataKey="date" tick={<AdXTick />} axisLine={false} tickLine={false} height={40} />
                     <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: "#A78BFA" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}x`} domain={[0, 6]} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: "#F97316" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}x`} domain={[0, 6]} />
+                    <YAxis yAxisId="clicks" orientation="right" hide domain={[0, 15000]} />
                     <ReferenceLine yAxisId="left" y={0} stroke="#E5E7EB" strokeWidth={1} />
                     <Tooltip content={<AdTooltip />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
 
                     {/* Cost (red base) */}
                     <Bar yAxisId="left" dataKey="costBase" stackId="a" radius={[0, 0, 3, 3]} isAnimationActive={false}>
-                      {adPerfData.map((entry, i) => (
-                        <Cell key={i} fill={entry.profit < 0 ? "#FCA5A5" : "#FCA5A5"} fillOpacity={0.85} />
-                      ))}
+                      {adPerfData.map((_, i) => <Cell key={i} fill="#F87171" fillOpacity={0.9} />)}
+                      <LabelList dataKey="costBase" content={renderCostLabel} />
                     </Bar>
 
                     {/* Profit positive (green, on top of cost) */}
                     <Bar yAxisId="left" dataKey="profitPos" stackId="a" fill="#4ADE80" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                      <LabelList dataKey="profitPos" content={renderProfitLabel} />
                       <LabelList dataKey="profitPos" content={renderConvLabel} />
                     </Bar>
 
-                    {/* Profit negative (dark red, below zero) */}
-                    <Bar yAxisId="left" dataKey="profitNeg" fill="#EF4444" radius={[0, 0, 3, 3]} isAnimationActive={false} />
+                    {/* Profit negative (pink, below zero) */}
+                    <Bar yAxisId="left" dataKey="profitNeg" fill="#FCA5A5" radius={[0, 0, 3, 3]} isAnimationActive={false}>
+                      <LabelList dataKey="profitNeg" content={renderLossLabel} />
+                    </Bar>
 
                     {/* ROAS line */}
-                    <Line yAxisId="right" type="monotone" dataKey="roas" stroke="#8B5CF6" strokeWidth={2} dot={{ fill: "#8B5CF6", r: 3, strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                    <Line yAxisId="right" type="monotone" dataKey="roas" stroke="#F97316" strokeWidth={2} dot={{ fill: "#F97316", r: 3, strokeWidth: 0 }} activeDot={{ r: 5 }} />
+
+                    {/* Clicks line */}
+                    <Line yAxisId="clicks" type="monotone" dataKey="clicks" stroke="#3B82F6" strokeWidth={1.5} dot={{ fill: "#3B82F6", r: 2.5, strokeWidth: 0 }} activeDot={{ r: 4 }} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -454,10 +484,11 @@ export default function GoogleAdsPage() {
             {/* Legend */}
             <div className="flex flex-wrap gap-3 mt-2 justify-center text-[11px] sm:text-[12px] text-gray-500">
               {[
-                { label: "Conv. Value", color: "#4ADE80" },
-                { label: "Cost", color: "#FCA5A5" },
-                { label: "Loss", color: "#EF4444" },
-                { label: "ROAS", color: "#8B5CF6", line: true },
+                { label: "Conv. Value", color: "#0EA5E9" },
+                { label: "Profit", color: "#4ADE80" },
+                { label: "Cost", color: "#F87171" },
+                { label: "Clicks", color: "#3B82F6", line: true },
+                { label: "ROAS", color: "#F97316", line: true },
               ].map(({ label, color, line }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   {line
