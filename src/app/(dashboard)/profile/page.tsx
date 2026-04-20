@@ -253,7 +253,7 @@ export default function ProfilePage() {
               onChange={setLocation}
             />
           </div>
-          <div className="flex justify-end items-center gap-3">
+          <div className="flex justify-start sm:justify-end items-center gap-3">
             {profileSaved && (
               <span className="text-[12px] text-green-600 flex items-center gap-1">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
@@ -314,7 +314,7 @@ export default function ProfilePage() {
               showPass={showConfirm}
             />
           </div>
-          <div className="flex justify-end items-center gap-3">
+          <div className="flex justify-start sm:justify-end items-center gap-3">
             {pwdSaved && (
               <span className="text-[12px] text-green-600 flex items-center gap-1">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>

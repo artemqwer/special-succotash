@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import DataRocksLogo from "@/components/DataRocksLogo";
+import { setSession, getSession } from "@/lib/auth";
+import { useEffect } from "react";
 
 function isValidEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -10,12 +13,17 @@ function isValidEmail(v: string) {
 type Errors = { email?: string; password?: string };
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (getSession()) router.replace("/google-ads");
+  }, [router]);
 
   const validate = (fields = { email, password }): Errors => {
     const e: Errors = {};
@@ -37,7 +45,9 @@ export default function LoginPage() {
     const errs = validate();
     setErrors(errs);
     if (Object.keys(errs).length === 0) {
-      // submit
+      const name = email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      setSession({ email, name });
+      router.replace("/google-ads");
     }
   };
 
@@ -55,7 +65,7 @@ export default function LoginPage() {
       <h1 className="text-[20px] font-semibold text-gray-900 mb-1">Welcome back</h1>
       <p className="text-[14px] text-gray-500 mb-6">Sign in to your account to continue</p>
 
-      <form onSubmit={handleSubmit} noValidate className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-[400px]">
+      <form onSubmit={handleSubmit} noValidate className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-8 w-full max-w-[400px]">
         {/* Email */}
         <div className="mb-4">
           <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Email address</label>

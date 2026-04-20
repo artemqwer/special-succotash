@@ -104,7 +104,7 @@ export default function ResetPasswordPage() {
             Enter your email and we&apos;ll send you a reset code
           </p>
 
-          <form onSubmit={handleSendCode} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-[400px]">
+          <form onSubmit={handleSendCode} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-8 w-full max-w-[400px]">
             <div className="mb-5">
               <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
                 Email address
@@ -163,9 +163,9 @@ export default function ResetPasswordPage() {
           </p>
           <p className="text-[14px] font-medium text-gray-800 mb-6">{email}</p>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-[400px]">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-8 w-full max-w-[400px]">
             {/* Code inputs */}
-            <div className="flex gap-2.5 justify-center mb-5" onPaste={handlePaste}>
+            <div className="flex gap-1.5 sm:gap-2.5 justify-center mb-5" onPaste={handlePaste}>
               {code.map((digit, i) => (
                 <input
                   key={i}
@@ -176,7 +176,7 @@ export default function ResetPasswordPage() {
                   value={digit}
                   onChange={(e) => handleCodeChange(i, e.target.value)}
                   onKeyDown={(e) => handleCodeKeyDown(i, e)}
-                  className={`w-[48px] h-[52px] text-center text-[20px] font-semibold border rounded-xl outline-none transition
+                  className={`w-10 h-11 sm:w-12 sm:h-[52px] text-center text-[18px] sm:text-[20px] font-semibold border rounded-xl outline-none transition
                     ${digit ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-700"}
                     focus:border-blue-500 focus:ring-2 focus:ring-blue-100`}
                 />
@@ -184,7 +184,7 @@ export default function ResetPasswordPage() {
             </div>
 
             {/* Resend row */}
-            <div className="flex items-center justify-between mb-5 px-1">
+            <div className="flex items-center justify-between mb-5 flex-wrap gap-1">
               <span className="text-[13px] text-gray-500">Didn&apos;t receive the code?</span>
               <div className="flex items-center gap-1.5">
                 <button

@@ -94,7 +94,7 @@ export default function RegisterPage() {
         Transform data chaos into confident growth decisions
       </p>
 
-      <form onSubmit={handleSubmit} noValidate className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-[400px]">
+      <form onSubmit={handleSubmit} noValidate className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-8 w-full max-w-[400px]">
         {/* Email */}
         <div className="mb-4">
           <input
@@ -198,7 +198,7 @@ export default function RegisterPage() {
         </p>
       </form>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-7 py-5 w-full max-w-[400px] mt-4">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 sm:px-7 py-5 w-full max-w-[400px] mt-4">
         <p className="text-[13px] font-semibold text-gray-700 mb-3">What&apos;s included:</p>
         <div className="grid grid-cols-2 gap-y-2.5 gap-x-4">
           {["14-day free trial", "No credit card required", "AI-powered insights", "Cancel anytime"].map((item) => (
