@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line,
-  LabelList,
+  LabelList, ComposedChart, ReferenceLine, Cell,
 } from "recharts";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
@@ -80,6 +80,32 @@ const barData = dates.map((date, di) => {
   obj.total = total;
   return obj;
 });
+
+// ─── Ad Performance data ─────────────────────────────────────────────────────
+
+const adPerfRaw = [
+  { date: "Mar 30", clicks: 4450, convValue: 90800, profit: 70400, cost: 20400, roas: 4.45 },
+  { date: "Mar 31", clicks: 3780, convValue: 97000, profit: 71400, cost: 25600, roas: 3.79 },
+  { date: "Apr 1",  clicks: 740,  convValue: 94800, profit: 72400, cost: 22400, roas: 4.23 },
+  { date: "Apr 2",  clicks: 4240, convValue: 98500, profit: 73500, cost: 25000, roas: 3.94 },
+  { date: "Apr 3",  clicks: 3940, convValue: 94200, profit: 69400, cost: 24800, roas: 3.80 },
+  { date: "Apr 4",  clicks: 3600, convValue: 89800, profit: 63300, cost: 26500, roas: 3.39 },
+  { date: "Apr 5",  clicks: 3380, convValue: 89800, profit: 63200, cost: 26600, roas: 3.38 },
+  { date: "Apr 6",  clicks: 3600, convValue: 98800, profit: 69700, cost: 29100, roas: 3.40 },
+  { date: "Apr 7",  clicks: 3220, convValue: 94000, profit: 64800, cost: 29200, roas: 3.22 },
+  { date: "Apr 8",  clicks: 980,  convValue: 100900, profit: 74900, cost: 26000, roas: 3.88 },
+  { date: "Apr 9",  clicks: 3420, convValue: 90100, profit: 60600, cost: 29500, roas: 3.06 },
+  { date: "Apr 10", clicks: 3580, convValue: 64900, profit: 39700, cost: 25200, roas: 2.57 },
+  { date: "Apr 11", clicks: 710,  convValue: 23600, profit: -9600, cost: 33200, roas: 0.71 },
+  { date: "Apr 12", clicks: 790,  convValue: 21600, profit: -5800, cost: 27400, roas: 0.79 },
+];
+
+const adPerfData = adPerfRaw.map((r) => ({
+  ...r,
+  costBase: r.profit >= 0 ? r.cost : r.convValue,
+  profitPos: Math.max(0, r.profit),
+  profitNeg: Math.min(0, r.profit),
+}));
 
 const campaignRows = [
   { status: "gray", name: "Search - Men T-Shirts", type: "Search", roas: "160.00%", roasColor: "green", impr: 886714, clicks: 75539, cpc: 0.25, ctr: 8.55, convRate: 0.74, conv: 563, cpa: 33.1, revenue: 87.65, cost: 18.64, profit: 69.01, roasVal: 470 },
@@ -188,6 +214,52 @@ const renderTotalLabel = (props: unknown) => {
   );
 };
 
+// ─── Ad Performance helpers ───────────────────────────────────────────────────
+
+const AdXTick = (props: unknown) => {
+  const { x, y, payload } = props as { x: number; y: number; payload: { value: string } };
+  const item = adPerfData.find((d) => d.date === payload.value);
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={13} fill="#6B7280" fontSize={10} textAnchor="middle" fontWeight={500}>
+        {item ? `${(item.clicks / 1000).toFixed(2)}K` : ""}
+      </text>
+      <text x={0} y={0} dy={25} fill="#9CA3AF" fontSize={10} textAnchor="middle">
+        {payload.value}
+      </text>
+    </g>
+  );
+};
+
+const AdTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {
+  if (!active || !payload?.length) return null;
+  const item = adPerfData.find((d) => d.date === label);
+  if (!item) return null;
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2.5 text-[11px]">
+      <p className="font-semibold text-gray-700 mb-1.5">{label}</p>
+      <div className="flex justify-between gap-4"><span className="text-gray-500">Conv. Value</span><span className="font-semibold text-gray-800">${(item.convValue / 1000).toFixed(1)}K</span></div>
+      <div className="flex justify-between gap-4"><span className="text-green-600">Profit</span><span className={`font-semibold ${item.profit < 0 ? "text-red-600" : "text-green-700"}`}>{item.profit < 0 ? "-" : ""}${(Math.abs(item.profit) / 1000).toFixed(1)}K</span></div>
+      <div className="flex justify-between gap-4"><span className="text-red-400">Cost</span><span className="font-semibold text-gray-800">${(item.cost / 1000).toFixed(1)}K</span></div>
+      <div className="flex justify-between gap-4 border-t border-gray-100 mt-1.5 pt-1"><span className="text-purple-500">ROAS</span><span className="font-semibold text-gray-800">{item.roas.toFixed(2)}x</span></div>
+      <div className="flex justify-between gap-4"><span className="text-gray-400">Clicks</span><span className="font-semibold text-gray-800">{(item.clicks / 1000).toFixed(2)}K</span></div>
+    </div>
+  );
+};
+
+const renderConvLabel = (props: unknown) => {
+  const p = props as { x?: number; y?: number; width?: number; value?: number; index?: number };
+  const x = p.x ?? 0; const y = p.y ?? 0; const width = p.width ?? 0; const idx = p.index ?? 0;
+  if (width < 24) return null;
+  const item = adPerfData[idx];
+  if (!item || item.profit < 0) return null;
+  return (
+    <text x={x + width / 2} y={y - 5} fill="#374151" fontSize={9} fontWeight={700} textAnchor="middle">
+      ${(item.convValue / 1000).toFixed(1)}K
+    </text>
+  );
+};
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function GoogleAdsPage() {
@@ -292,52 +364,112 @@ export default function GoogleAdsPage() {
 
         {/* Chart controls */}
         <div className="flex items-center justify-between gap-2 mb-4 text-[13px]">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 font-medium whitespace-nowrap">
-              Revenue
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+          {activeTab === 0 && (
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 font-medium whitespace-nowrap">
+                Revenue
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <span className="text-gray-400 text-[12px] shrink-0">by</span>
+              <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 font-medium whitespace-nowrap">
+                Campaign
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
             </div>
-            <span className="text-gray-400 text-[12px] shrink-0">by</span>
-            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 font-medium whitespace-nowrap">
-              Campaign
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-          </div>
+          )}
+          {activeTab === 1 && (
+            <p className="text-[12px] text-gray-400">Conversion value, profit, cost, clicks &amp; ROAS over time</p>
+          )}
+          {activeTab !== 0 && activeTab !== 1 && <div />}
           <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 whitespace-nowrap shrink-0">
             Days
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
         </div>
 
-        {/* Stacked bar chart — scrollable on mobile */}
-        <div className="overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
-          <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-500px)] lg:min-h-[360px] min-w-[600px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} barCategoryGap="18%" margin={{ top: 28, right: 10, left: -10, bottom: 0 }}>
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false}
-                  tickFormatter={(v) => `$${v / 1000}K`} />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(99, 102, 241, 0.05)" }} />
-                {CAMPAIGNS.map((c, i) => (
-                  <Bar key={c} dataKey={c} stackId="a" fill={COLORS[i]}
-                    radius={i === CAMPAIGNS.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
-                    {i === CAMPAIGNS.length - 1 && <LabelList dataKey="total" content={renderTotalLabel} />}
-                  </Bar>
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Legend */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 justify-center">
-          {CAMPAIGNS.map((c, i) => (
-            <div key={c} className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-[12px] text-gray-500">
-              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm shrink-0" style={{ background: COLORS[i] }} />
-              {c}
+        {/* ── Period Analysis chart ── */}
+        {activeTab === 0 && (
+          <>
+            <div className="overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
+              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-500px)] lg:min-h-[360px] min-w-[600px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={barData} barCategoryGap="18%" margin={{ top: 28, right: 10, left: -10, bottom: 0 }}>
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} />
+                    <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(99, 102, 241, 0.05)" }} />
+                    {CAMPAIGNS.map((c, i) => (
+                      <Bar key={c} dataKey={c} stackId="a" fill={COLORS[i]} radius={i === CAMPAIGNS.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
+                        {i === CAMPAIGNS.length - 1 && <LabelList dataKey="total" content={renderTotalLabel} />}
+                      </Bar>
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          ))}
-        </div>
+            <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 justify-center">
+              {CAMPAIGNS.map((c, i) => (
+                <div key={c} className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-[12px] text-gray-500">
+                  <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm shrink-0" style={{ background: COLORS[i] }} />
+                  {c}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── Ad Performance chart ── */}
+        {activeTab === 1 && (
+          <>
+            <div className="overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
+              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-480px)] lg:min-h-[380px] min-w-[760px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={adPerfData} barCategoryGap="10%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
+                    <XAxis dataKey="date" tick={<AdXTick />} axisLine={false} tickLine={false} height={40} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: "#A78BFA" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}x`} domain={[0, 6]} />
+                    <ReferenceLine yAxisId="left" y={0} stroke="#E5E7EB" strokeWidth={1} />
+                    <Tooltip content={<AdTooltip />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
+
+                    {/* Cost (red base) */}
+                    <Bar yAxisId="left" dataKey="costBase" stackId="a" radius={[0, 0, 3, 3]} isAnimationActive={false}>
+                      {adPerfData.map((entry, i) => (
+                        <Cell key={i} fill={entry.profit < 0 ? "#FCA5A5" : "#FCA5A5"} fillOpacity={0.85} />
+                      ))}
+                    </Bar>
+
+                    {/* Profit positive (green, on top of cost) */}
+                    <Bar yAxisId="left" dataKey="profitPos" stackId="a" fill="#4ADE80" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                      <LabelList dataKey="profitPos" content={renderConvLabel} />
+                    </Bar>
+
+                    {/* Profit negative (dark red, below zero) */}
+                    <Bar yAxisId="left" dataKey="profitNeg" fill="#EF4444" radius={[0, 0, 3, 3]} isAnimationActive={false} />
+
+                    {/* ROAS line */}
+                    <Line yAxisId="right" type="monotone" dataKey="roas" stroke="#8B5CF6" strokeWidth={2} dot={{ fill: "#8B5CF6", r: 3, strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            {/* Legend */}
+            <div className="flex flex-wrap gap-3 mt-2 justify-center text-[11px] sm:text-[12px] text-gray-500">
+              {[
+                { label: "Conv. Value", color: "#4ADE80" },
+                { label: "Cost", color: "#FCA5A5" },
+                { label: "Loss", color: "#EF4444" },
+                { label: "ROAS", color: "#8B5CF6", line: true },
+              ].map(({ label, color, line }) => (
+                <div key={label} className="flex items-center gap-1.5">
+                  {line
+                    ? <div className="w-4 h-0.5 rounded-full" style={{ background: color }} />
+                    : <div className="w-2 h-2 rounded-sm shrink-0" style={{ background: color }} />
+                  }
+                  {label}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Event Timeline */}
         <div className="mt-5 pt-4 border-t border-gray-100">

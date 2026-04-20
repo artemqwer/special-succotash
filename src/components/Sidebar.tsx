@@ -195,7 +195,7 @@ export default function Sidebar({ mobileOpen, onMobileClose, session, onLogout }
       <div className={`fixed inset-y-0 left-0 z-50 lg:hidden flex transition-transform duration-300 ease-in-out ${
         mobileOpen ? "translate-x-0" : "-translate-x-full"
       }`}>
-            <aside className="w-[220px] h-full bg-white border-r border-gray-100 flex flex-col">
+            <aside className="w-[260px] h-full bg-white border-r border-gray-100 flex flex-col">
               {/* Logo + close */}
               <div className="flex items-center justify-between px-4 pt-5 pb-3">
                 <div className="flex items-center gap-2">
