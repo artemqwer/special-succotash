@@ -107,6 +107,50 @@ const adPerfData = adPerfRaw.map((r) => ({
   profitNeg: Math.min(0, r.profit),
 }));
 
+// ─── Timeline data ───────────────────────────────────────────────────────────
+
+const tlDates = adPerfRaw.map((d) => d.date);
+
+const tlEventItems = [
+  { date: "Mar 30", bg: "bg-orange-100", icon: "🎉" },
+  { date: "Apr 1",  bg: "bg-blue-100",   icon: "📅" },
+  { date: "Apr 2",  bg: "bg-red-100",    icon: "🎂" },
+  { date: "Apr 4",  bg: "bg-green-100",  icon: "🛍️" },
+  { date: "Apr 5",  bg: "bg-purple-100", icon: "⭐" },
+  { date: "Apr 8",  bg: "bg-pink-100",   icon: "🎂" },
+  { date: "Apr 10", bg: "bg-blue-100",   icon: "📅" },
+  { date: "Apr 11", bg: "bg-orange-100", icon: "🎉" },
+];
+
+const tlAdItems = [
+  { date: "Mar 30", bg: "bg-blue-100",   count: 5 },
+  { date: "Mar 31", bg: "bg-orange-100", count: 5 },
+  { date: "Apr 1",  bg: "bg-green-100",  count: 6 },
+  { date: "Apr 2",  bg: "bg-red-100",    count: 5 },
+  { date: "Apr 3",  bg: "bg-purple-100", count: 5 },
+  { date: "Apr 4",  bg: "bg-blue-100",   count: 8 },
+  { date: "Apr 5",  bg: "bg-orange-100", count: 5 },
+  { date: "Apr 6",  bg: "bg-green-100",  count: 6 },
+  { date: "Apr 7",  bg: "bg-red-100",    count: 3 },
+  { date: "Apr 8",  bg: "bg-purple-100", count: 3 },
+  { date: "Apr 9",  bg: "bg-blue-100",   count: 5 },
+  { date: "Apr 10", bg: "bg-orange-100", count: 6 },
+  { date: "Apr 11", bg: "bg-red-100",    count: 3 },
+  { date: "Apr 12", bg: "bg-green-100",  count: 4 },
+];
+
+const tlWebItems = [
+  { date: "Mar 31", bg: "bg-teal-100",   icon: "🌐" },
+  { date: "Apr 1",  bg: "bg-blue-100",   icon: "🔧" },
+  { date: "Apr 3",  bg: "bg-orange-100", icon: "💻" },
+  { date: "Apr 5",  bg: "bg-teal-100",   icon: "🌐" },
+  { date: "Apr 7",  bg: "bg-sky-100",    icon: "🌐" },
+  { date: "Apr 9",  bg: "bg-pink-100",   icon: "🔗" },
+  { date: "Apr 10", bg: "bg-teal-100",   icon: "💻" },
+  { date: "Apr 11", bg: "bg-red-100",    icon: "🌐" },
+  { date: "Apr 12", bg: "bg-purple-100", icon: "📊" },
+];
+
 const campaignRows = [
   { status: "gray", name: "Search - Men T-Shirts", type: "Search", roas: "160.00%", roasColor: "green", impr: 886714, clicks: 75539, cpc: 0.25, ctr: 8.55, convRate: 0.74, conv: 563, cpa: 33.1, revenue: 87.65, cost: 18.64, profit: 69.01, roasVal: 470 },
   { status: "green", name: "Search - Men Shirts", type: "Search", roas: "94.00%", roasColor: "red", impr: 1562745, clicks: 75079, cpc: 1.05, ctr: 4.81, convRate: 2.15, conv: 1617, cpa: 48.6, revenue: 32.89, cost: 78.52, profit: -45.63, roasVal: 42 },
@@ -293,6 +337,7 @@ export default function GoogleAdsPage() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [typeFilter, setTypeFilter] = useState("All");
   const [nameFilter, setNameFilter] = useState("");
+  const [timelineOpen, setTimelineOpen] = useState(true);
   const totalPages = 5;
 
   const handleSort = (col: SortKey) => {
@@ -504,15 +549,19 @@ export default function GoogleAdsPage() {
 
         {/* Event Timeline */}
         <div className="mt-5 pt-4 border-t border-gray-100">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
             <div className="flex items-start gap-2">
-              <button className="text-gray-400 hover:text-gray-600 mt-0.5">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+              <button onClick={() => setTimelineOpen(!timelineOpen)} className="text-gray-400 hover:text-gray-600 mt-0.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                  className={`transition-transform duration-200 ${timelineOpen ? "" : "-rotate-90"}`}>
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
               </button>
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-semibold text-gray-800">Event Timeline</span>
-                  <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-semibold">81</span>
+                  <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-semibold">109</span>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                 </div>
                 <p className="text-[11px] text-gray-400 mt-0.5 hidden sm:block">Campaign changes, business updates, holidays, and performance anomalies</p>
@@ -525,7 +574,7 @@ export default function GoogleAdsPage() {
               </button>
               <div className="hidden sm:flex items-center gap-1 text-[11px] text-gray-500">
                 <span>Holidays:</span>
-                <span className="w-5 h-5 rounded bg-red-100 flex items-center justify-center text-[10px]">🎉</span>
+                <span className="w-5 h-5 rounded bg-orange-100 flex items-center justify-center text-[10px]">🎉</span>
               </div>
               <div className="hidden sm:flex items-center gap-1 text-[11px] text-gray-500">
                 <span>Ads:</span>
@@ -536,13 +585,89 @@ export default function GoogleAdsPage() {
               </div>
               <div className="hidden sm:flex items-center gap-1 text-[11px] text-gray-500">
                 <span>Website:</span>
-                {["bg-pink-100","bg-yellow-100","bg-blue-100","bg-green-100"].map((c, i) => (
+                {["bg-teal-100","bg-blue-100","bg-orange-100","bg-pink-100"].map((c, i) => (
                   <span key={i} className={`w-5 h-5 rounded ${c} flex items-center justify-center text-[9px]`}>🌐</span>
                 ))}
                 <span className="text-[10px] text-gray-400">+6</span>
               </div>
             </div>
           </div>
+
+          {/* Timeline grid */}
+          {timelineOpen && (
+            <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
+              <div className="min-w-[600px]">
+                {/* Date row */}
+                <div className="flex border-b border-gray-100 pb-1.5 mb-0.5">
+                  <div className="w-[58px] shrink-0" />
+                  {tlDates.map((date, i) => (
+                    <div key={date} className={`flex-1 text-center text-[9px] font-medium ${
+                      i >= 12 ? "text-orange-400" : "text-gray-400"
+                    }`}>{date}</div>
+                  ))}
+                </div>
+
+                {/* Events row */}
+                <div className="flex items-center py-1.5">
+                  <div className="w-[58px] shrink-0 text-[9px] text-gray-400 font-semibold uppercase tracking-wide pr-2 text-right">Events</div>
+                  <div className="flex-1 flex relative">
+                    <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-gray-100" />
+                    {tlDates.map((date) => {
+                      const item = tlEventItems.find((e) => e.date === date);
+                      return (
+                        <div key={date} className="flex-1 flex justify-center relative z-10">
+                          {item
+                            ? <span className={`w-[20px] h-[20px] rounded-full flex items-center justify-center text-[10px] ${item.bg} shadow-sm`}>{item.icon}</span>
+                            : <span className="w-[5px] h-[5px] rounded-full bg-gray-100 self-center" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Ads row */}
+                <div className="flex items-center py-1">
+                  <div className="w-[58px] shrink-0 text-[9px] text-gray-400 font-semibold uppercase tracking-wide pr-2 text-right">Ads</div>
+                  <div className="flex-1 flex relative">
+                    <div className="absolute top-1/3 left-0 right-0 border-t border-dashed border-gray-100" />
+                    {tlDates.map((date) => {
+                      const item = tlAdItems.find((e) => e.date === date);
+                      return (
+                        <div key={date} className="flex-1 flex flex-col items-center relative z-10">
+                          {item ? (
+                            <>
+                              <span className={`w-[20px] h-[20px] rounded-full flex items-center justify-center text-[9px] ${item.bg} shadow-sm`}>⚡</span>
+                              <span className="text-[8px] text-gray-400 leading-tight mt-0.5">+{item.count}</span>
+                            </>
+                          ) : (
+                            <span className="w-[5px] h-[5px] rounded-full bg-gray-100 mt-[7px]" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Website row */}
+                <div className="flex items-center py-1.5">
+                  <div className="w-[58px] shrink-0 text-[9px] text-gray-400 font-semibold uppercase tracking-wide pr-2 text-right">Website</div>
+                  <div className="flex-1 flex relative">
+                    <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-gray-100" />
+                    {tlDates.map((date) => {
+                      const item = tlWebItems.find((e) => e.date === date);
+                      return (
+                        <div key={date} className="flex-1 flex justify-center relative z-10">
+                          {item
+                            ? <span className={`w-[20px] h-[20px] rounded-full flex items-center justify-center text-[10px] ${item.bg} shadow-sm`}>{item.icon}</span>
+                            : <span className="w-[5px] h-[5px] rounded-full bg-gray-100 self-center" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
