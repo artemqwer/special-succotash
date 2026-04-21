@@ -271,7 +271,7 @@ const AdXTick = (props: unknown) => {
       <text x={0} y={0} dy={25} fill="#9CA3AF" fontSize={10} textAnchor="middle">
         {payload.value}
       </text>
-      <text x={0} y={0} dy={37} fill="#F97316" fontSize={9} textAnchor="middle" fontWeight={600}>
+      <text x={0} y={0} dy={37} fill="#8B5CF6" fontSize={9} textAnchor="middle" fontWeight={600}>
         {item ? `${item.roas.toFixed(2)}x` : ""}
       </text>
     </g>
@@ -507,9 +507,9 @@ export default function GoogleAdsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={adPerfData} barCategoryGap="2%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
                     <XAxis dataKey="date" tick={<AdXTick />} axisLine={false} tickLine={false} height={52} />
-                    <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} label={{ value: "Conv. Value / Profit / Cost", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 9 } }} />
                     <YAxis yAxisId="right" orientation="right" hide domain={[0, 6]} />
-                    <YAxis yAxisId="clicks" orientation="right" hide domain={[0, 15000]} />
+                    <YAxis yAxisId="clicks" orientation="right" tick={{ fontSize: 9, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} domain={[0, 8000]} label={{ value: "Clicks", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 9 } }} />
                     <ReferenceLine yAxisId="left" y={0} stroke="#E5E7EB" strokeWidth={1} />
                     <Tooltip content={<AdTooltip />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
 
@@ -527,7 +527,7 @@ export default function GoogleAdsPage() {
                     </Bar>
 
                     {/* ROAS dots on X-axis */}
-                    <Line yAxisId="left" type="monotone" dataKey="roasZero" stroke="transparent" strokeWidth={0} dot={{ fill: "#F97316", r: 4, strokeWidth: 0 }} activeDot={{ r: 5, fill: "#F97316" }} isAnimationActive={false} />
+                    <Line yAxisId="left" type="monotone" dataKey="roasZero" stroke="transparent" strokeWidth={0} dot={{ fill: "#8B5CF6", r: 4, strokeWidth: 0 }} activeDot={{ r: 5, fill: "#8B5CF6" }} isAnimationActive={false} />
 
                     {/* Clicks line */}
                     <Line yAxisId="clicks" type="monotone" dataKey="clicks" stroke="#3B82F6" strokeWidth={1.5} dot={{ fill: "#3B82F6", r: 2.5, strokeWidth: 0 }} activeDot={{ r: 4 }} />
@@ -542,7 +542,7 @@ export default function GoogleAdsPage() {
                 { label: "Profit", color: "#4ADE80" },
                 { label: "Cost", color: "#F87171" },
                 { label: "Clicks", color: "#3B82F6", line: true },
-                { label: "ROAS", color: "#F97316", dot: true },
+                { label: "ROAS", color: "#8B5CF6", dot: true },
               ].map(({ label, color, line, dot }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   {line
