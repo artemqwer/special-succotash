@@ -102,9 +102,9 @@ const adPerfRaw = [
 
 const adPerfData = adPerfRaw.map((r) => ({
   ...r,
-  costBase: r.profit >= 0 ? r.cost : r.convValue,
+  costBase: r.cost,
   profitPos: Math.max(0, r.profit),
-  profitNeg: Math.min(0, r.profit),
+  roasZero: 0,
 }));
 
 // ─── Timeline data ───────────────────────────────────────────────────────────
@@ -271,6 +271,9 @@ const AdXTick = (props: unknown) => {
       <text x={0} y={0} dy={25} fill="#9CA3AF" fontSize={10} textAnchor="middle">
         {payload.value}
       </text>
+      <text x={0} y={0} dy={37} fill="#F97316" fontSize={9} textAnchor="middle" fontWeight={600}>
+        {item ? `${item.roas.toFixed(2)}x` : ""}
+      </text>
     </g>
   );
 };
@@ -317,15 +320,25 @@ const renderCostLabel = (props: unknown) => {
   if (w < 34 || h < 16) return null;
   const item = adPerfData[idx];
   if (!item) return null;
-  const label = item.profit >= 0 ? item.cost : item.convValue;
-  return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={9} fontWeight={700} textAnchor="middle">${(label / 1000).toFixed(1)}K</text>;
+  return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={9} fontWeight={700} textAnchor="middle">${(item.cost / 1000).toFixed(1)}K</text>;
 };
 
-const renderLossLabel = (props: unknown) => {
-  const p = props as { x?: number; y?: number; width?: number; height?: number; value?: number };
-  const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, h = p.height ?? 0, val = p.value ?? 0;
-  if (w < 28 || h < 12 || val >= 0) return null;
-  return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={9} fontWeight={700} textAnchor="middle">-${(Math.abs(val) / 1000).toFixed(1)}K</text>;
+const renderLossTopLabel = (props: unknown) => {
+  const p = props as { x?: number; y?: number; width?: number; index?: number };
+  const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, idx = p.index ?? 0;
+  if (w < 24) return null;
+  const item = adPerfData[idx];
+  if (!item || item.profit >= 0) return null;
+  return (
+    <g>
+      <text x={x + w / 2} y={y - 14} fill="#3B82F6" fontSize={9} fontWeight={700} textAnchor="middle">
+        ${(item.convValue / 1000).toFixed(1)}K
+      </text>
+      <text x={x + w / 2} y={y - 3} fill="#EF4444" fontSize={9} fontWeight={700} textAnchor="middle">
+        -{(Math.abs(item.profit) / 1000).toFixed(1)}K
+      </text>
+    </g>
+  );
 };
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -493,17 +506,18 @@ export default function GoogleAdsPage() {
               <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-480px)] lg:min-h-[380px] min-w-[1800px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={adPerfData} barCategoryGap="2%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
-                    <XAxis dataKey="date" tick={<AdXTick />} axisLine={false} tickLine={false} height={40} />
+                    <XAxis dataKey="date" tick={<AdXTick />} axisLine={false} tickLine={false} height={52} />
                     <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: "#F97316" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}x`} domain={[0, 6]} />
+                    <YAxis yAxisId="right" orientation="right" hide domain={[0, 6]} />
                     <YAxis yAxisId="clicks" orientation="right" hide domain={[0, 15000]} />
                     <ReferenceLine yAxisId="left" y={0} stroke="#E5E7EB" strokeWidth={1} />
                     <Tooltip content={<AdTooltip />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
 
-                    {/* Cost (red base) */}
+                    {/* Cost base */}
                     <Bar yAxisId="left" dataKey="costBase" stackId="a" radius={[0, 0, 3, 3]} isAnimationActive={false}>
                       {adPerfData.map((_, i) => <Cell key={i} fill="#F87171" fillOpacity={0.9} />)}
                       <LabelList dataKey="costBase" content={renderCostLabel} />
+                      <LabelList dataKey="costBase" content={renderLossTopLabel} />
                     </Bar>
 
                     {/* Profit positive (green, on top of cost) */}
@@ -512,13 +526,8 @@ export default function GoogleAdsPage() {
                       <LabelList dataKey="profitPos" content={renderConvLabel} />
                     </Bar>
 
-                    {/* Profit negative (pink, below zero) */}
-                    <Bar yAxisId="left" dataKey="profitNeg" fill="#FCA5A5" radius={[0, 0, 3, 3]} isAnimationActive={false}>
-                      <LabelList dataKey="profitNeg" content={renderLossLabel} />
-                    </Bar>
-
-                    {/* ROAS line */}
-                    <Line yAxisId="right" type="monotone" dataKey="roas" stroke="#F97316" strokeWidth={2} dot={{ fill: "#F97316", r: 3, strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                    {/* ROAS dots on X-axis */}
+                    <Line yAxisId="left" type="monotone" dataKey="roasZero" stroke="transparent" strokeWidth={0} dot={{ fill: "#F97316", r: 4, strokeWidth: 0 }} activeDot={{ r: 5, fill: "#F97316" }} isAnimationActive={false} />
 
                     {/* Clicks line */}
                     <Line yAxisId="clicks" type="monotone" dataKey="clicks" stroke="#3B82F6" strokeWidth={1.5} dot={{ fill: "#3B82F6", r: 2.5, strokeWidth: 0 }} activeDot={{ r: 4 }} />
@@ -533,11 +542,13 @@ export default function GoogleAdsPage() {
                 { label: "Profit", color: "#4ADE80" },
                 { label: "Cost", color: "#F87171" },
                 { label: "Clicks", color: "#3B82F6", line: true },
-                { label: "ROAS", color: "#F97316", line: true },
-              ].map(({ label, color, line }) => (
+                { label: "ROAS", color: "#F97316", dot: true },
+              ].map(({ label, color, line, dot }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   {line
                     ? <div className="w-4 h-0.5 rounded-full" style={{ background: color }} />
+                    : dot
+                    ? <div className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
                     : <div className="w-2 h-2 rounded-sm shrink-0" style={{ background: color }} />
                   }
                   {label}
