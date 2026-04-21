@@ -261,17 +261,17 @@ function KpiCard({ label, icon, value, delta, up, spark }: {
   const color = up ? "#22C55E" : "#EF4444";
   const gradId = `kg-${label.replace(/[^a-zA-Z0-9]/g, "")}`;
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 pt-3.5 pb-0 min-w-[140px] flex-1 overflow-hidden">
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-1.5">
-          <span className={up ? "text-green-500" : "text-red-400"}>{icon}</span>
-          <span className="text-[12px] text-gray-500">{label}</span>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-2 sm:px-4 pt-2.5 sm:pt-3.5 pb-2.5 sm:pb-0 min-w-0 flex-1 overflow-hidden">
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-1 min-w-0">
+          <span className={`shrink-0 ${up ? "text-green-500" : "text-red-400"}`}>{icon}</span>
+          <span className="text-[10px] sm:text-[12px] text-gray-500 truncate">{label}</span>
         </div>
-        <span className="w-4 h-4 rounded-full border border-gray-200 shrink-0" />
+        <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border border-gray-200 shrink-0 ml-1" />
       </div>
-      <div className="flex items-baseline gap-2 mb-2.5">
-        <span className="text-[20px] font-bold text-gray-900 leading-none">{value}</span>
-        <span className={`text-[12px] font-semibold ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
+      <div className="flex items-baseline gap-1 sm:gap-2 mb-0 sm:mb-2.5 flex-wrap">
+        <span className="text-[15px] sm:text-[20px] font-bold text-gray-900 leading-none truncate">{value}</span>
+        <span className={`text-[10px] sm:text-[12px] font-semibold shrink-0 ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
       </div>
       <div className="h-[58px] -mx-4 hidden sm:block">
         <ResponsiveContainer width="100%" height="100%">
@@ -606,7 +606,7 @@ export default function GoogleAdsPage() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-4 sm:grid-cols-4 xl:grid-cols-8 gap-3 mb-5">
+      <div className="grid grid-cols-4 sm:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 mb-5">
         {kpis.map((k, i) => (
           <KpiCard key={k.label} label={k.label} icon={k.icon} value={k.value} delta={k.delta} up={k.up} spark={sparkData(k.up, i)} />
         ))}
