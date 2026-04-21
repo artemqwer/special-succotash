@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line,
-  LabelList, ComposedChart, ReferenceLine, Cell,
+  LabelList, ComposedChart, ReferenceLine, Cell, PieChart, Pie, AreaChart, Area,
 } from "recharts";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
@@ -176,6 +176,49 @@ const plAvgDaily   = Math.round(plTotal / plData.length);
 const plProfitDays = profitLossRaw.filter((r) => r.dailyProfit > 0).length;
 const plLossDays   = profitLossRaw.filter((r) => r.dailyProfit < 0).length;
 
+// ─── Segments data ───────────────────────────────────────────────────────────
+
+const SEG_COLORS = ["#3B82F6","#22C55E","#F97316","#A855F7","#EF4444","#06B6D4","#EC4899","#10B981","#F59E0B","#6B7280"];
+
+const segRevenue = [
+  { name: "PMax - Men Jackets",        value: 236600 },
+  { name: "Shopping - Women Sneakers", value: 231610 },
+  { name: "PMax - Premium Brands",     value: 207270 },
+  { name: "PMax - Women Dresses",      value: 199760 },
+  { name: "PMax - Accessories",        value: 184270 },
+  { name: "Search - Men Hoodies",      value: 178090 },
+  { name: "Search - Men T-Shirts",     value: 167620 },
+  { name: "PMax - Sportswear",         value: 142660 },
+  { name: "Display - Summer Sale",     value: 135290 },
+  { name: "Others",                    value: 1070000 },
+];
+
+const segAdProfit = [
+  { name: "Shopping - Women Sneakers", value: 126110 },
+  { name: "PMax - Premium Brands",     value: 112690 },
+  { name: "PMax - Women Dresses",      value:  99880 },
+  { name: "Search - Men T-Shirts",     value:  99450 },
+  { name: "PMax - Men Jackets",        value:  88720 },
+  { name: "Search - Men Hoodies",      value:  73330 },
+  { name: "Search - Women Jeans",      value:  65430 },
+  { name: "PMax - Accessories",        value:  65420 },
+  { name: "PMax - Sportswear",         value:  58390 },
+  { name: "Others",                    value: 377020 },
+];
+
+const segConversions = [
+  { name: "Search - Men Boots",       value: 5400 },
+  { name: "Search - Men Shirts",      value: 4760 },
+  { name: "Search - Men Suits",       value: 4690 },
+  { name: "Search - Men Jackets",     value: 3700 },
+  { name: "Shopping - Men Outerwear", value: 3430 },
+  { name: "Search - Women Skirts",    value: 3400 },
+  { name: "PMax - Men Clothing",      value: 2960 },
+  { name: "Search - Men Jeans",       value: 2950 },
+  { name: "Search - Men Tops",        value: 2930 },
+  { name: "Others",                   value: 37500 },
+];
+
 const campaignRows = [
   { status: "gray", name: "Search - Men T-Shirts", type: "Search", roas: "160.00%", roasColor: "green", impr: 886714, clicks: 75539, cpc: 0.25, ctr: 8.55, convRate: 0.74, conv: 563, cpa: 33.1, revenue: 87.65, cost: 18.64, profit: 69.01, roasVal: 470 },
   { status: "green", name: "Search - Men Shirts", type: "Search", roas: "94.00%", roasColor: "red", impr: 1562745, clicks: 75079, cpc: 1.05, ctr: 4.81, convRate: 2.15, conv: 1617, cpa: 48.6, revenue: 32.89, cost: 78.52, profit: -45.63, roasVal: 42 },
@@ -215,23 +258,32 @@ function heatmapBg(value: number, min: number, max: number, color: "blue" | "gre
 function KpiCard({ label, icon, value, delta, up, spark }: {
   label: string; icon: React.ReactNode; value: string; delta: string; up: boolean; spark: { v: number }[];
 }) {
+  const color = up ? "#22C55E" : "#EF4444";
+  const gradId = `kg-${label.replace(/[^a-zA-Z0-9]/g, "")}`;
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-3.5 pt-2.5 pb-1 min-w-[140px] flex-1">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 pt-3.5 pb-0 min-w-[140px] flex-1 overflow-hidden">
       <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-1.5 text-gray-500">
+        <div className="flex items-center gap-1.5">
           <span className={up ? "text-green-500" : "text-red-400"}>{icon}</span>
-          <span className="text-[11px]">{label}</span>
+          <span className="text-[12px] text-gray-500">{label}</span>
         </div>
+        <span className="w-4 h-4 rounded-full border border-gray-200 shrink-0" />
       </div>
-      <div className="flex items-baseline gap-2 mb-1">
-        <span className="text-[18px] font-bold text-gray-900 leading-none">{value}</span>
-        <span className={`text-[11px] font-semibold ${up ? "text-green-600" : "text-red-500"}`}>{delta}</span>
+      <div className="flex items-baseline gap-2 mb-2.5">
+        <span className="text-[20px] font-bold text-gray-900 leading-none">{value}</span>
+        <span className={`text-[12px] font-semibold ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
       </div>
-      <div className="h-[28px] -mx-1">
+      <div className="h-[58px] -mx-4 hidden sm:block">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={spark}>
-            <Line type="monotone" dataKey="v" stroke={up ? "#22C55E" : "#EF4444"} dot={false} strokeWidth={1.5} />
-          </LineChart>
+          <AreaChart data={spark} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity={0.18} />
+                <stop offset="100%" stopColor={color} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <Area type="natural" dataKey="v" stroke={color} strokeWidth={2} fill={`url(#${gradId})`} dot={false} isAnimationActive={false} />
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </div>
@@ -267,6 +319,73 @@ function SortIcon({ dir }: { dir: SortDir }) {
     </span>
   );
 }
+
+function SegmentDonut({ title, data, formatValue, highlight }: {
+  title: string;
+  data: { name: string; value: number }[];
+  formatValue: (v: number) => string;
+  highlight?: boolean;
+}) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  return (
+    <div className={`rounded-2xl border p-4 flex flex-col ${highlight ? "bg-green-50/40 border-green-100" : "bg-blue-50/30 border-gray-100"}`}>
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-[12px] font-medium cursor-pointer hover:bg-gray-50">
+          {title}
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <span className="text-[12px] text-gray-400">by</span>
+        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-[12px] font-medium cursor-pointer hover:bg-gray-50">
+          Campaigns
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div className="h-[220px] relative">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} cx="50%" cy="50%" innerRadius={70} outerRadius={105} dataKey="value" paddingAngle={1} startAngle={90} endAngle={-270} strokeWidth={0}>
+              {data.map((_, i) => <Cell key={i} fill={SEG_COLORS[i % SEG_COLORS.length]} />)}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-[11px] text-gray-400 mb-0.5">Total</span>
+          <span className="text-[20px] font-extrabold text-gray-900 leading-none">{formatValue(total)}</span>
+        </div>
+      </div>
+      <div className="space-y-1.5 mt-2">
+        {data.map((item, i) => (
+          <div key={i} className="flex items-center justify-between text-[12px]">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: SEG_COLORS[i % SEG_COLORS.length] }} />
+              <span className="text-gray-600 truncate">{item.name}</span>
+            </div>
+            <span className="font-semibold text-gray-800 ml-2 shrink-0">{formatValue(item.value)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const MONTH_IDX: Record<string, number> = { Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11 };
+function isWeekend(dateStr: string) {
+  const [m, d] = dateStr.split(" ");
+  const day = new Date(2026, MONTH_IDX[m], parseInt(d)).getDay();
+  return day === 0 || day === 6;
+}
+
+const BarXTick = (props: unknown) => {
+  const { x, y, payload } = props as { x: number; y: number; payload: { value: string } };
+  const weekend = isWeekend(payload.value);
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={12} fill={weekend ? "#3B82F6" : "#9CA3AF"} fontSize={11} textAnchor="middle" fontWeight={weekend ? 700 : 400}>
+        {payload.value}
+      </text>
+    </g>
+  );
+};
 
 // Custom label renderer for stacked bar totals — hidden on narrow bars
 const renderTotalLabel = (props: unknown) => {
@@ -405,9 +524,23 @@ export default function GoogleAdsPage() {
   const [sortCol, setSortCol] = useState<SortKey | null>("clicks");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [typeFilter, setTypeFilter] = useState("All");
-  const [nameFilter, setNameFilter] = useState("");
-  const [timelineOpen, setTimelineOpen] = useState(true);
+  const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set());
+  const [campaignDropdownOpen, setCampaignDropdownOpen] = useState(false);
+  const [campaignSearch, setCampaignSearch] = useState("");
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(true);
   const totalPages = 5;
+
+  useEffect(() => {
+    const check = () => {
+      setIsMobile(window.innerWidth < 640);
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const handleSort = (col: SortKey) => {
     if (sortCol === col) {
@@ -424,7 +557,7 @@ export default function GoogleAdsPage() {
 
   const filtered = useMemo(() => {
     let rows = typeFilter === "All" ? campaignRows : campaignRows.filter((r) => r.type === typeFilter);
-    if (nameFilter) rows = rows.filter((r) => r.name.toLowerCase().includes(nameFilter.toLowerCase()));
+    if (selectedCampaigns.size > 0) rows = rows.filter((r) => selectedCampaigns.has(r.name));
     if (sortCol && sortDir) {
       rows = [...rows].sort((a, b) => {
         const av = a[sortCol]; const bv = b[sortCol];
@@ -433,7 +566,7 @@ export default function GoogleAdsPage() {
       });
     }
     return rows;
-  }, [typeFilter, nameFilter, sortCol, sortDir]);
+  }, [typeFilter, selectedCampaigns, sortCol, sortDir]);
 
   // Compute min/max for heatmap columns
   const heatCols = useMemo(() => {
@@ -453,7 +586,7 @@ export default function GoogleAdsPage() {
   return (
     <div className="px-4 sm:px-6 py-6 bg-[#f4f6fb] min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+      <div className="hidden sm:flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -473,7 +606,7 @@ export default function GoogleAdsPage() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3 mb-5">
+      <div className="grid grid-cols-4 sm:grid-cols-4 xl:grid-cols-8 gap-3 mb-5">
         {kpis.map((k, i) => (
           <KpiCard key={k.label} label={k.label} icon={k.icon} value={k.value} delta={k.delta} up={k.up} spark={sparkData(k.up, i)} />
         ))}
@@ -483,7 +616,19 @@ export default function GoogleAdsPage() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
         {/* Tabs */}
         <div className="flex items-center justify-between gap-3 mb-5 min-w-0">
-          <div className="flex gap-1 border-b border-gray-100 flex-1 overflow-x-auto scrollbar-none min-w-0">
+          {/* Mobile: dropdown */}
+          <div className="sm:hidden relative flex-1">
+            <select
+              value={activeTab}
+              onChange={(e) => setActiveTab(Number(e.target.value))}
+              className="w-full appearance-none text-[13px] font-medium border border-gray-200 rounded-lg px-3 py-2 outline-none bg-white pr-8 cursor-pointer"
+            >
+              {tabs.map((t, i) => <option key={t} value={i}>{t}</option>)}
+            </select>
+            <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          {/* Desktop: tab buttons */}
+          <div className="hidden sm:flex gap-1 border-b border-gray-100 flex-1 overflow-x-auto scrollbar-none min-w-0">
             {tabs.map((t, i) => (
               <button key={t} onClick={() => setActiveTab(i)}
                 className={`px-3 py-2 text-[13px] font-medium border-b-2 transition whitespace-nowrap ${
@@ -539,11 +684,11 @@ export default function GoogleAdsPage() {
         {/* ── Period Analysis chart ── */}
         {activeTab === 0 && (
           <>
-            <div className="overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
-              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-500px)] lg:min-h-[360px] min-w-[600px]">
+            <div className="sm:overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
+              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-500px)] lg:min-h-[360px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barData} barCategoryGap="18%" margin={{ top: 28, right: 10, left: -10, bottom: 0 }}>
-                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
+                  <BarChart data={barData} barCategoryGap="18%" margin={{ top: 28, right: 10, left: -10, bottom: isMobile ? 0 : 4 }}>
+                    <XAxis dataKey="date" tick={isMobile && barData.length > 8 ? false : <BarXTick />} axisLine={false} tickLine={false} height={isMobile && barData.length > 8 ? 4 : 30} />
                     <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} />
                     <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(99, 102, 241, 0.05)" }} />
                     {CAMPAIGNS.map((c, i) => (
@@ -671,6 +816,19 @@ export default function GoogleAdsPage() {
           </>
         )}
 
+        {/* ── Segments chart ── */}
+        {activeTab === 3 && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <SegmentDonut title="Revenue" data={segRevenue}
+              formatValue={(v) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(2)}K`} />
+            <SegmentDonut title="Ad Profit" data={segAdProfit}
+              formatValue={(v) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(2)}K`}
+              highlight />
+            <SegmentDonut title="Conversions" data={segConversions}
+              formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(2)}K` : String(v)} />
+          </div>
+        )}
+
         {/* Event Timeline */}
         <div className="mt-5 pt-4 border-t border-gray-100">
           {/* Header */}
@@ -718,7 +876,13 @@ export default function GoogleAdsPage() {
           </div>
 
           {/* Timeline grid */}
-          {timelineOpen && (
+          {timelineOpen && isMobile && isPortrait && (
+            <div className="mt-2 flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-[12px] text-blue-700">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5 text-blue-500"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <p><span className="font-semibold">Events Timeline</span> is available on wider screens. Rotate to landscape mode or open on a larger screen to view the full timeline.</p>
+            </div>
+          )}
+          {timelineOpen && (!isMobile || !isPortrait) && (
             <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
               <div className="min-w-[600px]">
                 {/* Date row */}
@@ -804,9 +968,84 @@ export default function GoogleAdsPage() {
           </div>
           <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <span className="text-[12px] text-gray-500 hidden sm:inline">Filters:</span>
-            <input value={nameFilter} onChange={(e) => setNameFilter(e.target.value)}
-              placeholder="Search campaign"
-              className="text-[12px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 flex-1 sm:flex-none sm:w-36 min-w-0" />
+
+            {/* Campaign Name multi-select dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setCampaignDropdownOpen(!campaignDropdownOpen)}
+                className={`flex items-center gap-1.5 text-[12px] border rounded-lg px-2.5 py-1.5 transition whitespace-nowrap ${
+                  selectedCampaigns.size > 0
+                    ? "border-blue-400 bg-blue-50 text-blue-700"
+                    : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                Campaign Name
+                {selectedCampaigns.size > 0 && (
+                  <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{selectedCampaigns.size}</span>
+                )}
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                  className={`transition-transform ${campaignDropdownOpen ? "rotate-180" : ""}`}>
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+
+              {campaignDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setCampaignDropdownOpen(false)} />
+                  <div className="absolute top-full left-0 mt-1 w-[240px] bg-white border border-gray-200 rounded-xl shadow-lg z-50">
+                    <div className="p-2 border-b border-gray-100">
+                      <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                        <input
+                          autoFocus
+                          value={campaignSearch}
+                          onChange={(e) => setCampaignSearch(e.target.value)}
+                          placeholder="Type to search"
+                          className="text-[12px] outline-none w-full bg-transparent"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox"
+                          checked={selectedCampaigns.size === campaignRows.length}
+                          onChange={() => {
+                            if (selectedCampaigns.size === campaignRows.length) setSelectedCampaigns(new Set());
+                            else setSelectedCampaigns(new Set(campaignRows.map((r) => r.name)));
+                          }}
+                          className="rounded"
+                        />
+                        <span className="text-[11px] text-gray-500">
+                          {selectedCampaigns.size === 0 ? "Select All" : `${selectedCampaigns.size} of 45 selected`}
+                        </span>
+                      </label>
+                      {selectedCampaigns.size > 0 && (
+                        <button onClick={() => setSelectedCampaigns(new Set())} className="text-[11px] text-gray-400 hover:text-gray-700 transition">× Clear</button>
+                      )}
+                    </div>
+                    <div className="max-h-[200px] overflow-y-auto py-1">
+                      {campaignRows
+                        .filter((r) => r.name.toLowerCase().includes(campaignSearch.toLowerCase()))
+                        .map((r) => (
+                          <label key={r.name} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox"
+                              checked={selectedCampaigns.has(r.name)}
+                              onChange={() => {
+                                const next = new Set(selectedCampaigns);
+                                next.has(r.name) ? next.delete(r.name) : next.add(r.name);
+                                setSelectedCampaigns(next);
+                              }}
+                              className="rounded"
+                            />
+                            <span className="text-[12px] text-gray-700">{r.name}</span>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
               className="text-[12px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 bg-white">
               {types.map((t) => <option key={t}>{t}</option>)}
@@ -814,6 +1053,14 @@ export default function GoogleAdsPage() {
             <select className="text-[12px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 bg-white">
               <option>Status</option><option>Active</option><option>Paused</option>
             </select>
+            {(selectedCampaigns.size > 0 || typeFilter !== "All") && (
+              <button
+                onClick={() => { setSelectedCampaigns(new Set()); setTypeFilter("All"); }}
+                className="text-[12px] text-blue-600 hover:text-blue-800 transition whitespace-nowrap"
+              >
+                Clear all filters
+              </button>
+            )}
           </div>
         </div>
 
@@ -839,8 +1086,8 @@ export default function GoogleAdsPage() {
             </colgroup>
             <thead>
               <tr className="bg-gray-50/80">
-                <th className="px-3 py-2.5"><input type="checkbox" className="rounded" /></th>
-                <th className="px-2 py-2.5 text-left text-gray-500 font-medium text-[11px]">Status</th>
+                <th className="px-3 py-2.5 sticky left-0 z-20 bg-gray-50"><input type="checkbox" className="rounded" /></th>
+                <th className="px-2 py-2.5 text-left text-gray-500 font-medium text-[11px] sticky left-10 z-20 bg-gray-50">Status</th>
                 {([
                   ["Campaign","name","left"],["Type","type","left"],["Target ROAS","roas","left"],
                   ["Impr.","impr","right"],["Clicks","clicks","right"],["CPC","cpc","right"],["CTR","ctr","right"],
@@ -848,7 +1095,7 @@ export default function GoogleAdsPage() {
                   ["Revenue","revenue","right"],["Cost","cost","right"],["Profit (ads)","profit","right"],["ROAS","roasVal","right"],
                 ] as [string, SortKey, "left" | "right"][]).map(([label, col, align]) => (
                   <th key={col} onClick={() => handleSort(col)}
-                    className={`px-2.5 py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[11px]`}>
+                    className={`px-2.5 py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[11px]${col === "name" ? " sticky left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200" : ""}`}>
                     {label}<SortIcon dir={sortCol === col ? sortDir : null} />
                   </th>
                 ))}
@@ -856,12 +1103,12 @@ export default function GoogleAdsPage() {
             </thead>
             <tbody>
               {filtered.map((row, i) => (
-                <tr key={i} className="border-t border-gray-50 hover:bg-blue-50/20 transition">
-                  <td className="px-3 py-2.5"><input type="checkbox" className="rounded" /></td>
-                  <td className="px-2 py-2.5">
+                <tr key={i} className="border-t border-gray-50 hover:bg-blue-50/20 transition group">
+                  <td className="px-3 py-2.5 sticky left-0 z-10 bg-white group-hover:bg-blue-50/20 transition"><input type="checkbox" className="rounded" /></td>
+                  <td className="px-2 py-2.5 sticky left-10 z-10 bg-white group-hover:bg-blue-50/20 transition">
                     <span className={`w-2 h-2 rounded-full inline-block ${row.status === "green" ? "bg-green-500" : "bg-gray-300"}`} />
                   </td>
-                  <td className="px-2.5 py-2.5 font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis" title={row.name}>{row.name}</td>
+                  <td className="px-2.5 py-2.5 font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis sticky left-24 z-10 bg-white group-hover:bg-blue-50/20 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100" title={row.name}>{row.name}</td>
                   <td className="px-2.5 py-2.5">
                     <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-medium">{row.type}</span>
                   </td>
@@ -881,14 +1128,14 @@ export default function GoogleAdsPage() {
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("ctr", row.ctr, "blue")}>{fmtPct(row.ctr)}</td>
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("convRate", row.convRate, "green")}>{fmtPct(row.convRate)}</td>
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("conv", row.conv, "green")}>{fmtNum(row.conv)}</td>
-                  <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums">{row.cpa.toFixed(1)}</td>
+                  <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("cpa", row.cpa, "blue")}>{row.cpa.toFixed(1)}</td>
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums font-medium" style={cellStyle("revenue", row.revenue, "green")}>${fmtK(row.revenue)}</td>
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("cost", row.cost, "blue")}>${fmtK(row.cost)}</td>
-                  <td className={`px-2.5 py-2.5 text-right tabular-nums font-semibold ${row.profit < 0 ? "text-red-600" : "text-green-700"}`}
+                  <td className={`px-2.5 py-2.5 text-right tabular-nums ${row.profit < 0 ? "text-red-600" : "text-green-700"}`}
                     style={cellStyle("profit", Math.abs(row.profit), row.profit < 0 ? "red" : "green")}>
                     {row.profit < 0 ? "-" : ""}{Math.abs(row.profit).toFixed(2)}K
                   </td>
-                  <td className={`px-2.5 py-2.5 text-right tabular-nums font-semibold ${row.roasVal >= 100 ? "text-green-700" : "text-red-600"}`}
+                  <td className={`px-2.5 py-2.5 text-right tabular-nums ${row.roasVal >= 100 ? "text-green-700" : "text-red-600"}`}
                     style={cellStyle("roasVal", row.roasVal, row.roasVal >= 100 ? "green" : "red")}>
                     {row.roasVal}%
                   </td>
@@ -897,7 +1144,7 @@ export default function GoogleAdsPage() {
             </tbody>
             <tfoot>
               <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold text-gray-800 text-[12px]">
-                <td className="px-3 py-3" colSpan={5}>Total (45 campaigns)</td>
+                <td className="px-3 py-3 sticky left-0 z-10 bg-gray-50" colSpan={5}>Total (45 campaigns)</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">10,073,857</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">115,078</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">$3.82</td>
@@ -907,8 +1154,8 @@ export default function GoogleAdsPage() {
                 <td className="px-2.5 py-3 text-right tabular-nums">137.6</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">$670.34K</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">$439.18K</td>
-                <td className="px-2.5 py-3 text-right tabular-nums text-red-600">-231.17K</td>
-                <td className="px-2.5 py-3 text-right tabular-nums text-red-600">152.64%</td>
+                <td className="px-2.5 py-3 text-right tabular-nums">-231.17K</td>
+                <td className="px-2.5 py-3 text-right tabular-nums">152.64%</td>
               </tr>
             </tfoot>
           </table>
