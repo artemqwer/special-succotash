@@ -1069,7 +1069,7 @@ export default function GoogleAdsPage() {
             <colgroup>
               <col className="w-10" />
               <col className="w-14" />
-              <col className="w-[180px]" />
+              <col className="w-[140px]" />
               <col className="w-[90px]" />
               <col className="w-[108px]" />
               <col />
