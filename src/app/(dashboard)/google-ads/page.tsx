@@ -1096,7 +1096,8 @@ export default function GoogleAdsPage() {
                   ["Revenue","revenue","right"],["Cost","cost","right"],["Profit (ads)","profit","right"],["ROAS","roasVal","right"],
                 ] as [string, SortKey, "left" | "right"][]).map(([label, col, align]) => (
                   <th key={col} onClick={() => handleSort(col)}
-                    className={`px-2.5 py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[11px]${col === "name" ? " sticky left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200" : ""}`}>
+                    style={col === "name" ? { maxWidth: 75 } : undefined}
+                    className={`px-2.5 py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[11px]${col === "name" ? " sticky left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 overflow-hidden" : ""}`}>
                     {label}<SortIcon dir={sortCol === col ? sortDir : null} />
                   </th>
                 ))}
@@ -1109,10 +1110,11 @@ export default function GoogleAdsPage() {
                   <td className="px-2 py-2.5 sticky left-10 z-10 bg-white group-hover:bg-blue-50/20 transition">
                     <span className={`w-2 h-2 rounded-full inline-block ${row.status === "green" ? "bg-green-500" : "bg-gray-300"}`} />
                   </td>
-                  <td className="px-2.5 py-2.5 sticky left-24 z-10 bg-white group-hover:bg-blue-50/20 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 relative">
+                  <td className="px-2.5 py-2.5 sticky left-24 z-10 bg-white group-hover:bg-blue-50/20 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 relative" style={{ maxWidth: 75 }}>
                     <button
                       onClick={() => setExpandedNameIdx(expandedNameIdx === i ? null : i)}
-                      className="font-medium text-gray-800 text-left w-full overflow-hidden text-ellipsis whitespace-nowrap block text-[12px] hover:text-blue-600 transition"
+                      className="font-medium text-gray-800 text-left overflow-hidden text-ellipsis whitespace-nowrap block text-[12px] hover:text-blue-600 transition w-full"
+                      style={{ maxWidth: 60 }}
                       title={row.name}
                     >
                       {row.name}
