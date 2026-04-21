@@ -150,6 +150,32 @@ const tlWebItems = [
   { date: "Apr 12", bg: "bg-purple-100", icon: "📊" },
 ];
 
+// ─── Profit / Loss data ──────────────────────────────────────────────────────
+
+const profitLossRaw = [
+  { date: "Apr 8",  dailyProfit:  1930 },
+  { date: "Apr 9",  dailyProfit:  2300 },
+  { date: "Apr 10", dailyProfit:  -150 },
+  { date: "Apr 11", dailyProfit:  1520 },
+  { date: "Apr 12", dailyProfit: -1390 },
+  { date: "Apr 13", dailyProfit:  1430 },
+  { date: "Apr 14", dailyProfit:  1670 },
+  { date: "Apr 15", dailyProfit:  -960 },
+  { date: "Apr 16", dailyProfit:  1630 },
+  { date: "Apr 17", dailyProfit:  1720 },
+  { date: "Apr 18", dailyProfit:  1250 },
+  { date: "Apr 19", dailyProfit:  -890 },
+  { date: "Apr 20", dailyProfit:  -430 },
+  { date: "Apr 21", dailyProfit:  1600 },
+];
+
+let _cumSum = 0;
+const plData = profitLossRaw.map((r) => { _cumSum += r.dailyProfit; return { ...r, cumulative: _cumSum }; });
+const plTotal      = plData[plData.length - 1].cumulative;
+const plAvgDaily   = Math.round(plTotal / plData.length);
+const plProfitDays = profitLossRaw.filter((r) => r.dailyProfit > 0).length;
+const plLossDays   = profitLossRaw.filter((r) => r.dailyProfit < 0).length;
+
 const campaignRows = [
   { status: "gray", name: "Search - Men T-Shirts", type: "Search", roas: "160.00%", roasColor: "green", impr: 886714, clicks: 75539, cpc: 0.25, ctr: 8.55, convRate: 0.74, conv: 563, cpa: 33.1, revenue: 87.65, cost: 18.64, profit: 69.01, roasVal: 470 },
   { status: "green", name: "Search - Men Shirts", type: "Search", roas: "94.00%", roasColor: "red", impr: 1562745, clicks: 75079, cpc: 1.05, ctr: 4.81, convRate: 2.15, conv: 1617, cpa: 48.6, revenue: 32.89, cost: 78.52, profit: -45.63, roasVal: 42 },
@@ -295,6 +321,24 @@ const AdTooltip = ({ active, payload, label }: { active?: boolean; payload?: { n
   );
 };
 
+const PlTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number }[]; label?: string }) => {
+  if (!active || !payload?.length) return null;
+  const item = plData.find((d) => d.date === label);
+  if (!item) return null;
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2.5 text-[11px]">
+      <p className="font-semibold text-gray-700 mb-1.5">{label}</p>
+      <div className="flex justify-between gap-4"><span className="text-green-600">Cumulative</span><span className="font-semibold text-green-700">${(item.cumulative / 1000).toFixed(2)}K</span></div>
+      <div className="flex justify-between gap-4">
+        <span className={item.dailyProfit < 0 ? "text-red-400" : "text-gray-500"}>Daily</span>
+        <span className={`font-semibold ${item.dailyProfit < 0 ? "text-red-600" : "text-green-700"}`}>
+          {item.dailyProfit < 0 ? "-$" : "$"}{(Math.abs(item.dailyProfit) / 1000).toFixed(2)}K
+        </span>
+      </div>
+    </div>
+  );
+};
+
 const renderConvLabel = (props: unknown) => {
   const p = props as { x?: number; y?: number; width?: number; value?: number; index?: number };
   const x = p.x ?? 0; const y = p.y ?? 0; const width = p.width ?? 0; const idx = p.index ?? 0;
@@ -322,6 +366,17 @@ const renderCostLabel = (props: unknown) => {
   const item = adPerfData[idx];
   if (!item) return null;
   return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={9} fontWeight={700} textAnchor="middle">${(item.cost / 1000).toFixed(1)}K</text>;
+};
+
+const renderPlLabel = (props: unknown) => {
+  const p = props as { x?: number; y?: number; width?: number; value?: number };
+  const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, val = p.value ?? 0;
+  if (w < 32) return null;
+  return (
+    <text x={x + w / 2} y={y - 5} fill="#374151" fontSize={10} fontWeight={700} textAnchor="middle">
+      ${(val / 1000).toFixed(2)}K
+    </text>
+  );
 };
 
 const renderLossTopLabel = (props: unknown) => {
@@ -463,7 +518,18 @@ export default function GoogleAdsPage() {
           {activeTab === 1 && (
             <p className="text-[12px] text-gray-400">Conversion value, profit, cost, clicks &amp; ROAS over time</p>
           )}
-          {activeTab !== 0 && activeTab !== 1 && <div />}
+          {activeTab === 2 && (
+            <div className="flex items-center gap-3 flex-wrap text-[12px]">
+              <span className="text-gray-600">Total: <span className="text-green-700 font-bold">${(plTotal / 1000).toFixed(1)}K</span></span>
+              <span className="text-gray-400">|</span>
+              <span className="text-gray-600">Avg Daily: <span className="font-bold">${(plAvgDaily / 1000).toFixed(1)}K</span></span>
+              <span className="text-gray-400">|</span>
+              <span className="text-green-600 font-semibold">↗ {plProfitDays} days</span>
+              <span className="text-gray-400">|</span>
+              <span className="text-red-500 font-semibold">↘ {plLossDays} days</span>
+            </div>
+          )}
+          {activeTab !== 0 && activeTab !== 1 && activeTab !== 2 && <div />}
           <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 whitespace-nowrap shrink-0">
             Days
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -552,6 +618,55 @@ export default function GoogleAdsPage() {
                   {label}
                 </div>
               ))}
+            </div>
+          </>
+        )}
+
+        {/* ── Profit / Loss chart ── */}
+        {activeTab === 2 && (
+          <>
+            <div className="overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
+              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-480px)] lg:min-h-[380px] min-w-[600px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={plData} barCategoryGap="18%" margin={{ top: 28, right: 56, left: -10, bottom: 5 }}>
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false}
+                      tickFormatter={(v) => `$${(v / 1000).toFixed(1)}K`}
+                      label={{ value: "Cumulative Profit", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 9 } }} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false}
+                      tickFormatter={(v) => `$${(v / 1000).toFixed(1)}K`}
+                      label={{ value: "Daily Profit", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 9 } }} />
+                    <ReferenceLine yAxisId="left" y={7000} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="4 3" />
+                    <ReferenceLine yAxisId="left" y={3500} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="4 3" />
+                    <Tooltip content={<PlTooltip />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
+                    <Bar yAxisId="left" dataKey="cumulative" fill="#4ADE80" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                      <LabelList dataKey="cumulative" content={renderPlLabel} />
+                    </Bar>
+                    <Line yAxisId="right" type="monotone" dataKey="dailyProfit" stroke="#1F2937" strokeWidth={1.5} strokeDasharray="4 3"
+                      dot={(dotProps: unknown) => {
+                        const p = dotProps as { cx: number; cy: number; index: number; key?: string };
+                        const item = plData[p.index];
+                        return <circle key={p.index} cx={p.cx} cy={p.cy} r={3} fill={item && item.dailyProfit < 0 ? "#EF4444" : "#1F2937"} stroke="none" />;
+                      }}
+                      activeDot={{ r: 4 }}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3 mt-2 justify-center text-[11px] sm:text-[12px] text-gray-500">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-sm shrink-0 bg-[#4ADE80]" />
+                Cumulative Profit
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full shrink-0 bg-[#1F2937]" />
+                Daily Profit
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full shrink-0 bg-red-400" />
+                Loss Day
+              </div>
             </div>
           </>
         )}
