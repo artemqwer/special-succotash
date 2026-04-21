@@ -528,6 +528,7 @@ export default function GoogleAdsPage() {
   const [campaignDropdownOpen, setCampaignDropdownOpen] = useState(false);
   const [campaignSearch, setCampaignSearch] = useState("");
   const [timelineOpen, setTimelineOpen] = useState(false);
+  const [expandedNameIdx, setExpandedNameIdx] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isPortrait, setIsPortrait] = useState(true);
   const totalPages = 5;
@@ -1069,7 +1070,7 @@ export default function GoogleAdsPage() {
             <colgroup>
               <col className="w-10" />
               <col className="w-14" />
-              <col className="w-[140px]" />
+              <col className="w-[75px]" />
               <col className="w-[90px]" />
               <col className="w-[108px]" />
               <col />
@@ -1108,7 +1109,21 @@ export default function GoogleAdsPage() {
                   <td className="px-2 py-2.5 sticky left-10 z-10 bg-white group-hover:bg-blue-50/20 transition">
                     <span className={`w-2 h-2 rounded-full inline-block ${row.status === "green" ? "bg-green-500" : "bg-gray-300"}`} />
                   </td>
-                  <td className="px-2.5 py-2.5 font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis sticky left-24 z-10 bg-white group-hover:bg-blue-50/20 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100" title={row.name}>{row.name}</td>
+                  <td className="px-2.5 py-2.5 sticky left-24 z-10 bg-white group-hover:bg-blue-50/20 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 relative">
+                    <button
+                      onClick={() => setExpandedNameIdx(expandedNameIdx === i ? null : i)}
+                      className="font-medium text-gray-800 text-left w-full overflow-hidden text-ellipsis whitespace-nowrap block text-[12px] hover:text-blue-600 transition"
+                      title={row.name}
+                    >
+                      {row.name}
+                    </button>
+                    {expandedNameIdx === i && (
+                      <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-blue-200 rounded-lg shadow-lg px-3 py-2 text-[12px] text-gray-800 font-medium whitespace-nowrap min-w-max">
+                        {row.name}
+                        <button onClick={(e) => { e.stopPropagation(); setExpandedNameIdx(null); }} className="ml-2 text-gray-400 hover:text-gray-600">×</button>
+                      </div>
+                    )}
+                  </td>
                   <td className="px-2.5 py-2.5">
                     <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-medium">{row.type}</span>
                   </td>
