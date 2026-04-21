@@ -104,7 +104,6 @@ const adPerfData = adPerfRaw.map((r) => ({
   ...r,
   costBase: r.cost,
   profitPos: Math.max(0, r.profit),
-  roasZero: 0,
 }));
 
 // ─── Timeline data ───────────────────────────────────────────────────────────
@@ -265,13 +264,15 @@ const AdXTick = (props: unknown) => {
   const item = adPerfData.find((d) => d.date === payload.value);
   return (
     <g transform={`translate(${x},${y})`}>
-      <text x={0} y={0} dy={13} fill="#6B7280" fontSize={10} textAnchor="middle" fontWeight={500}>
+      {/* ROAS dot — sits exactly on the X-axis line */}
+      <circle cx={0} cy={5} r={3.5} fill="#8B5CF6" />
+      <text x={0} y={0} dy={20} fill="#6B7280" fontSize={10} textAnchor="middle" fontWeight={500}>
         {item ? `${(item.clicks / 1000).toFixed(2)}K` : ""}
       </text>
-      <text x={0} y={0} dy={25} fill="#9CA3AF" fontSize={10} textAnchor="middle">
+      <text x={0} y={0} dy={32} fill="#9CA3AF" fontSize={10} textAnchor="middle">
         {payload.value}
       </text>
-      <text x={0} y={0} dy={37} fill="#8B5CF6" fontSize={9} textAnchor="middle" fontWeight={600}>
+      <text x={0} y={0} dy={44} fill="#8B5CF6" fontSize={9} textAnchor="middle" fontWeight={600}>
         {item ? `${item.roas.toFixed(2)}x` : ""}
       </text>
     </g>
@@ -506,7 +507,7 @@ export default function GoogleAdsPage() {
               <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-480px)] lg:min-h-[380px] min-w-[1800px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={adPerfData} barCategoryGap="2%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
-                    <XAxis dataKey="date" tick={<AdXTick />} axisLine={false} tickLine={false} height={52} />
+                    <XAxis dataKey="date" tick={<AdXTick />} axisLine={false} tickLine={false} height={60} />
                     <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} label={{ value: "Conv. Value / Profit / Cost", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 9 } }} />
                     <YAxis yAxisId="right" orientation="right" hide domain={[0, 6]} />
                     <YAxis yAxisId="clicks" orientation="right" tick={{ fontSize: 9, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} domain={[0, 8000]} label={{ value: "Clicks", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 9 } }} />
@@ -525,9 +526,6 @@ export default function GoogleAdsPage() {
                       <LabelList dataKey="profitPos" content={renderProfitLabel} />
                       <LabelList dataKey="profitPos" content={renderConvLabel} />
                     </Bar>
-
-                    {/* ROAS dots on X-axis */}
-                    <Line yAxisId="left" type="monotone" dataKey="roasZero" stroke="transparent" strokeWidth={0} dot={{ fill: "#8B5CF6", r: 4, strokeWidth: 0 }} activeDot={{ r: 5, fill: "#8B5CF6" }} isAnimationActive={false} />
 
                     {/* Clicks line */}
                     <Line yAxisId="clicks" type="monotone" dataKey="clicks" stroke="#3B82F6" strokeWidth={1.5} dot={{ fill: "#3B82F6", r: 2.5, strokeWidth: 0 }} activeDot={{ r: 4 }} />
