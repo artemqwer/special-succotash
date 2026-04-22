@@ -22,12 +22,18 @@ const I = {
 
 // ─── Mock data ───────────────────────────────────────────────────────────────
 
+const SPARK_DATES = Array.from({ length: 14 }, (_, i) => {
+  const d = new Date(Date.UTC(2026, 3, 13));
+  d.setUTCDate(d.getUTCDate() - (13 - i));
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+});
+
 const sparkData = (up: boolean, seed = 1) =>
   Array.from({ length: 14 }, (_, i) => ({
     v: up
       ? 30 + Math.sin(i * 0.7 + seed) * 8 + i * 2.5
       : 60 - Math.sin(i * 0.7 + seed) * 8 - i * 1.5,
-    date: dates[i],
+    date: SPARK_DATES[i],
   }));
 
 const kpis = [
@@ -60,14 +66,7 @@ const kpis = [
 const CAMPAIGNS = ["Brand", "Shopping", "DSA", "Remarketing", "PMax", "Search"];
 const COLORS = ["#F472B6", "#FB923C", "#FACC15", "#4ADE80", "#A78BFA", "#60A5FA"];
 
-const dates = [
-  "Mar 31","Apr 1","Apr 2","Apr 3","Apr 4","Apr 5","Apr 6",
-  "Apr 7","Apr 8","Apr 9","Apr 10","Apr 11","Apr 12","Apr 13",
-];
-
-const totals = [89450, 88230, 86680, 84950, 90870, 89240, 82020, 79190, 78510, 78870, 87300, 88380, 82000, 82900];
-
-// Per-day share distribution (sums to 1.0). Shopping + Search dominate, others lighter.
+// Per-day share distribution (cycling for any period length)
 const shareMatrix: number[][] = [
   [0.08, 0.22, 0.07, 0.12, 0.18, 0.33],
   [0.09, 0.20, 0.08, 0.11, 0.19, 0.33],
@@ -85,54 +84,86 @@ const shareMatrix: number[][] = [
   [0.08, 0.22, 0.08, 0.13, 0.18, 0.31],
 ];
 
-const barData = dates.map((date, di) => {
-  const obj: Record<string, string | number> = { date };
-  const total = totals[di];
-  let used = 0;
-  CAMPAIGNS.forEach((c, i) => {
-    const share = i === CAMPAIGNS.length - 1 ? total - used : Math.round(total * shareMatrix[di][i]);
-    obj[c] = share;
-    used += share;
-  });
-  obj.total = total;
-  return obj;
-});
+// ─── Period presets & data generation ────────────────────────────────────────
 
-// Sort campaigns by average value descending (largest at bottom of stack)
-const campaignAvgs = CAMPAIGNS.map((name, i) => ({
-  name,
-  color: COLORS[i],
-  avg: barData.reduce((sum, d) => sum + (d[name] as number), 0) / barData.length,
-})).sort((a, b) => b.avg - a.avg);
-
-// ─── Ad Performance data ─────────────────────────────────────────────────────
-
-const adPerfRaw = [
-  { date: "Mar 30", clicks: 4450, convValue: 90800, profit: 70400, cost: 20400, roas: 4.45 },
-  { date: "Mar 31", clicks: 3780, convValue: 97000, profit: 71400, cost: 25600, roas: 3.79 },
-  { date: "Apr 1",  clicks: 740,  convValue: 94800, profit: 72400, cost: 22400, roas: 4.23 },
-  { date: "Apr 2",  clicks: 4240, convValue: 98500, profit: 73500, cost: 25000, roas: 3.94 },
-  { date: "Apr 3",  clicks: 3940, convValue: 94200, profit: 69400, cost: 24800, roas: 3.80 },
-  { date: "Apr 4",  clicks: 3600, convValue: 89800, profit: 63300, cost: 26500, roas: 3.39 },
-  { date: "Apr 5",  clicks: 3380, convValue: 89800, profit: 63200, cost: 26600, roas: 3.38 },
-  { date: "Apr 6",  clicks: 3600, convValue: 98800, profit: 69700, cost: 29100, roas: 3.40 },
-  { date: "Apr 7",  clicks: 3220, convValue: 94000, profit: 64800, cost: 29200, roas: 3.22 },
-  { date: "Apr 8",  clicks: 980,  convValue: 100900, profit: 74900, cost: 26000, roas: 3.88 },
-  { date: "Apr 9",  clicks: 3420, convValue: 90100, profit: 60600, cost: 29500, roas: 3.06 },
-  { date: "Apr 10", clicks: 3580, convValue: 64900, profit: 39700, cost: 25200, roas: 2.57 },
-  { date: "Apr 11", clicks: 710,  convValue: 23600, profit: -9600, cost: 33200, roas: 0.71 },
-  { date: "Apr 12", clicks: 790,  convValue: 21600, profit: -5800, cost: 27400, roas: 0.79 },
+const PERIOD_PRESETS = [
+  { label: "Last 7 days",  days: 7 },
+  { label: "Last 14 days", days: 14 },
+  { label: "Last 30 days", days: 30 },
+  { label: "Last 60 days", days: 60 },
+  { label: "Last 90 days", days: 90 },
 ];
 
-const adPerfData = adPerfRaw.map((r) => ({
-  ...r,
-  costBase: r.cost,
-  profitPos: Math.max(0, r.profit),
-}));
+const END_MS = Date.UTC(2026, 3, 13); // Apr 13, 2026
+const DAY_MS = 86400000;
 
-// ─── Timeline data ───────────────────────────────────────────────────────────
+function makePeriodLabel(days: number) {
+  const fmt = (ts: number) => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return `${fmt(END_MS - (days - 1) * DAY_MS)} – ${fmt(END_MS)}`;
+}
 
-const tlDates = adPerfRaw.map((d) => d.date);
+type AdPerfItem = { date: string; convValue: number; cost: number; profit: number; clicks: number; roas: number; costBase: number; profitPos: number };
+type PlItem = { date: string; dailyProfit: number; cumulative: number };
+
+function generatePeriodData(days: number) {
+  const genDates = Array.from({ length: days }, (_, i) => {
+    const d = new Date(END_MS - (days - 1 - i) * DAY_MS);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  });
+
+  const genTotals = genDates.map((_, i) => {
+    const wd = new Date(END_MS - (days - 1 - i) * DAY_MS).getDay();
+    const base = (wd === 0 || wd === 6) ? 72000 : 87000;
+    return Math.round(base + Math.sin(i * 0.5 + 1.3) * 7000 + Math.cos(i * 0.9 + 0.6) * 4000);
+  });
+
+  const genBarData = genDates.map((date, di) => {
+    const obj: Record<string, string | number> = { date };
+    const total = genTotals[di];
+    const sm = shareMatrix[di % shareMatrix.length];
+    let used = 0;
+    CAMPAIGNS.forEach((c, i) => {
+      const share = i === CAMPAIGNS.length - 1 ? Math.max(0, total - used) : Math.round(total * sm[i]);
+      obj[c] = share; used += share;
+    });
+    obj.total = total;
+    return obj;
+  });
+
+  const genCampaignAvgs = CAMPAIGNS.map((name, i) => ({
+    name, color: COLORS[i],
+    avg: genBarData.reduce((s, d) => s + (d[name] as number), 0) / genBarData.length,
+  })).sort((a, b) => b.avg - a.avg);
+
+  const genAdPerfData: AdPerfItem[] = genDates.map((date, i) => {
+    const wd = new Date(END_MS - (days - 1 - i) * DAY_MS).getDay();
+    const base = (wd === 0 || wd === 6) ? 72000 : 87000;
+    const convValue = Math.round(base + Math.sin(i * 0.5 + 1.3) * 7000 + Math.cos(i * 0.9 + 0.6) * 4000);
+    const cost = Math.round(convValue * (0.27 + Math.sin(i * 0.4 + 0.8) * 0.04));
+    const profit = convValue - cost;
+    const clicks = Math.round(3200 + Math.sin(i * 0.6 + 2) * 900 + (wd === 0 || wd === 6 ? -600 : 0));
+    const roas = parseFloat((convValue / cost).toFixed(2));
+    return { date, convValue, cost, profit, clicks, roas, costBase: profit >= 0 ? -cost : -(cost - Math.abs(profit)), profitPos: Math.max(0, profit) };
+  });
+
+  let cum = 0;
+  const genPlData: PlItem[] = genDates.map((date, i) => {
+    const dailyProfit = Math.round(1200 + Math.sin(i * 0.6 + 1.5) * 1100 + Math.cos(i * 0.4 + 0.8) * 600);
+    cum += dailyProfit;
+    return { date, dailyProfit, cumulative: cum };
+  });
+
+  const plTotal = genPlData[genPlData.length - 1].cumulative;
+  const plAvgDaily = Math.round(plTotal / genPlData.length);
+  const plProfitDays = genPlData.filter((r) => r.dailyProfit > 0).length;
+  const plLossDays = genPlData.filter((r) => r.dailyProfit <= 0).length;
+
+  return { dates: genDates, barData: genBarData, campaignAvgs: genCampaignAvgs, adPerfData: genAdPerfData, plData: genPlData, plTotal, plAvgDaily, plProfitDays, plLossDays };
+}
+
+// ─── Timeline data (static — event log independent of period) ────────────────
+
+const tlDates = ["Mar 30","Mar 31","Apr 1","Apr 2","Apr 3","Apr 4","Apr 5","Apr 6","Apr 7","Apr 8","Apr 9","Apr 10","Apr 11","Apr 12"];
 
 const tlEventItems = [
   { date: "Mar 30", bg: "bg-orange-100", icon: "🎉" },
@@ -173,32 +204,6 @@ const tlWebItems = [
   { date: "Apr 11", bg: "bg-red-100",    icon: "🌐" },
   { date: "Apr 12", bg: "bg-purple-100", icon: "📊" },
 ];
-
-// ─── Profit / Loss data ──────────────────────────────────────────────────────
-
-const profitLossRaw = [
-  { date: "Apr 8",  dailyProfit:  1930 },
-  { date: "Apr 9",  dailyProfit:  2300 },
-  { date: "Apr 10", dailyProfit:  -150 },
-  { date: "Apr 11", dailyProfit:  1520 },
-  { date: "Apr 12", dailyProfit: -1390 },
-  { date: "Apr 13", dailyProfit:  1430 },
-  { date: "Apr 14", dailyProfit:  1670 },
-  { date: "Apr 15", dailyProfit:  -960 },
-  { date: "Apr 16", dailyProfit:  1630 },
-  { date: "Apr 17", dailyProfit:  1720 },
-  { date: "Apr 18", dailyProfit:  1250 },
-  { date: "Apr 19", dailyProfit:  -890 },
-  { date: "Apr 20", dailyProfit:  -430 },
-  { date: "Apr 21", dailyProfit:  1600 },
-];
-
-let _cumSum = 0;
-const plData = profitLossRaw.map((r) => { _cumSum += r.dailyProfit; return { ...r, cumulative: _cumSum }; });
-const plTotal      = plData[plData.length - 1].cumulative;
-const plAvgDaily   = Math.round(plTotal / plData.length);
-const plProfitDays = profitLossRaw.filter((r) => r.dailyProfit > 0).length;
-const plLossDays   = profitLossRaw.filter((r) => r.dailyProfit < 0).length;
 
 // ─── Segments data ───────────────────────────────────────────────────────────
 
@@ -455,19 +460,15 @@ const renderTotalLabel = (props: unknown) => {
 
 // ─── Ad Performance helpers ───────────────────────────────────────────────────
 
-const AdXTick = (props: unknown) => {
-  const { x, y, payload } = props as { x: number; y: number; payload: { value: string } };
-  const item = adPerfData.find((d) => d.date === payload.value);
+const AdXTick = ({ x, y, payload, data }: { x: number; y: number; payload: { value: string }; data: AdPerfItem[] }) => {
+  const item = data.find((d) => d.date === payload.value);
   return (
     <g transform={`translate(${x},${y})`}>
-      {/* ROAS dot — sits exactly on the X-axis line */}
       <circle cx={0} cy={5} r={3.5} fill="#8B5CF6" />
       <text x={0} y={0} dy={20} fill="#6B7280" fontSize={12} textAnchor="middle" fontWeight={500}>
         {item ? `${(item.clicks / 1000).toFixed(2)}K` : ""}
       </text>
-      <text x={0} y={0} dy={34} fill="#9CA3AF" fontSize={12} textAnchor="middle">
-        {payload.value}
-      </text>
+      <text x={0} y={0} dy={34} fill="#9CA3AF" fontSize={12} textAnchor="middle">{payload.value}</text>
       <text x={0} y={0} dy={48} fill="#8B5CF6" fontSize={11} textAnchor="middle" fontWeight={600}>
         {item ? `${item.roas.toFixed(2)}x` : ""}
       </text>
@@ -475,9 +476,9 @@ const AdXTick = (props: unknown) => {
   );
 };
 
-const AdTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {
+const AdTooltip = ({ active, payload, label, data }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string; data: AdPerfItem[] }) => {
   if (!active || !payload?.length) return null;
-  const item = adPerfData.find((d) => d.date === label);
+  const item = data.find((d) => d.date === label);
   if (!item) return null;
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2.5 text-[11px]">
@@ -491,9 +492,9 @@ const AdTooltip = ({ active, payload, label }: { active?: boolean; payload?: { n
   );
 };
 
-const PlTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number }[]; label?: string }) => {
+const PlTooltip = ({ active, payload, label, data }: { active?: boolean; payload?: { name: string; value: number }[]; label?: string; data: PlItem[] }) => {
   if (!active || !payload?.length) return null;
-  const item = plData.find((d) => d.date === label);
+  const item = data.find((d) => d.date === label);
   if (!item) return null;
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2.5 text-[11px]">
@@ -509,17 +510,13 @@ const PlTooltip = ({ active, payload, label }: { active?: boolean; payload?: { n
   );
 };
 
-const renderConvLabel = (props: unknown) => {
+const makeRenderConvLabel = (data: AdPerfItem[]) => (props: unknown) => {
   const p = props as { x?: number; y?: number; width?: number; value?: number; index?: number };
-  const x = p.x ?? 0; const y = p.y ?? 0; const width = p.width ?? 0; const idx = p.index ?? 0;
+  const x = p.x ?? 0, y = p.y ?? 0, width = p.width ?? 0, idx = p.index ?? 0;
   if (width < 24) return null;
-  const item = adPerfData[idx];
+  const item = data[idx];
   if (!item || item.profit < 0) return null;
-  return (
-    <text x={x + width / 2} y={y - 5} fill="#374151" fontSize={11} fontWeight={700} textAnchor="middle">
-      ${(item.convValue / 1000).toFixed(1)}K
-    </text>
-  );
+  return <text x={x + width / 2} y={y - 5} fill="#374151" fontSize={11} fontWeight={700} textAnchor="middle">${(item.convValue / 1000).toFixed(1)}K</text>;
 };
 
 const renderProfitLabel = (props: unknown) => {
@@ -529,11 +526,11 @@ const renderProfitLabel = (props: unknown) => {
   return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={11} fontWeight={700} textAnchor="middle">${(val / 1000).toFixed(1)}K</text>;
 };
 
-const renderCostLabel = (props: unknown) => {
+const makeRenderCostLabel = (data: AdPerfItem[]) => (props: unknown) => {
   const p = props as { x?: number; y?: number; width?: number; height?: number; index?: number };
   const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, h = p.height ?? 0, idx = p.index ?? 0;
   if (w < 34 || h < 16) return null;
-  const item = adPerfData[idx];
+  const item = data[idx];
   if (!item) return null;
   return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={11} fontWeight={700} textAnchor="middle">${(item.cost / 1000).toFixed(1)}K</text>;
 };
@@ -549,11 +546,11 @@ const renderPlLabel = (props: unknown) => {
   );
 };
 
-const renderLossTopLabel = (props: unknown) => {
+const makeRenderLossTopLabel = (data: AdPerfItem[]) => (props: unknown) => {
   const p = props as { x?: number; y?: number; width?: number; index?: number };
   const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, idx = p.index ?? 0;
   if (w < 24) return null;
-  const item = adPerfData[idx];
+  const item = data[idx];
   if (!item || item.profit >= 0) return null;
   return (
     <g>
@@ -582,7 +579,18 @@ export default function GoogleAdsPage() {
   const [expandedNameIdx, setExpandedNameIdx] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isPortrait, setIsPortrait] = useState(true);
+  const [selectedDays, setSelectedDays] = useState(14);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const totalPages = 5;
+
+  const { dates, barData, campaignAvgs, adPerfData, plData, plTotal, plAvgDaily, plProfitDays, plLossDays } = useMemo(
+    () => generatePeriodData(selectedDays),
+    [selectedDays]
+  );
+
+  const renderConvLabel = useMemo(() => makeRenderConvLabel(adPerfData), [adPerfData]);
+  const renderCostLabel = useMemo(() => makeRenderCostLabel(adPerfData), [adPerfData]);
+  const renderLossTopLabel = useMemo(() => makeRenderLossTopLabel(adPerfData), [adPerfData]);
 
   useEffect(() => {
     const check = () => {
@@ -650,10 +658,34 @@ export default function GoogleAdsPage() {
             <p className="text-[13px] text-gray-400">Campaign Performance Analytics</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-[14px] text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-gray-50">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Mar 31 – Apr 13, 2026
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+        <div className="relative">
+          <button
+            onClick={() => setDatePickerOpen(!datePickerOpen)}
+            className="flex items-center gap-2 text-[14px] text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-gray-50 transition"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            {makePeriodLabel(selectedDays)}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${datePickerOpen ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          {datePickerOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setDatePickerOpen(false)} />
+              <div className="absolute right-0 top-full mt-1.5 w-[180px] bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+                {PERIOD_PRESETS.map(({ label, days }) => (
+                  <button
+                    key={days}
+                    onClick={() => { setSelectedDays(days); setDatePickerOpen(false); }}
+                    className={`w-full text-left px-3.5 py-2 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${selectedDays === days ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}
+                  >
+                    {label}
+                    {selectedDays === days && (
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -772,12 +804,12 @@ export default function GoogleAdsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={adPerfData} barCategoryGap="2%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" yAxisId="left" />
-                    <XAxis dataKey="date" tick={<AdXTick />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={60} />
+                    <XAxis dataKey="date" tick={(p) => <AdXTick {...p} data={adPerfData} />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={60} />
                     <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} label={{ value: "Conv. Value / Profit / Cost", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                     <YAxis yAxisId="right" orientation="right" hide domain={[0, 6]} />
                     <YAxis yAxisId="clicks" orientation="right" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} domain={[0, 8000]} label={{ value: "Clicks", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                     <ReferenceLine yAxisId="left" y={0} stroke="#E5E7EB" strokeWidth={1} />
-                    <Tooltip content={<AdTooltip />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
+                    <Tooltip content={(p) => <AdTooltip {...p} data={adPerfData} />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
 
                     {/* Cost base */}
                     <Bar yAxisId="left" dataKey="costBase" stackId="a" radius={[0, 0, 3, 3]} isAnimationActive={false}>
@@ -838,7 +870,7 @@ export default function GoogleAdsPage() {
                       label={{ value: "Daily Profit", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                     <ReferenceLine yAxisId="left" y={7000} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="4 3" />
                     <ReferenceLine yAxisId="left" y={3500} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="4 3" />
-                    <Tooltip content={<PlTooltip />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
+                    <Tooltip content={(p) => <PlTooltip {...p} data={plData} />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
                     <Bar yAxisId="left" dataKey="cumulative" fill="#4ADE80" radius={[3, 3, 0, 0]} isAnimationActive={false}>
                       <LabelList dataKey="cumulative" content={renderPlLabel} />
                     </Bar>
