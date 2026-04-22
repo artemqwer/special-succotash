@@ -1195,9 +1195,9 @@ export default function GoogleAdsPage() {
           <table className="w-full text-[13px] border-collapse min-w-[1280px]">
             <colgroup>
               <col className="w-10" />
-              <col className="w-14" />
-              <col className="w-[75px]" />
-              <col className="w-[90px]" />
+              <col className="w-14 hidden sm:table-column" />
+              <col className="w-[160px]" />
+              <col className="w-[90px] hidden sm:table-column" />
               <col className="w-[108px]" />
               <col />
               <col />
@@ -1214,7 +1214,7 @@ export default function GoogleAdsPage() {
             <thead>
               <tr className="bg-gray-50/80">
                 <th className="px-3 py-2.5 sticky left-0 z-20 bg-gray-50"><input type="checkbox" className="rounded" /></th>
-                <th className="px-2 py-2.5 text-left text-gray-500 font-medium text-[12px] sticky left-10 z-20 bg-gray-50">Status</th>
+                <th className="px-2 py-2.5 text-left text-gray-500 font-medium text-[12px] sticky left-10 z-20 bg-gray-50 hidden sm:table-cell">Status</th>
                 {([
                   ["Campaign","name","left"],["Type","type","left"],["Target ROAS","roas","left"],
                   ["Impr.","impr","right"],["Clicks","clicks","right"],["CPC","cpc","right"],["CTR","ctr","right"],
@@ -1222,8 +1222,8 @@ export default function GoogleAdsPage() {
                   ["Revenue","revenue","right"],["Cost","cost","right"],["Profit (ads)","profit","right"],["ROAS","roasVal","right"],
                 ] as [string, SortKey, "left" | "right"][]).map(([label, col, align]) => (
                   <th key={col} onClick={() => handleSort(col)}
-                    style={col === "name" ? { maxWidth: 75 } : undefined}
-                    className={`px-2.5 py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[12px]${col === "name" ? " sticky left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 overflow-hidden" : ""}`}>
+                    style={col === "name" ? { maxWidth: 160 } : undefined}
+                    className={`px-2.5 py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[12px]${col === "name" ? " sticky left-10 sm:left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 overflow-hidden" : ""}${col === "type" ? " hidden sm:table-cell" : ""}`}>
                     {label}<SortIcon dir={sortCol === col ? sortDir : null} />
                   </th>
                 ))}
@@ -1233,12 +1233,12 @@ export default function GoogleAdsPage() {
               {filtered.map((row, i) => (
                 <tr key={i} className="border-t border-gray-50 hover:bg-blue-50/20 transition group">
                   <td className="px-3 py-2.5 sticky left-0 z-10 bg-white group-hover:bg-blue-50/20 transition"><input type="checkbox" className="rounded" /></td>
-                  <td className="px-2 py-2.5 sticky left-10 z-10 bg-white group-hover:bg-blue-50/20 transition">
+                  <td className="px-2 py-2.5 sticky left-10 z-10 bg-white group-hover:bg-blue-50/20 transition hidden sm:table-cell">
                     <span className={`w-2 h-2 rounded-full inline-block ${row.status === "green" ? "bg-green-500" : "bg-gray-300"}`} />
                   </td>
                   <td
-                    className="px-2.5 py-2.5 sticky left-24 z-10 bg-white group-hover:bg-blue-50/20 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 cursor-pointer"
-                    style={{ maxWidth: 75 }}
+                    className="px-2.5 py-2.5 sticky left-10 sm:left-24 z-10 bg-white group-hover:bg-blue-50/20 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 cursor-pointer"
+                    style={{ maxWidth: 160 }}
                     onClick={() => setExpandedNameIdx(expandedNameIdx === i ? null : i)}
                     title={row.name}
                   >
@@ -1246,7 +1246,7 @@ export default function GoogleAdsPage() {
                       {row.name}
                     </span>
                   </td>
-                  <td className="px-2.5 py-2.5">
+                  <td className="px-2.5 py-2.5 hidden sm:table-cell">
                     <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-medium">{row.type}</span>
                   </td>
                   <td className="px-2.5 py-2.5">
