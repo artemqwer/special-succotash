@@ -81,6 +81,13 @@ const barData = dates.map((date, di) => {
   return obj;
 });
 
+// Sort campaigns by average value descending (largest at bottom of stack)
+const campaignAvgs = CAMPAIGNS.map((name, i) => ({
+  name,
+  color: COLORS[i],
+  avg: barData.reduce((sum, d) => sum + (d[name] as number), 0) / barData.length,
+})).sort((a, b) => b.avg - a.avg);
+
 // ─── Ad Performance data ─────────────────────────────────────────────────────
 
 const adPerfRaw = [
@@ -692,9 +699,9 @@ export default function GoogleAdsPage() {
                     <XAxis dataKey="date" tick={isMobile && barData.length > 8 ? false : <BarXTick />} axisLine={false} tickLine={false} height={isMobile && barData.length > 8 ? 4 : 30} />
                     <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} />
                     <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(99, 102, 241, 0.05)" }} />
-                    {CAMPAIGNS.map((c, i) => (
-                      <Bar key={c} dataKey={c} stackId="a" fill={COLORS[i]} radius={i === CAMPAIGNS.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
-                        {i === CAMPAIGNS.length - 1 && <LabelList dataKey="total" content={renderTotalLabel} />}
+                    {campaignAvgs.map(({ name, color }, i) => (
+                      <Bar key={name} dataKey={name} stackId="a" fill={color} radius={i === campaignAvgs.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
+                        {i === campaignAvgs.length - 1 && <LabelList dataKey="total" content={renderTotalLabel} />}
                       </Bar>
                     ))}
                   </BarChart>
@@ -702,10 +709,10 @@ export default function GoogleAdsPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 justify-center">
-              {CAMPAIGNS.map((c, i) => (
-                <div key={c} className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-[12px] text-gray-500">
-                  <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm shrink-0" style={{ background: COLORS[i] }} />
-                  {c}
+              {campaignAvgs.map(({ name, color }) => (
+                <div key={name} className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-[12px] text-gray-500">
+                  <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm shrink-0" style={{ background: color }} />
+                  {name}
                 </div>
               ))}
             </div>
