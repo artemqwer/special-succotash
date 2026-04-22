@@ -495,8 +495,8 @@ function isWeekend(dateStr: string) {
   return day === 0 || day === 6;
 }
 
-const BarXTick = (props: unknown) => {
-  const { x, y, payload } = props as { x: number; y: number; payload: { value: string } };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const BarXTick = ({ x, y, payload }: any) => {
   const weekend = isWeekend(payload.value);
   return (
     <g transform={`translate(${x},${y})`}>
@@ -508,12 +508,12 @@ const BarXTick = (props: unknown) => {
 };
 
 // Custom label renderer for stacked bar totals — hidden on narrow bars
-const renderTotalLabel = (props: unknown) => {
-  const p = props as { x?: number | string; y?: number | string; width?: number | string; value?: number | string | null };
-  const x = typeof p.x === "number" ? p.x : 0;
-  const y = typeof p.y === "number" ? p.y : 0;
-  const width = typeof p.width === "number" ? p.width : 0;
-  const value = typeof p.value === "number" ? p.value : 0;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const renderTotalLabel = ({ x: rawX, y: rawY, width: rawW, value: rawV }: any) => {
+  const x = typeof rawX === "number" ? rawX : 0;
+  const y = typeof rawY === "number" ? rawY : 0;
+  const width = typeof rawW === "number" ? rawW : 0;
+  const value = typeof rawV === "number" ? rawV : 0;
   if (width < 30) return null;
   return (
     <text x={x + width / 2} y={y - 6} fill="#374151" fontSize={12} fontWeight={600} textAnchor="middle">
@@ -524,8 +524,9 @@ const renderTotalLabel = (props: unknown) => {
 
 // ─── Ad Performance helpers ───────────────────────────────────────────────────
 
-const AdXTick = ({ x, y, payload, data }: { x: number; y: number; payload: { value: string }; data: AdPerfItem[] }) => {
-  const item = data.find((d) => d.date === payload.value);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const AdXTick = ({ x, y, payload, data }: any) => {
+  const item = data.find((d: AdPerfItem) => d.date === payload.value);
   return (
     <g transform={`translate(${x},${y})`}>
       <circle cx={0} cy={5} r={3.5} fill="#8B5CF6" />
@@ -537,9 +538,10 @@ const AdXTick = ({ x, y, payload, data }: { x: number; y: number; payload: { val
   );
 };
 
-const AdTooltip = ({ active, payload, label, data }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string; data: AdPerfItem[] }) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const AdTooltip = ({ active, payload, label, data }: any) => {
   if (!active || !payload?.length) return null;
-  const item = data.find((d) => d.date === label);
+  const item = data.find((d: AdPerfItem) => d.date === label);
   if (!item) return null;
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2.5 text-[11px]">
@@ -553,9 +555,10 @@ const AdTooltip = ({ active, payload, label, data }: { active?: boolean; payload
   );
 };
 
-const PlTooltip = ({ active, payload, label, data }: { active?: boolean; payload?: { name: string; value: number }[]; label?: string; data: PlItem[] }) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PlTooltip = ({ active, payload, label, data }: any) => {
   if (!active || !payload?.length) return null;
-  const item = data.find((d) => d.date === label);
+  const item = data.find((d: PlItem) => d.date === label);
   if (!item) return null;
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2.5 text-[11px]">
@@ -571,34 +574,30 @@ const PlTooltip = ({ active, payload, label, data }: { active?: boolean; payload
   );
 };
 
-const makeRenderConvLabel = (data: AdPerfItem[]) => (props: unknown) => {
-  const p = props as { x?: number; y?: number; width?: number; value?: number; index?: number };
-  const x = p.x ?? 0, y = p.y ?? 0, width = p.width ?? 0, idx = p.index ?? 0;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const makeRenderConvLabel = (data: AdPerfItem[]) => ({ x = 0, y = 0, width = 0, index: idx = 0 }: any) => {
   if (width < 24) return null;
   const item = data[idx];
   if (!item || item.profit < 0) return null;
   return <text x={x + width / 2} y={y - 5} fill="#374151" fontSize={11} fontWeight={700} textAnchor="middle">${(item.convValue / 1000).toFixed(1)}K</text>;
 };
 
-const renderProfitLabel = (props: unknown) => {
-  const p = props as { x?: number; y?: number; width?: number; height?: number; value?: number };
-  const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, h = p.height ?? 0, val = p.value ?? 0;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const renderProfitLabel = ({ x = 0, y = 0, width: w = 0, height: h = 0, value: val = 0 }: any) => {
   if (w < 34 || h < 16 || val <= 0) return null;
   return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={11} fontWeight={700} textAnchor="middle">${(val / 1000).toFixed(1)}K</text>;
 };
 
-const makeRenderCostLabel = (data: AdPerfItem[]) => (props: unknown) => {
-  const p = props as { x?: number; y?: number; width?: number; height?: number; index?: number };
-  const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, h = p.height ?? 0, idx = p.index ?? 0;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const makeRenderCostLabel = (data: AdPerfItem[]) => ({ x = 0, y = 0, width: w = 0, height: h = 0, index: idx = 0 }: any) => {
   if (w < 34 || h < 16) return null;
   const item = data[idx];
   if (!item) return null;
   return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={11} fontWeight={700} textAnchor="middle">${(item.cost / 1000).toFixed(1)}K</text>;
 };
 
-const renderPlLabel = (props: unknown) => {
-  const p = props as { x?: number; y?: number; width?: number; value?: number };
-  const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, val = p.value ?? 0;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const renderPlLabel = ({ x = 0, y = 0, width: w = 0, value: val = 0 }: any) => {
   if (w < 32) return null;
   return (
     <text x={x + w / 2} y={y - 5} fill="#374151" fontSize={12} fontWeight={700} textAnchor="middle">
@@ -607,9 +606,8 @@ const renderPlLabel = (props: unknown) => {
   );
 };
 
-const makeRenderLossTopLabel = (data: AdPerfItem[]) => (props: unknown) => {
-  const p = props as { x?: number; y?: number; width?: number; index?: number };
-  const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, idx = p.index ?? 0;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const makeRenderLossTopLabel = (data: AdPerfItem[]) => ({ x = 0, y = 0, width: w = 0, index: idx = 0 }: any) => {
   if (w < 24) return null;
   const item = data[idx];
   if (!item || item.profit >= 0) return null;
