@@ -888,17 +888,20 @@ export default function GoogleAdsPage() {
               <div className="min-w-[600px]">
                 {/* Date row */}
                 <div className="flex border-b border-gray-100 pb-1.5 mb-0.5">
-                  <div className="w-[58px] shrink-0" />
-                  {tlDates.map((date, i) => (
-                    <div key={date} className={`flex-1 text-center text-[9px] font-medium ${
-                      i >= 12 ? "text-orange-400" : "text-gray-400"
+                  <div className="w-[64px] shrink-0" />
+                  {tlDates.map((date) => (
+                    <div key={date} className={`flex-1 text-center text-[9px] font-semibold ${
+                      isWeekend(date) ? "text-blue-500" : "text-gray-400"
                     }`}>{date}</div>
                   ))}
                 </div>
 
                 {/* Events row */}
                 <div className="flex items-center py-1.5">
-                  <div className="w-[58px] shrink-0 text-[9px] text-gray-400 font-semibold uppercase tracking-wide pr-2 text-right">Events</div>
+                  <div className="w-[64px] shrink-0 pr-2 flex flex-col items-end gap-0.5">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <span className="text-[9px] font-semibold text-blue-500">Events</span>
+                  </div>
                   <div className="flex-1 flex relative">
                     <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-gray-100" />
                     {tlDates.map((date) => {
@@ -906,8 +909,8 @@ export default function GoogleAdsPage() {
                       return (
                         <div key={date} className="flex-1 flex justify-center relative z-10">
                           {item
-                            ? <span className={`w-[20px] h-[20px] rounded-full flex items-center justify-center text-[10px] ${item.bg} shadow-sm`}>{item.icon}</span>
-                            : <span className="w-[5px] h-[5px] rounded-full bg-gray-100 self-center" />}
+                            ? <span className={`w-[22px] h-[22px] rounded-full flex items-center justify-center text-[11px] ${item.bg} shadow-sm ring-1 ring-white`}>{item.icon}</span>
+                            : <span className="w-[4px] h-[4px] rounded-full bg-gray-200 self-center" />}
                         </div>
                       );
                     })}
@@ -916,7 +919,10 @@ export default function GoogleAdsPage() {
 
                 {/* Ads row */}
                 <div className="flex items-center py-1">
-                  <div className="w-[58px] shrink-0 text-[9px] text-gray-400 font-semibold uppercase tracking-wide pr-2 text-right">Ads</div>
+                  <div className="w-[64px] shrink-0 pr-2 flex flex-col items-end gap-0.5">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    <span className="text-[9px] font-semibold text-orange-500">Ads</span>
+                  </div>
                   <div className="flex-1 flex relative">
                     <div className="absolute top-1/3 left-0 right-0 border-t border-dashed border-gray-100" />
                     {tlDates.map((date) => {
@@ -925,11 +931,11 @@ export default function GoogleAdsPage() {
                         <div key={date} className="flex-1 flex flex-col items-center relative z-10">
                           {item ? (
                             <>
-                              <span className={`w-[20px] h-[20px] rounded-full flex items-center justify-center text-[9px] ${item.bg} shadow-sm`}>⚡</span>
-                              <span className="text-[8px] text-gray-400 leading-tight mt-0.5">+{item.count}</span>
+                              <span className={`w-[22px] h-[22px] rounded-md flex items-center justify-center text-[10px] ${item.bg} shadow-sm ring-1 ring-white font-bold`}>⚡</span>
+                              <span className="text-[8px] text-orange-400 font-semibold leading-tight mt-0.5">+{item.count}</span>
                             </>
                           ) : (
-                            <span className="w-[5px] h-[5px] rounded-full bg-gray-100 mt-[7px]" />
+                            <span className="w-[4px] h-[4px] rounded-full bg-gray-200 mt-[9px]" />
                           )}
                         </div>
                       );
@@ -939,7 +945,10 @@ export default function GoogleAdsPage() {
 
                 {/* Website row */}
                 <div className="flex items-center py-1.5">
-                  <div className="w-[58px] shrink-0 text-[9px] text-gray-400 font-semibold uppercase tracking-wide pr-2 text-right">Website</div>
+                  <div className="w-[64px] shrink-0 pr-2 flex flex-col items-end gap-0.5">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#EC4899" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span className="text-[9px] font-semibold text-pink-500">Website</span>
+                  </div>
                   <div className="flex-1 flex relative">
                     <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-gray-100" />
                     {tlDates.map((date) => {
@@ -947,8 +956,8 @@ export default function GoogleAdsPage() {
                       return (
                         <div key={date} className="flex-1 flex justify-center relative z-10">
                           {item
-                            ? <span className={`w-[20px] h-[20px] rounded-full flex items-center justify-center text-[10px] ${item.bg} shadow-sm`}>{item.icon}</span>
-                            : <span className="w-[5px] h-[5px] rounded-full bg-gray-100 self-center" />}
+                            ? <span className={`w-[22px] h-[22px] rounded-full flex items-center justify-center text-[11px] ${item.bg} shadow-sm ring-1 ring-white`}>{item.icon}</span>
+                            : <span className="w-[4px] h-[4px] rounded-full bg-gray-200 self-center" />}
                         </div>
                       );
                     })}
