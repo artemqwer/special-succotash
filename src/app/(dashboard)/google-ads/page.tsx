@@ -272,13 +272,13 @@ function KpiCard({ label, icon, value, delta, up, spark }: {
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1 min-w-0">
           <span className={`shrink-0 ${up ? "text-green-500" : "text-red-400"}`}>{icon}</span>
-          <span className="text-[10px] sm:text-[12px] text-gray-500 truncate">{label}</span>
+          <span className="text-[10px] sm:text-[13px] text-gray-500 truncate">{label}</span>
         </div>
         <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border border-gray-200 shrink-0 ml-1" />
       </div>
       <div className="flex items-baseline gap-1 sm:gap-2 mb-0 sm:mb-2.5 flex-wrap">
-        <span className="text-[15px] sm:text-[20px] font-bold text-gray-900 leading-none truncate">{value}</span>
-        <span className={`text-[10px] sm:text-[12px] font-semibold shrink-0 ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
+        <span className="text-[15px] sm:text-[22px] font-bold text-gray-900 leading-none truncate">{value}</span>
+        <span className={`text-[10px] sm:text-[13px] font-semibold shrink-0 ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
       </div>
       <div className="h-[58px] -mx-4 hidden sm:block">
         <ResponsiveContainer width="100%" height="100%">
@@ -387,7 +387,7 @@ const BarXTick = (props: unknown) => {
   const weekend = isWeekend(payload.value);
   return (
     <g transform={`translate(${x},${y})`}>
-      <text x={0} y={0} dy={12} fill={weekend ? "#3B82F6" : "#9CA3AF"} fontSize={11} textAnchor="middle" fontWeight={weekend ? 700 : 400}>
+      <text x={0} y={0} dy={12} fill={weekend ? "#3B82F6" : "#9CA3AF"} fontSize={13} textAnchor="middle" fontWeight={weekend ? 700 : 400}>
         {payload.value}
       </text>
     </g>
@@ -403,7 +403,7 @@ const renderTotalLabel = (props: unknown) => {
   const value = typeof p.value === "number" ? p.value : 0;
   if (width < 30) return null;
   return (
-    <text x={x + width / 2} y={y - 6} fill="#374151" fontSize={10} fontWeight={600} textAnchor="middle">
+    <text x={x + width / 2} y={y - 6} fill="#374151" fontSize={12} fontWeight={600} textAnchor="middle">
       ${(value / 1000).toFixed(1)}K
     </text>
   );
@@ -418,13 +418,13 @@ const AdXTick = (props: unknown) => {
     <g transform={`translate(${x},${y})`}>
       {/* ROAS dot — sits exactly on the X-axis line */}
       <circle cx={0} cy={5} r={3.5} fill="#8B5CF6" />
-      <text x={0} y={0} dy={20} fill="#6B7280" fontSize={10} textAnchor="middle" fontWeight={500}>
+      <text x={0} y={0} dy={20} fill="#6B7280" fontSize={12} textAnchor="middle" fontWeight={500}>
         {item ? `${(item.clicks / 1000).toFixed(2)}K` : ""}
       </text>
-      <text x={0} y={0} dy={32} fill="#9CA3AF" fontSize={10} textAnchor="middle">
+      <text x={0} y={0} dy={34} fill="#9CA3AF" fontSize={12} textAnchor="middle">
         {payload.value}
       </text>
-      <text x={0} y={0} dy={44} fill="#8B5CF6" fontSize={9} textAnchor="middle" fontWeight={600}>
+      <text x={0} y={0} dy={48} fill="#8B5CF6" fontSize={11} textAnchor="middle" fontWeight={600}>
         {item ? `${item.roas.toFixed(2)}x` : ""}
       </text>
     </g>
@@ -472,7 +472,7 @@ const renderConvLabel = (props: unknown) => {
   const item = adPerfData[idx];
   if (!item || item.profit < 0) return null;
   return (
-    <text x={x + width / 2} y={y - 5} fill="#374151" fontSize={9} fontWeight={700} textAnchor="middle">
+    <text x={x + width / 2} y={y - 5} fill="#374151" fontSize={11} fontWeight={700} textAnchor="middle">
       ${(item.convValue / 1000).toFixed(1)}K
     </text>
   );
@@ -482,7 +482,7 @@ const renderProfitLabel = (props: unknown) => {
   const p = props as { x?: number; y?: number; width?: number; height?: number; value?: number };
   const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, h = p.height ?? 0, val = p.value ?? 0;
   if (w < 34 || h < 16 || val <= 0) return null;
-  return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={9} fontWeight={700} textAnchor="middle">${(val / 1000).toFixed(1)}K</text>;
+  return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={11} fontWeight={700} textAnchor="middle">${(val / 1000).toFixed(1)}K</text>;
 };
 
 const renderCostLabel = (props: unknown) => {
@@ -491,7 +491,7 @@ const renderCostLabel = (props: unknown) => {
   if (w < 34 || h < 16) return null;
   const item = adPerfData[idx];
   if (!item) return null;
-  return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={9} fontWeight={700} textAnchor="middle">${(item.cost / 1000).toFixed(1)}K</text>;
+  return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={11} fontWeight={700} textAnchor="middle">${(item.cost / 1000).toFixed(1)}K</text>;
 };
 
 const renderPlLabel = (props: unknown) => {
@@ -499,7 +499,7 @@ const renderPlLabel = (props: unknown) => {
   const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, val = p.value ?? 0;
   if (w < 32) return null;
   return (
-    <text x={x + w / 2} y={y - 5} fill="#374151" fontSize={10} fontWeight={700} textAnchor="middle">
+    <text x={x + w / 2} y={y - 5} fill="#374151" fontSize={12} fontWeight={700} textAnchor="middle">
       ${(val / 1000).toFixed(2)}K
     </text>
   );
@@ -513,10 +513,10 @@ const renderLossTopLabel = (props: unknown) => {
   if (!item || item.profit >= 0) return null;
   return (
     <g>
-      <text x={x + w / 2} y={y - 14} fill="#3B82F6" fontSize={9} fontWeight={700} textAnchor="middle">
+      <text x={x + w / 2} y={y - 14} fill="#3B82F6" fontSize={11} fontWeight={700} textAnchor="middle">
         ${(item.convValue / 1000).toFixed(1)}K
       </text>
-      <text x={x + w / 2} y={y - 3} fill="#EF4444" fontSize={9} fontWeight={700} textAnchor="middle">
+      <text x={x + w / 2} y={y - 3} fill="#EF4444" fontSize={11} fontWeight={700} textAnchor="middle">
         -{(Math.abs(item.profit) / 1000).toFixed(1)}K
       </text>
     </g>
@@ -602,11 +602,11 @@ export default function GoogleAdsPage() {
             </svg>
           </div>
           <div>
-            <h1 className="text-[17px] font-bold text-gray-900 leading-tight">Google Ads</h1>
-            <p className="text-[12px] text-gray-400">Campaign Performance Analytics</p>
+            <h1 className="text-[19px] font-bold text-gray-900 leading-tight">Google Ads</h1>
+            <p className="text-[13px] text-gray-400">Campaign Performance Analytics</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-[13px] text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-gray-50">
+        <div className="flex items-center gap-2 text-[14px] text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-gray-50">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           Mar 31 – Apr 13, 2026
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -639,14 +639,14 @@ export default function GoogleAdsPage() {
           <div className="hidden sm:flex gap-1 border-b border-gray-100 flex-1 overflow-x-auto scrollbar-none min-w-0">
             {tabs.map((t, i) => (
               <button key={t} onClick={() => setActiveTab(i)}
-                className={`px-3 py-2 text-[13px] font-medium border-b-2 transition whitespace-nowrap ${
+                className={`px-3 py-2 text-[14px] font-medium border-b-2 transition whitespace-nowrap ${
                   activeTab === i ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}>
                 {t}
               </button>
             ))}
           </div>
-          <button className="flex items-center gap-1.5 text-[13px] font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition shrink-0 border border-purple-200">
+          <button className="flex items-center gap-1.5 text-[14px] font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition shrink-0 border border-purple-200">
             <span className="text-purple-500">{I.sparkle}</span>
             <span className="hidden sm:inline">AI Assistant</span>
             <span className="sm:hidden">AI</span>
@@ -654,14 +654,14 @@ export default function GoogleAdsPage() {
         </div>
 
         {/* Chart controls */}
-        <div className="flex items-center justify-between gap-2 mb-4 text-[13px]">
+        <div className="flex items-center justify-between gap-2 mb-4 text-[14px]">
           {activeTab === 0 && (
             <div className="flex items-center gap-2 min-w-0">
               <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 font-medium whitespace-nowrap">
                 Revenue
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
-              <span className="text-gray-400 text-[12px] shrink-0">by</span>
+              <span className="text-gray-400 text-[13px] shrink-0">by</span>
               <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 font-medium whitespace-nowrap">
                 Campaign
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -669,10 +669,10 @@ export default function GoogleAdsPage() {
             </div>
           )}
           {activeTab === 1 && (
-            <p className="text-[12px] text-gray-400">Conversion value, profit, cost, clicks &amp; ROAS over time</p>
+            <p className="text-[13px] text-gray-400">Conversion value, profit, cost, clicks &amp; ROAS over time</p>
           )}
           {activeTab === 2 && (
-            <div className="flex items-center gap-3 flex-wrap text-[12px]">
+            <div className="flex items-center gap-3 flex-wrap text-[13px]">
               <span className="text-gray-600">Total: <span className="text-green-700 font-bold">${(plTotal / 1000).toFixed(1)}K</span></span>
               <span className="text-gray-400">|</span>
               <span className="text-gray-600">Avg Daily: <span className="font-bold">${(plAvgDaily / 1000).toFixed(1)}K</span></span>
@@ -698,7 +698,7 @@ export default function GoogleAdsPage() {
                   <BarChart data={barData} barCategoryGap="18%" margin={{ top: 28, right: 10, left: -10, bottom: isMobile ? 0 : 4 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" />
                     <XAxis dataKey="date" tick={isMobile && barData.length > 8 ? false : <BarXTick />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={isMobile && barData.length > 8 ? 4 : 30} />
-                    <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} />
+                    <YAxis tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} />
                     <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(99, 102, 241, 0.05)" }} />
                     {campaignAvgs.map(({ name, color }, i) => (
                       <Bar key={name} dataKey={name} stackId="a" fill={color} radius={i === campaignAvgs.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
@@ -711,7 +711,7 @@ export default function GoogleAdsPage() {
             </div>
             <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 justify-center">
               {campaignAvgs.map(({ name, color }) => (
-                <div key={name} className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-[12px] text-gray-500">
+                <div key={name} className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-[13px] text-gray-500">
                   <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm shrink-0" style={{ background: color }} />
                   {name}
                 </div>
@@ -729,9 +729,9 @@ export default function GoogleAdsPage() {
                   <ComposedChart data={adPerfData} barCategoryGap="2%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" yAxisId="left" />
                     <XAxis dataKey="date" tick={<AdXTick />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={60} />
-                    <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} label={{ value: "Conv. Value / Profit / Cost", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 9 } }} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} label={{ value: "Conv. Value / Profit / Cost", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                     <YAxis yAxisId="right" orientation="right" hide domain={[0, 6]} />
-                    <YAxis yAxisId="clicks" orientation="right" tick={{ fontSize: 9, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} domain={[0, 8000]} label={{ value: "Clicks", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 9 } }} />
+                    <YAxis yAxisId="clicks" orientation="right" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} domain={[0, 8000]} label={{ value: "Clicks", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                     <ReferenceLine yAxisId="left" y={0} stroke="#E5E7EB" strokeWidth={1} />
                     <Tooltip content={<AdTooltip />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
 
@@ -755,7 +755,7 @@ export default function GoogleAdsPage() {
               </div>
             </div>
             {/* Legend */}
-            <div className="flex flex-wrap gap-3 mt-2 justify-center text-[11px] sm:text-[12px] text-gray-500">
+            <div className="flex flex-wrap gap-3 mt-2 justify-center text-[11px] sm:text-[13px] text-gray-500">
               {[
                 { label: "Conv. Value", color: "#0EA5E9" },
                 { label: "Profit", color: "#4ADE80" },
@@ -785,13 +785,13 @@ export default function GoogleAdsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={plData} barCategoryGap="18%" margin={{ top: 28, right: 56, left: -10, bottom: 5 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" yAxisId="left" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} />
-                    <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false}
+                    <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false}
                       tickFormatter={(v) => `$${(v / 1000).toFixed(1)}K`}
-                      label={{ value: "Cumulative Profit", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 9 } }} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false}
+                      label={{ value: "Cumulative Profit", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false}
                       tickFormatter={(v) => `$${(v / 1000).toFixed(1)}K`}
-                      label={{ value: "Daily Profit", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 9 } }} />
+                      label={{ value: "Daily Profit", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                     <ReferenceLine yAxisId="left" y={7000} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="4 3" />
                     <ReferenceLine yAxisId="left" y={3500} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="4 3" />
                     <Tooltip content={<PlTooltip />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
@@ -810,7 +810,7 @@ export default function GoogleAdsPage() {
                 </ResponsiveContainer>
               </div>
             </div>
-            <div className="flex flex-wrap gap-3 mt-2 justify-center text-[11px] sm:text-[12px] text-gray-500">
+            <div className="flex flex-wrap gap-3 mt-2 justify-center text-[11px] sm:text-[13px] text-gray-500">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-sm shrink-0 bg-[#4ADE80]" />
                 Cumulative Profit
@@ -983,17 +983,17 @@ export default function GoogleAdsPage() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="px-4 sm:px-5 py-4 flex items-start justify-between flex-wrap gap-3 border-b border-gray-100">
           <div className="min-w-0">
-            <h2 className="text-[15px] font-bold text-gray-900">Campaign Performance</h2>
-            <p className="text-[12px] text-gray-400 mt-0.5 hidden sm:block">Detailed analytics for 45 campaigns • Mar 31, 2026 – Apr 13, 2026</p>
+            <h2 className="text-[17px] font-bold text-gray-900">Campaign Performance</h2>
+            <p className="text-[13px] text-gray-400 mt-0.5 hidden sm:block">Detailed analytics for 45 campaigns • Mar 31, 2026 – Apr 13, 2026</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-            <span className="text-[12px] text-gray-500 hidden sm:inline">Filters:</span>
+            <span className="text-[13px] text-gray-500 hidden sm:inline">Filters:</span>
 
             {/* Campaign Name multi-select dropdown */}
             <div className="relative">
               <button
                 onClick={() => setCampaignDropdownOpen(!campaignDropdownOpen)}
-                className={`flex items-center gap-1.5 text-[12px] border rounded-lg px-2.5 py-1.5 transition whitespace-nowrap ${
+                className={`flex items-center gap-1.5 text-[13px] border rounded-lg px-2.5 py-1.5 transition whitespace-nowrap ${
                   selectedCampaigns.size > 0
                     ? "border-blue-400 bg-blue-50 text-blue-700"
                     : "border-gray-200 text-gray-600 hover:bg-gray-50"
@@ -1067,16 +1067,16 @@ export default function GoogleAdsPage() {
             </div>
 
             <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
-              className="text-[12px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 bg-white">
+              className="text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 bg-white">
               {types.map((t) => <option key={t}>{t}</option>)}
             </select>
-            <select className="text-[12px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 bg-white">
+            <select className="text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 bg-white">
               <option>Status</option><option>Active</option><option>Paused</option>
             </select>
             {(selectedCampaigns.size > 0 || typeFilter !== "All") && (
               <button
                 onClick={() => { setSelectedCampaigns(new Set()); setTypeFilter("All"); }}
-                className="text-[12px] text-blue-600 hover:text-blue-800 transition whitespace-nowrap"
+                className="text-[13px] text-blue-600 hover:text-blue-800 transition whitespace-nowrap"
               >
                 Clear all filters
               </button>
@@ -1085,7 +1085,7 @@ export default function GoogleAdsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-[12px] border-collapse min-w-[1280px]">
+          <table className="w-full text-[13px] border-collapse min-w-[1280px]">
             <colgroup>
               <col className="w-10" />
               <col className="w-14" />
@@ -1107,7 +1107,7 @@ export default function GoogleAdsPage() {
             <thead>
               <tr className="bg-gray-50/80">
                 <th className="px-3 py-2.5 sticky left-0 z-20 bg-gray-50"><input type="checkbox" className="rounded" /></th>
-                <th className="px-2 py-2.5 text-left text-gray-500 font-medium text-[11px] sticky left-10 z-20 bg-gray-50">Status</th>
+                <th className="px-2 py-2.5 text-left text-gray-500 font-medium text-[12px] sticky left-10 z-20 bg-gray-50">Status</th>
                 {([
                   ["Campaign","name","left"],["Type","type","left"],["Target ROAS","roas","left"],
                   ["Impr.","impr","right"],["Clicks","clicks","right"],["CPC","cpc","right"],["CTR","ctr","right"],
@@ -1116,7 +1116,7 @@ export default function GoogleAdsPage() {
                 ] as [string, SortKey, "left" | "right"][]).map(([label, col, align]) => (
                   <th key={col} onClick={() => handleSort(col)}
                     style={col === "name" ? { maxWidth: 75 } : undefined}
-                    className={`px-2.5 py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[11px]${col === "name" ? " sticky left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 overflow-hidden" : ""}`}>
+                    className={`px-2.5 py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[12px]${col === "name" ? " sticky left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 overflow-hidden" : ""}`}>
                     {label}<SortIcon dir={sortCol === col ? sortDir : null} />
                   </th>
                 ))}
@@ -1173,7 +1173,7 @@ export default function GoogleAdsPage() {
               ))}
             </tbody>
             <tfoot>
-              <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold text-gray-800 text-[12px]">
+              <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold text-gray-800 text-[13px]">
                 <td className="px-3 py-3 sticky left-0 z-10 bg-gray-50" colSpan={5}>Total (45 campaigns)</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">10,073,857</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">115,078</td>
@@ -1193,12 +1193,12 @@ export default function GoogleAdsPage() {
 
         {/* Pagination */}
         <div className="px-4 sm:px-5 py-3 flex items-center justify-between flex-wrap gap-2 border-t border-gray-100">
-          <p className="text-[12px] text-gray-500">
+          <p className="text-[13px] text-gray-500">
             <span className="hidden sm:inline">Showing 1 to 10 of 45 campaigns</span>
             <span className="sm:hidden">1–10 / 45</span>
             <span className="mx-2 hidden sm:inline">|</span>
             <span className="hidden sm:inline">Rows per page:</span>
-            <select className="ml-1.5 text-[12px] border border-gray-200 rounded px-1.5 py-0.5 bg-white outline-none">
+            <select className="ml-1.5 text-[13px] border border-gray-200 rounded px-1.5 py-0.5 bg-white outline-none">
               <option>10</option><option>20</option><option>50</option>
             </select>
           </p>
@@ -1209,7 +1209,7 @@ export default function GoogleAdsPage() {
             </button>
             {[1,2,3,4,5].map((p) => (
               <button key={p} onClick={() => setPage(p)}
-                className={`w-7 h-7 rounded-lg text-[12px] font-medium transition ${
+                className={`w-7 h-7 rounded-lg text-[13px] font-medium transition ${
                   page === p ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"
                 }`}>
                 {p}
