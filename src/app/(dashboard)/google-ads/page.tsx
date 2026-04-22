@@ -266,6 +266,10 @@ const tabs = ["Period Analysis", "Ad Performance", "Profit / Loss", "Segments"];
 type SortDir = "asc" | "desc" | null;
 type SortKey = keyof (typeof campaignRows)[number];
 
+const _trNums = campaignRows.filter(r => r.roas !== "null").map(r => parseFloat(r.roas));
+const targetRoasMin = Math.min(..._trNums);
+const targetRoasMax = Math.max(..._trNums);
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const fmtNum = (n: number) => n.toLocaleString("en-US");
@@ -1198,28 +1202,18 @@ export default function GoogleAdsPage() {
               <col className="w-14 hidden sm:table-column" />
               <col className="w-[160px]" />
               <col className="w-[90px] hidden sm:table-column" />
+              <col /><col /><col /><col /><col /><col /><col /><col /><col /><col /><col />
               <col className="w-[108px]" />
-              <col />
-              <col />
-              <col />
-              <col />
-              <col />
-              <col />
-              <col />
-              <col />
-              <col />
-              <col />
-              <col />
             </colgroup>
             <thead>
               <tr className="bg-gray-50/80">
                 <th className="px-3 py-2.5 sticky left-0 z-20 bg-gray-50"><input type="checkbox" className="rounded" /></th>
                 <th className="px-2 py-2.5 text-left text-gray-500 font-medium text-[12px] sticky left-10 z-20 bg-gray-50 hidden sm:table-cell">Status</th>
                 {([
-                  ["Campaign","name","left"],["Type","type","left"],["Target ROAS","roas","left"],
+                  ["Campaign","name","left"],["Type","type","left"],
                   ["Impr.","impr","right"],["Clicks","clicks","right"],["CPC","cpc","right"],["CTR","ctr","right"],
                   ["Conv. rate","convRate","right"],["Conv.","conv","right"],["CPA","cpa","right"],
-                  ["Revenue","revenue","right"],["Cost","cost","right"],["Profit (ads)","profit","right"],["ROAS","roasVal","right"],
+                  ["Revenue","revenue","right"],["Cost","cost","right"],["Profit (ads)","profit","right"],["ROAS","roasVal","right"],["Target ROAS","roas","right"],
                 ] as [string, SortKey, "left" | "right"][]).map(([label, col, align]) => (
                   <th key={col} onClick={() => handleSort(col)}
                     style={col === "name" ? { maxWidth: 160 } : undefined}
@@ -1249,16 +1243,6 @@ export default function GoogleAdsPage() {
                   <td className="px-2.5 py-2.5 hidden sm:table-cell">
                     <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-medium">{row.type}</span>
                   </td>
-                  <td className="px-2.5 py-2.5">
-                    {row.roas !== "null" ? (
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                        row.roasColor === "red" ? "bg-red-100 text-red-600" :
-                        row.roasColor === "orange" ? "bg-orange-100 text-orange-600" :
-                        row.roasColor === "green" ? "bg-green-100 text-green-700" :
-                        "bg-gray-100 text-gray-500"
-                      }`}>{row.roas}</span>
-                    ) : <span className="text-gray-300 text-[11px]">null</span>}
-                  </td>
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("impr", row.impr, "blue")}>{fmtNum(row.impr)}</td>
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("clicks", row.clicks, "blue")}>{fmtNum(row.clicks)}</td>
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("cpc", row.cpc, "blue")}>{fmtCurrency(row.cpc)}</td>
@@ -1276,12 +1260,18 @@ export default function GoogleAdsPage() {
                     style={cellStyle("roasVal", row.roasVal, row.roasVal >= 100 ? "green" : "red")}>
                     {row.roasVal}%
                   </td>
+                  <td className="px-2.5 py-2.5 text-right tabular-nums"
+                    style={row.roas !== "null" ? { backgroundColor: heatmapBg(parseFloat(row.roas), targetRoasMin, targetRoasMax, "green") } : undefined}>
+                    {row.roas !== "null"
+                      ? <span className="text-green-700 font-medium">{row.roas}</span>
+                      : <span className="text-gray-300 text-[11px]">null</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold text-gray-800 text-[13px]">
-                <td className="px-3 py-3 sticky left-0 z-10 bg-gray-50" colSpan={5}>Total (45 campaigns)</td>
+                <td className="px-3 py-3 sticky left-0 z-10 bg-gray-50" colSpan={4}>Total (45 campaigns)</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">10,073,857</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">115,078</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">$3.82</td>
@@ -1293,6 +1283,7 @@ export default function GoogleAdsPage() {
                 <td className="px-2.5 py-3 text-right tabular-nums">$439.18K</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">-231.17K</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">152.64%</td>
+                <td className="px-2.5 py-3" />
               </tr>
             </tfoot>
           </table>
