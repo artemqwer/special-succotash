@@ -854,7 +854,7 @@ export default function GoogleAdsPage() {
                     </Bar>
 
                     {/* Clicks line */}
-                    <Line yAxisId="clicks" type="monotone" dataKey="clicks" stroke="#3B82F6" strokeWidth={1.5} dot={{ fill: "#3B82F6", r: 2.5, strokeWidth: 0 }} activeDot={{ r: 4 }} />
+                    <Line yAxisId="clicks" type="monotone" dataKey="clicks" stroke="#1F2937" strokeWidth={1.5} strokeDasharray="4 3" dot={false} activeDot={{ r: 4, fill: "#1F2937" }} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -865,12 +865,14 @@ export default function GoogleAdsPage() {
                 { label: "Conv. Value", color: "#0EA5E9" },
                 { label: "Profit", color: "#4ADE80" },
                 { label: "Cost", color: "#F87171" },
-                { label: "Clicks", color: "#3B82F6", line: true },
+                { label: "Clicks", color: "#1F2937", line: true, dashed: true },
                 { label: "ROAS", color: "#8B5CF6", dot: true },
-              ].map(({ label, color, line, dot }) => (
+              ].map(({ label, color, line, dot, dashed }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   {line
-                    ? <div className="w-4 h-0.5 rounded-full" style={{ background: color }} />
+                    ? dashed
+                      ? <svg width="16" height="4"><line x1="0" y1="2" x2="16" y2="2" stroke={color} strokeWidth="1.5" strokeDasharray="4 2"/></svg>
+                      : <div className="w-4 h-0.5 rounded-full" style={{ background: color }} />
                     : dot
                     ? <div className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
                     : <div className="w-2 h-2 rounded-sm shrink-0" style={{ background: color }} />
@@ -897,9 +899,9 @@ export default function GoogleAdsPage() {
                     <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false}
                       tickFormatter={(v) => `$${(v / 1000).toFixed(1)}K`}
                       label={{ value: "Daily Profit", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
+                    <Tooltip content={(p) => <PlTooltip {...p} data={plData} />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
                     <ReferenceLine yAxisId="left" y={7000} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="4 3" />
                     <ReferenceLine yAxisId="left" y={3500} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="4 3" />
-                    <Tooltip content={(p) => <PlTooltip {...p} data={plData} />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
                     <Bar yAxisId="left" dataKey="cumulative" fill="#4ADE80" radius={[3, 3, 0, 0]} isAnimationActive={false}>
                       <LabelList dataKey="cumulative" content={renderPlLabel} />
                     </Bar>
@@ -926,7 +928,7 @@ export default function GoogleAdsPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full shrink-0 bg-red-400" />
-                Loss Day
+                Daily Loss
               </div>
             </div>
           </>
