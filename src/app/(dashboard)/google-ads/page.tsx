@@ -1146,9 +1146,9 @@ export default function GoogleAdsPage() {
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("clicks", row.clicks, "blue")}>{fmtNum(row.clicks)}</td>
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("cpc", row.cpc, "blue")}>{fmtCurrency(row.cpc)}</td>
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("ctr", row.ctr, "blue")}>{fmtPct(row.ctr)}</td>
-                  <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("convRate", row.convRate, "green")}>{fmtPct(row.convRate)}</td>
-                  <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("conv", row.conv, "green")}>{fmtNum(row.conv)}</td>
-                  <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("cpa", row.cpa, "blue")}>{row.cpa.toFixed(1)}</td>
+                  <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("convRate", row.convRate, "blue")}>{fmtPct(row.convRate)}</td>
+                  <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("conv", row.conv, "blue")}>{fmtNum(row.conv)}</td>
+                  <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("cpa", row.cpa, "green")}>{row.cpa.toFixed(1)}</td>
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums font-medium" style={cellStyle("revenue", row.revenue, "green")}>${fmtK(row.revenue)}</td>
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("cost", row.cost, "blue")}>${fmtK(row.cost)}</td>
                   <td className={`px-2.5 py-2.5 text-right tabular-nums ${row.profit < 0 ? "text-red-600" : "text-green-700"}`}
