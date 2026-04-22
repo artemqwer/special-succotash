@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line,
   LabelList, ComposedChart, ReferenceLine, Cell, PieChart, Pie, AreaChart, Area, CartesianGrid,
@@ -102,7 +102,7 @@ function makePeriodLabel(days: number) {
   return `${fmt(END_MS - (days - 1) * DAY_MS)} – ${fmt(END_MS)}`;
 }
 
-type AdPerfItem = { date: string; convValue: number; cost: number; profit: number; clicks: number; roas: number; costBase: number; profitPos: number };
+type AdPerfItem = { date: string; convValue: number; cost: number; profit: number; clicks: number; roas: number; costBase: number; costRestore: number; profitPos: number };
 type PlItem = { date: string; dailyProfit: number; cumulative: number };
 
 function generatePeriodData(days: number) {
@@ -143,7 +143,8 @@ function generatePeriodData(days: number) {
     const profit = convValue - cost;
     const clicks = Math.round(3200 + Math.sin(i * 0.6 + 2) * 900 + (wd === 0 || wd === 6 ? -600 : 0));
     const roas = parseFloat((convValue / cost).toFixed(2));
-    return { date, convValue, cost, profit, clicks, roas, costBase: profit >= 0 ? -cost : -(cost - Math.abs(profit)), profitPos: Math.max(0, profit) };
+    const costBase = profit >= 0 ? -cost : -(cost - Math.abs(profit));
+    return { date, convValue, cost, profit, clicks, roas, costBase, costRestore: Math.abs(costBase), profitPos: Math.max(0, profit) };
   });
 
   let cum = 0;
@@ -286,6 +287,62 @@ function heatmapBg(value: number, min: number, max: number, color: "blue" | "gre
   return `rgba(239, 68, 68, ${alpha})`;
 }
 
+// ─── AI Assistant helpers ─────────────────────────────────────────────────────
+
+type AiMessage = { id: number; role: "assistant" | "user"; text: string; time: string; suggestions?: string[]; pinned: boolean };
+
+function parseBold(line: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  let rest = line;
+  let k = 0;
+  while (rest.length > 0) {
+    const s = rest.indexOf("**");
+    if (s === -1) { nodes.push(rest); break; }
+    if (s > 0) nodes.push(rest.slice(0, s));
+    rest = rest.slice(s + 2);
+    const e = rest.indexOf("**");
+    if (e === -1) { nodes.push("**" + rest); break; }
+    nodes.push(<strong key={k++}>{rest.slice(0, e)}</strong>);
+    rest = rest.slice(e + 2);
+  }
+  return nodes;
+}
+
+function renderAiText(text: string) {
+  return text.split("\n").map((line, i) =>
+    line
+      ? <p key={i} className="leading-relaxed">{parseBold(line)}</p>
+      : <span key={i} className="block h-2" />
+  );
+}
+
+const AI_METRICS = [
+  { label: "Impr.", value: "1.73M" }, { label: "Clicks", value: "144,022" },
+  { label: "CPC", value: "$1.47" }, { label: "CTR", value: "8.3%" },
+  { label: "Conv. rate", value: "5.5%" }, { label: "Conv.", value: "7,888" },
+  { label: "CPA", value: "$26.87" }, { label: "Revenue", value: "$759.69K" },
+  { label: "Cost", value: "$211.96K" },
+  { label: "Profit (ads)", value: "$547.73K", hi: "text-green-600" },
+  { label: "ROAS", value: "3.58", hi: "text-blue-600" },
+];
+
+const AI_QUICK = [
+  { label: "Find Issues", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> },
+  { label: "Improve ROAS", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg> },
+  { label: "Cut Costs", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> },
+  { label: "Boost Performance", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> },
+];
+
+function getMockAiResponse(input: string): { text: string; suggestions: string[] } {
+  const lo = input.toLowerCase();
+  if (lo.includes("roas")) return { text: "📈 **ROAS Analysis**\n\nYour current ROAS is **3.58x** across all campaigns.\n\n**Top performers:**\n• Search - Men T-Shirts: **470%** ROAS\n• Shopping - Winter Clearance: **210%** ROAS\n\n**Needs attention:**\n• Search - Men Shirts: **42%** ROAS (below target)\n• Display - Retargeting: **24%** ROAS\n\nI recommend pausing underperforming campaigns and reallocating budget to top performers.", suggestions: ["How can I improve low ROAS?", "Show budget allocation", "Compare with previous period"] };
+  if (lo.includes("perform") || lo.includes("account")) return { text: "📊 **Account Performance Summary**\n\nYour account is performing **above average** this period.\n\n• **Revenue:** $759.69K (+18.2% vs prev period)\n• **Profit:** $547.73K (+22.8% vs prev period)\n• **ROAS:** 3.58x\n• **Cost:** $211.96K (+6.4%)\n\nShopping and PMax campaigns are driving the most conversions. Clicks are up 8.3% while CPC decreased to $1.47.", suggestions: ["Which campaigns to scale?", "Show cost breakdown", "Forecast next 30 days"] };
+  if (lo.includes("recommend") || lo.includes("optim")) return { text: "💡 **Optimization Recommendations**\n\nBased on your account data, here are my top recommendations:\n\n1. **Scale Search - Men T-Shirts** — 470% ROAS, increase budget by 30%\n2. **Pause Display - Retargeting** — 24% ROAS, negative ROI\n3. **Add negative keywords** to PMax campaigns to reduce wasted spend\n4. **Increase bids on mobile** — CTR 12% higher on mobile\n5. **Run A/B tests** on ad copy for Search campaigns", suggestions: ["Implement these changes", "Show keyword analysis", "What is my wasted spend?"] };
+  if (lo.includes("issue") || lo.includes("problem")) return { text: "🔍 **Issues Found**\n\nI've identified **3 issues** in your account:\n\n⚠️ **High CPA campaigns:**\n• Display - Retargeting: CPA $93.3 (target: $30)\n• PMax - Men Pants: CPA $31.8\n\n⚠️ **Low conversion rate:**\n• PMax - Women Clothing: 0.31% (avg: 2.15%)\n\n⚠️ **Budget pacing:**\n• 2 campaigns running out of budget before end of day", suggestions: ["How to fix high CPA?", "Review budget pacing", "Show conversion tips"] };
+  if (lo.includes("cost") || lo.includes("budget")) return { text: "💰 **Cost Analysis**\n\nTotal spend: **$211.96K** this period.\n\n**Budget breakdown:**\n• PMax campaigns: 41% of budget\n• Search campaigns: 35% of budget\n• Shopping: 14% of budget\n• Display: 10% of budget\n\n**Opportunity:** Reduce Display budget by 30% (lowest ROAS) and reallocate to Search.", suggestions: ["Reallocate budget", "Show ROI by channel", "Forecast with new budgets"] };
+  return { text: "📊 Analyzing your campaign data...\n\nYour account has **45 active campaigns** generating $759.69K in revenue with a 3.58x ROAS. Key metrics look healthy with strong profit margins.\n\nWhat specific aspect would you like to explore?", suggestions: ["Performance trends", "Campaign comparison", "Keyword insights"] };
+}
+
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function KpiCard({ label, icon, value, delta, up, spark, desc, hoverFmt }: {
@@ -311,9 +368,12 @@ function KpiCard({ label, icon, value, delta, up, spark, desc, hoverFmt }: {
           </div>
         </div>
       </div>
-      <div className="flex items-baseline gap-1 sm:gap-2 mb-0 sm:mb-2.5 flex-wrap">
-        <span className="text-[15px] sm:text-[22px] font-bold text-gray-900 leading-none truncate">{value}</span>
-        <span className={`text-[10px] sm:text-[13px] font-semibold shrink-0 ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
+      <div className="mb-0 sm:mb-2.5">
+        <div className="flex items-baseline gap-1 sm:gap-2">
+          <span className="text-[15px] sm:text-[22px] font-bold text-gray-900 leading-none truncate">{value}</span>
+          <span className={`hidden sm:inline-block text-[13px] font-semibold shrink-0 ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
+        </div>
+        <span className={`sm:hidden text-[10px] font-semibold block mt-0.5 ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
       </div>
       <div className="h-[58px] -mx-4 hidden sm:block relative">
         <ResponsiveContainer width="100%" height="100%">
@@ -583,7 +643,20 @@ export default function GoogleAdsPage() {
   const [selectedDays, setSelectedDays] = useState(14);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
-  const totalPages = 5;
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiInput, setAiInput] = useState("");
+  const [aiMsgs, setAiMsgs] = useState<AiMessage[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const aiScrollRef = useRef<HTMLDivElement>(null);
+  const [addEventOpen, setAddEventOpen] = useState(false);
+  const [evtCategory, setEvtCategory] = useState<"Events" | "Ads" | "Website">("Events");
+  const [evtType, setEvtType] = useState<string | null>(null);
+  const [evtStartDate, setEvtStartDate] = useState("2026-04-14");
+  const [evtEndDate, setEvtEndDate] = useState("");
+  const [evtTitle, setEvtTitle] = useState("");
+  const [evtDesc, setEvtDesc] = useState("");
+  const totalPages = Math.ceil(45 / rowsPerPage);
 
   const { dates, barData, campaignAvgs, adPerfData, plData, plTotal, plAvgDaily, plProfitDays, plLossDays } = useMemo(
     () => generatePeriodData(selectedDays),
@@ -599,6 +672,35 @@ export default function GoogleAdsPage() {
     })),
     [barData, campaignAvgs, hiddenSeries]
   );
+
+  const openAi = () => {
+    if (aiMsgs.length === 0) {
+      const t = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+      setAiMsgs([{ id: 1, role: "assistant", text: "👋 Hello! I'm your AI Assistant for **All Account Campaigns**.\n\nI have access to your complete account data and can help you:\n\n📊 Analyze account-wide performance trends\n💡 Provide optimization recommendations\n📈 Create custom charts and graphs\n📋 Show detailed data tables\n🎯 Answer specific questions about metrics\n\nWhat would you like to explore today?", time: t, suggestions: ["How is the account performing?", "What are your recommendations?", "Show me ROAS analysis"], pinned: false }]);
+    }
+    setAiOpen(true);
+  };
+
+  const sendAiMsg = (text?: string) => {
+    const msg = (text ?? aiInput).trim();
+    if (!msg || aiLoading) return;
+    setAiInput("");
+    const t = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    setAiMsgs(prev => [...prev, { id: Date.now(), role: "user", text: msg, time: t, pinned: false }]);
+    setAiLoading(true);
+    setTimeout(() => {
+      const r = getMockAiResponse(msg);
+      const t2 = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+      setAiMsgs(prev => [...prev, { id: Date.now() + 1, role: "assistant", text: r.text, time: t2, suggestions: r.suggestions, pinned: false }]);
+      setAiLoading(false);
+    }, 1100);
+  };
+
+  const toggleAiPin = (id: number) => setAiMsgs(prev => prev.map(m => m.id === id ? { ...m, pinned: !m.pinned } : m));
+
+  useEffect(() => {
+    if (aiScrollRef.current) aiScrollRef.current.scrollTop = aiScrollRef.current.scrollHeight;
+  }, [aiMsgs, aiLoading]);
 
   const toggleSeries = (name: string) => {
     setHiddenSeries((prev) => {
@@ -665,7 +767,43 @@ export default function GoogleAdsPage() {
 
   return (
     <div className="px-4 sm:px-6 py-6 bg-[#f4f6fb] min-h-screen">
-      {/* Header */}
+      {/* Mobile header */}
+      <div className="flex sm:hidden items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" fill="#4285F4"/>
+            </svg>
+          </div>
+          <span className="text-[15px] font-bold text-gray-900">Google Ads</span>
+        </div>
+        <div className="relative">
+          <button
+            onClick={() => setDatePickerOpen(!datePickerOpen)}
+            className="flex items-center gap-1.5 text-[12px] text-gray-600 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-gray-50 transition"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            {makePeriodLabel(selectedDays)}
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${datePickerOpen ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          {datePickerOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setDatePickerOpen(false)} />
+              <div className="absolute right-0 top-full mt-1.5 w-[160px] bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+                {PERIOD_PRESETS.map(({ label, days }) => (
+                  <button key={days} onClick={() => { setSelectedDays(days); setDatePickerOpen(false); setHiddenSeries(new Set()); }}
+                    className={`w-full text-left px-3 py-2 text-[12px] hover:bg-gray-50 flex items-center justify-between transition ${selectedDays === days ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
+                    {label}
+                    {selectedDays === days && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop header */}
       <div className="hidden sm:flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -710,7 +848,7 @@ export default function GoogleAdsPage() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-4 sm:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 mb-5">
         {kpis.map((k, i) => (
           <KpiCard key={k.label} label={k.label} icon={k.icon} value={k.value} delta={k.delta} up={k.up} spark={sparkData(k.up, i)} desc={k.desc} hoverFmt={k.hoverFmt} />
         ))}
@@ -719,7 +857,7 @@ export default function GoogleAdsPage() {
       {/* Chart card — fills viewport so table is below the fold */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
         {/* Tabs */}
-        <div className="flex items-center justify-between gap-3 mb-5 min-w-0">
+        <div className="flex items-end justify-between gap-3 mb-5 min-w-0">
           {/* Mobile: dropdown */}
           <div className="sm:hidden relative flex-1">
             <select
@@ -742,11 +880,16 @@ export default function GoogleAdsPage() {
               </button>
             ))}
           </div>
-          <button className="flex items-center gap-1.5 text-[14px] font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition shrink-0 border border-purple-200">
-            <span className="text-purple-500">{I.sparkle}</span>
-            <span className="hidden sm:inline">AI Assistant</span>
-            <span className="sm:hidden">AI</span>
-          </button>
+          <div className="p-px rounded-lg shrink-0 self-center" style={{ background: "linear-gradient(135deg,#f472b6,#a78bfa,#60a5fa)" }}>
+            <button onClick={openAi} className="flex items-center gap-1.5 text-[14px] font-semibold text-purple-600 bg-white hover:bg-purple-50/60 px-3 py-[5px] rounded-[7px] transition whitespace-nowrap">
+              <svg width="14" height="14" viewBox="0 0 24 24">
+                <defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#f472b6"/><stop offset="100%" stopColor="#a78bfa"/></linearGradient></defs>
+                <path d="M12 1.5C12.5 7.5 16.5 11.5 22.5 12C16.5 12.5 12.5 16.5 12 22.5C11.5 16.5 7.5 12.5 1.5 12C7.5 11.5 11.5 7.5 12 1.5Z" fill="url(#sg)"/>
+              </svg>
+              <span className="hidden sm:inline">AI Assistant</span>
+              <span className="sm:hidden">AI</span>
+            </button>
+          </div>
         </div>
 
         {/* Chart controls */}
@@ -779,10 +922,12 @@ export default function GoogleAdsPage() {
             </div>
           )}
           {activeTab !== 0 && activeTab !== 1 && activeTab !== 2 && <div />}
-          <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 whitespace-nowrap shrink-0">
-            Days
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
+          {activeTab !== 3 && (
+            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 whitespace-nowrap shrink-0">
+              Days
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          )}
         </div>
 
         {/* ── Period Analysis chart ── */}
@@ -832,26 +977,29 @@ export default function GoogleAdsPage() {
         {/* ── Ad Performance chart ── */}
         {activeTab === 1 && (
           <>
-            <div className="overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
+            <div className="sm:overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
               <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-480px)] lg:min-h-[380px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={adPerfData} barCategoryGap="18%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" yAxisId="left" />
-                    <XAxis dataKey="date" tick={(p) => <AdXTick {...p} data={adPerfData} />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={48} />
+                    <XAxis dataKey="date" tick={isMobile && adPerfData.length > 8 ? false : (p) => <AdXTick {...p} data={adPerfData} />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={isMobile && adPerfData.length > 8 ? 4 : 48} />
                     <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} label={{ value: "Conv. Value / Profit / Cost", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                     <YAxis yAxisId="right" orientation="right" hide domain={[0, 6]} />
                     <YAxis yAxisId="clicks" orientation="right" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} domain={[0, 8000]} label={{ value: "Clicks", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                     <ReferenceLine yAxisId="left" y={0} stroke="#E5E7EB" strokeWidth={1} />
                     <Tooltip content={(p) => <AdTooltip {...p} data={adPerfData} />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
 
-                    {/* Cost base */}
+                    {/* Cost base — red, goes from 0 down to -cost */}
                     <Bar yAxisId="left" dataKey="costBase" stackId="a" radius={[0, 0, 3, 3]} isAnimationActive={false}>
                       {adPerfData.map((_, i) => <Cell key={i} fill="#F87171" fillOpacity={0.9} />)}
                       <LabelList dataKey="costBase" content={renderCostLabel} />
                       <LabelList dataKey="costBase" content={renderLossTopLabel} />
                     </Bar>
 
-                    {/* Profit positive (green, on top of cost) */}
+                    {/* Transparent restore bar — brings stack baseline back to 0 before the green bar */}
+                    <Bar yAxisId="left" dataKey="costRestore" stackId="a" fill="transparent" fillOpacity={0} isAnimationActive={false} />
+
+                    {/* Profit positive — green, goes from 0 up to profit */}
                     <Bar yAxisId="left" dataKey="profitPos" stackId="a" fill="#4ADE80" radius={[3, 3, 0, 0]} isAnimationActive={false}>
                       <LabelList dataKey="profitPos" content={renderProfitLabel} />
                       <LabelList dataKey="profitPos" content={renderConvLabel} />
@@ -891,12 +1039,12 @@ export default function GoogleAdsPage() {
         {/* ── Profit / Loss chart ── */}
         {activeTab === 2 && (
           <>
-            <div className="overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
-              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-480px)] lg:min-h-[380px] min-w-[600px]">
+            <div className="sm:overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
+              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-480px)] lg:min-h-[380px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={plData} barCategoryGap="18%" margin={{ top: 28, right: 56, left: -10, bottom: 5 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" yAxisId="left" />
-                    <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} />
+                    <XAxis dataKey="date" tick={isMobile && plData.length > 8 ? false : { fontSize: 12, fill: "#9CA3AF" }} height={isMobile && plData.length > 8 ? 4 : undefined} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} />
                     <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false}
                       tickFormatter={(v) => `$${(v / 1000).toFixed(1)}K`}
                       label={{ value: "Cumulative Profit", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
@@ -940,15 +1088,30 @@ export default function GoogleAdsPage() {
 
         {/* ── Segments chart ── */}
         {activeTab === 3 && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <SegmentDonut title="Revenue" data={segRevenue}
-              formatValue={(v) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(2)}K`} />
-            <SegmentDonut title="Ad Profit" data={segAdProfit}
-              formatValue={(v) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(2)}K`}
-              highlight />
-            <SegmentDonut title="Conversions" data={segConversions}
-              formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(2)}K` : String(v)} />
-          </div>
+          <>
+            {/* Mobile: horizontal scroll */}
+            <div className="sm:hidden flex gap-3 overflow-x-auto scrollbar-none -mx-1 px-1 pb-1">
+              {[
+                { title: "Revenue", data: segRevenue, fmt: (v: number) => v >= 1000000 ? `$${(v/1000000).toFixed(2)}M` : `$${(v/1000).toFixed(2)}K`, hi: false },
+                { title: "Ad Profit", data: segAdProfit, fmt: (v: number) => v >= 1000000 ? `$${(v/1000000).toFixed(2)}M` : `$${(v/1000).toFixed(2)}K`, hi: true },
+                { title: "Conversions", data: segConversions, fmt: (v: number) => v >= 1000 ? `${(v/1000).toFixed(2)}K` : String(v), hi: false },
+              ].map(({ title, data, fmt, hi }) => (
+                <div key={title} className="min-w-[260px] flex-shrink-0">
+                  <SegmentDonut title={title} data={data} formatValue={fmt} highlight={hi} />
+                </div>
+              ))}
+            </div>
+            {/* Desktop: 3 columns */}
+            <div className="hidden sm:grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <SegmentDonut title="Revenue" data={segRevenue}
+                formatValue={(v) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(2)}K`} />
+              <SegmentDonut title="Ad Profit" data={segAdProfit}
+                formatValue={(v) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(2)}K`}
+                highlight />
+              <SegmentDonut title="Conversions" data={segConversions}
+                formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(2)}K` : String(v)} />
+            </div>
+          </>
         )}
 
         {/* Event Timeline */}
@@ -972,7 +1135,10 @@ export default function GoogleAdsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <button className="text-[12px] border border-gray-200 rounded-lg px-2.5 py-1 hover:bg-gray-50 flex items-center gap-1 whitespace-nowrap">
+              <button
+                onClick={() => { setAddEventOpen(true); setEvtCategory("Events"); setEvtType(null); setEvtStartDate("2026-04-14"); setEvtEndDate(""); setEvtTitle(""); setEvtDesc(""); }}
+                className="text-[12px] border border-gray-200 rounded-lg px-2.5 py-1 hover:bg-gray-50 flex items-center gap-1 whitespace-nowrap"
+              >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Add Event
               </button>
@@ -1092,12 +1258,12 @@ export default function GoogleAdsPage() {
 
       {/* Campaign table */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-4 sm:px-5 py-4 flex items-start justify-between flex-wrap gap-3 border-b border-gray-100">
+        <div className="px-4 sm:px-5 py-4 flex items-start justify-between flex-wrap gap-2 sm:gap-3 border-b border-gray-100">
           <div className="min-w-0">
-            <h2 className="text-[17px] font-bold text-gray-900">Campaign Performance</h2>
+            <h2 className="text-[15px] sm:text-[17px] font-bold text-gray-900">Campaign Performance</h2>
             <p className="text-[13px] text-gray-400 mt-0.5 hidden sm:block">Detailed analytics for 45 campaigns • Mar 31, 2026 – Apr 13, 2026</p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap w-full sm:w-auto">
             <span className="text-[13px] text-gray-500 hidden sm:inline">Filters:</span>
 
             {/* Campaign Name multi-select dropdown */}
@@ -1271,17 +1437,22 @@ export default function GoogleAdsPage() {
             </tbody>
             <tfoot>
               <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold text-gray-800 text-[13px]">
-                <td className="px-3 py-3 sticky left-0 z-10 bg-gray-50" colSpan={4}>Total (45 campaigns)</td>
+                <td className="px-3 py-3 sticky left-0 z-10 bg-gray-50" />
+                <td className="px-2 py-3 sticky left-10 z-10 bg-gray-50 hidden sm:table-cell" />
+                <td className="px-2.5 py-3 sticky left-10 sm:left-24 z-10 bg-gray-50 whitespace-nowrap overflow-hidden after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200" style={{ maxWidth: 160 }}>
+                  Total <span className="text-gray-400 font-normal text-[11px]">(45)</span>
+                </td>
+                <td className="px-2.5 py-3 hidden sm:table-cell" />
                 <td className="px-2.5 py-3 text-right tabular-nums">10,073,857</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">115,078</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">$3.82</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">1.14%</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">0.58%</td>
-                <td className="px-2.5 py-3 text-right tabular-nums">3.19K</td>
+                <td className="px-2.5 py-3 text-right tabular-nums">3,190</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">137.6</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">$670.34K</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">$439.18K</td>
-                <td className="px-2.5 py-3 text-right tabular-nums">-231.17K</td>
+                <td className="px-2.5 py-3 text-right tabular-nums text-red-600">-231.17K</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">152.64%</td>
                 <td className="px-2.5 py-3" />
               </tr>
@@ -1292,12 +1463,16 @@ export default function GoogleAdsPage() {
         {/* Pagination */}
         <div className="px-4 sm:px-5 py-3 flex items-center justify-between flex-wrap gap-2 border-t border-gray-100">
           <p className="text-[13px] text-gray-500">
-            <span className="hidden sm:inline">Showing 1 to 10 of 45 campaigns</span>
-            <span className="sm:hidden">1–10 / 45</span>
+            <span className="hidden sm:inline">Showing {(page - 1) * rowsPerPage + 1} to {Math.min(page * rowsPerPage, 45)} of 45 campaigns</span>
+            <span className="sm:hidden">{(page - 1) * rowsPerPage + 1}–{Math.min(page * rowsPerPage, 45)} / 45</span>
             <span className="mx-2 hidden sm:inline">|</span>
             <span className="hidden sm:inline">Rows per page:</span>
-            <select className="ml-1.5 text-[13px] border border-gray-200 rounded px-1.5 py-0.5 bg-white outline-none">
-              <option>10</option><option>20</option><option>50</option>
+            <select
+              value={rowsPerPage}
+              onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
+              className="ml-1.5 text-[13px] border border-gray-200 rounded px-1.5 py-0.5 bg-white outline-none cursor-pointer"
+            >
+              <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option>
             </select>
           </p>
           <div className="flex items-center gap-1">
@@ -1305,7 +1480,7 @@ export default function GoogleAdsPage() {
               className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
-            {[1,2,3,4,5].map((p) => (
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
               <button key={p} onClick={() => setPage(p)}
                 className={`w-7 h-7 rounded-lg text-[13px] font-medium transition ${
                   page === p ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"
@@ -1320,6 +1495,296 @@ export default function GoogleAdsPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Add Custom Event Modal ── */}
+      {addEventOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setAddEventOpen(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[480px] max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-bold text-gray-900">Add Custom Event</h3>
+                  <p className="text-[12px] text-gray-400 mt-0.5">Add your own event to the timeline</p>
+                </div>
+              </div>
+              <button onClick={() => setAddEventOpen(false)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 transition">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-5">
+              {/* Select Category */}
+              <div>
+                <p className="text-[12px] font-semibold text-gray-700 mb-2">Select Category</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { id: "Events" as const, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>, color: "text-blue-600 border-blue-400 bg-blue-50" },
+                    { id: "Ads" as const, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>, color: "text-orange-500 border-orange-400 bg-orange-50" },
+                    { id: "Website" as const, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>, color: "text-pink-500 border-pink-400 bg-pink-50" },
+                  ] as { id: "Events"|"Ads"|"Website"; icon: React.ReactNode; color: string }[]).map(({ id, icon, color }) => (
+                    <button key={id} onClick={() => setEvtCategory(id)}
+                      className={`flex items-center justify-center gap-1.5 py-2 rounded-lg border text-[13px] font-medium transition ${evtCategory === id ? color : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
+                      {icon}{id}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Event Type */}
+              <div>
+                <p className="text-[12px] font-semibold text-gray-700 mb-2">Event Type</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: "Holiday", icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
+                    { id: "Special Event", icon: <svg width="13" height="13" viewBox="0 0 24 24"><path d="M12 1.5C12.5 7.5 16.5 11.5 22.5 12C16.5 12.5 12.5 16.5 12 22.5C11.5 16.5 7.5 12.5 1.5 12C7.5 11.5 11.5 7.5 12 1.5Z" fill="#a78bfa"/></svg> },
+                    { id: "Seasonal", icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg> },
+                    { id: "Sale/Promotion", icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg> },
+                    { id: "Flash Sale", icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> },
+                    { id: "Clearance", icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> },
+                  ].map(({ id, icon }) => (
+                    <button key={id} onClick={() => setEvtType(evtType === id ? null : id)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-[13px] transition ${evtType === id ? "border-blue-400 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
+                      <span className={evtType === id ? "text-blue-500" : "text-gray-400"}>{icon}</span>{id}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Date */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  <p className="text-[12px] font-semibold text-gray-700">Date</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[11px] text-gray-500 mb-1">Start Date</p>
+                    <input type="date" value={evtStartDate} onChange={(e) => setEvtStartDate(e.target.value)}
+                      className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-blue-400 bg-white" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-gray-500 mb-1">End Date <span className="text-gray-400">(Optional)</span></p>
+                    <input type="date" value={evtEndDate} onChange={(e) => setEvtEndDate(e.target.value)}
+                      className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-blue-400 bg-white" />
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1.5">Leave end date empty for single-day event</p>
+              </div>
+
+              {/* Event Title */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  <p className="text-[12px] font-semibold text-gray-700">Event Title</p>
+                </div>
+                <input type="text" maxLength={80} value={evtTitle} onChange={(e) => setEvtTitle(e.target.value)}
+                  placeholder="e.g., Black Friday Campaign Launch"
+                  className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-blue-400 placeholder-gray-300" />
+                <p className="text-[11px] text-gray-400 mt-1">{evtTitle.length}/80 characters</p>
+              </div>
+
+              {/* Description */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                  <p className="text-[12px] font-semibold text-gray-700">Description <span className="font-normal text-gray-400">(Optional)</span></p>
+                </div>
+                <textarea rows={3} value={evtDesc} onChange={(e) => setEvtDesc(e.target.value)}
+                  placeholder="Add additional details about this event..."
+                  className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-blue-400 placeholder-gray-300 resize-none" />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center gap-3 px-5 py-4 border-t border-gray-100">
+              <button onClick={() => setAddEventOpen(false)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-[14px] font-medium text-gray-700 hover:bg-gray-50 transition">
+                Cancel
+              </button>
+              <button
+                disabled={!evtTitle.trim()}
+                onClick={() => setAddEventOpen(false)}
+                className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold transition bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+              >
+                Add Event
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── AI Campaign Assistant Panel ── */}
+      {aiOpen && (
+        <div className="fixed inset-0 z-50 flex p-3 sm:p-8 lg:p-12">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setAiOpen(false)} />
+
+          {/* Panel */}
+          <div className="relative flex w-full rounded-2xl shadow-2xl overflow-hidden">
+
+            {/* Left: Pinned Insights */}
+            <div className="hidden lg:flex w-[192px] shrink-0 bg-white border-r border-gray-100 flex-col">
+              <div className="px-4 py-3.5 border-b border-gray-100 flex items-center gap-2">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.85-1.65L16 12V5h1a1 1 0 0 0 0-2H7a1 1 0 0 0 0 2h1v7l-2.15 1.59A2 2 0 0 0 5 15.24V17z"/></svg>
+                <span className="text-[13px] font-semibold text-gray-800">Pinned Insights</span>
+              </div>
+              <div className="flex-1 flex flex-col overflow-y-auto">
+                {aiMsgs.filter(m => m.pinned).length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center p-5 text-center">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="1.5"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.85-1.65L16 12V5h1a1 1 0 0 0 0-2H7a1 1 0 0 0 0 2h1v7l-2.15 1.59A2 2 0 0 0 5 15.24V17z"/></svg>
+                    <p className="text-[12px] text-gray-400 mt-3 font-medium">No pinned messages yet</p>
+                    <p className="text-[11px] text-gray-400 mt-1 leading-snug">Pin important AI insights to save them here</p>
+                  </div>
+                ) : (
+                  <div className="p-3 space-y-2">
+                    {aiMsgs.filter(m => m.pinned).map(m => (
+                      <div key={m.id} className="bg-purple-50 rounded-lg p-2.5 text-[11px] text-gray-700 leading-snug cursor-pointer hover:bg-purple-100 transition">
+                        <p className="line-clamp-3">{m.text.replace(/\*\*/g, "").split("\n")[0]}</p>
+                        <p className="text-gray-400 mt-1">{m.time}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Chat */}
+            <div className="flex-1 flex flex-col bg-white min-w-0">
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#a78bfa,#818cf8)" }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 1.5C12.5 7.5 16.5 11.5 22.5 12C16.5 12.5 12.5 16.5 12 22.5C11.5 16.5 7.5 12.5 1.5 12C7.5 11.5 11.5 7.5 12 1.5Z"/></svg>
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-bold text-gray-900">AI Campaign Assistant</h3>
+                    <p className="text-[12px] text-gray-400">All Account Data</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="hidden sm:flex items-center gap-1.5 text-[13px] text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    {makePeriodLabel(selectedDays)}
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                  <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
+                    <svg width="16" height="4" viewBox="0 0 16 4" fill="currentColor"><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="14" cy="2" r="1.5"/></svg>
+                  </button>
+                  <button onClick={() => setAiOpen(false)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Metrics bar */}
+              <div className="flex items-center gap-5 px-5 py-2.5 border-b border-gray-100 overflow-x-auto scrollbar-none shrink-0">
+                {AI_METRICS.map(({ label, value, hi }) => (
+                  <div key={label} className="flex flex-col shrink-0">
+                    <span className="text-[11px] text-gray-400 whitespace-nowrap">{label}</span>
+                    <span className={`text-[14px] font-bold whitespace-nowrap ${hi ?? "text-gray-900"}`}>{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Quick actions */}
+              <div className="flex items-center gap-2 px-5 py-2.5 border-b border-gray-100 shrink-0 overflow-x-auto scrollbar-none">
+                <span className="text-[12px] text-gray-400 shrink-0">Quick:</span>
+                {AI_QUICK.map(({ label, icon }) => (
+                  <button key={label} onClick={() => sendAiMsg(label)}
+                    className="flex items-center gap-1.5 text-[12px] text-gray-600 border border-gray-200 rounded-full px-3 py-1 hover:bg-gray-50 whitespace-nowrap shrink-0 transition">
+                    <span className="text-gray-400">{icon}</span>{label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Messages */}
+              <div ref={aiScrollRef} className="flex-1 overflow-y-auto p-5 space-y-4">
+                {aiMsgs.map((msg) => (
+                  <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
+                    {msg.role === "assistant" && (
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "linear-gradient(135deg,#a78bfa,#818cf8)" }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 1.5C12.5 7.5 16.5 11.5 22.5 12C16.5 12.5 12.5 16.5 12 22.5C11.5 16.5 7.5 12.5 1.5 12C7.5 11.5 11.5 7.5 12 1.5Z"/></svg>
+                      </div>
+                    )}
+                    <div className={`max-w-[78%] ${msg.role === "assistant" ? "bg-gray-50 rounded-2xl rounded-tl-sm" : "bg-blue-600 text-white rounded-2xl rounded-tr-sm"} px-4 py-3`}>
+                      {msg.role === "assistant" ? (
+                        <>
+                          <div className="text-[13px] text-gray-800 space-y-0.5">{renderAiText(msg.text)}</div>
+                          {msg.suggestions && (
+                            <div className="mt-3">
+                              <p className="text-[11px] text-gray-400 mb-1.5">💡 You might also ask:</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {msg.suggestions.map(s => (
+                                  <button key={s} onClick={() => sendAiMsg(s)}
+                                    className="text-[11px] text-gray-600 border border-gray-200 rounded-full px-2.5 py-0.5 hover:bg-white transition bg-white/80">
+                                    {s}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-gray-100">
+                            <span className="text-[10px] text-gray-400">{msg.time}</span>
+                            <button onClick={() => toggleAiPin(msg.id)} title={msg.pinned ? "Unpin" : "Pin"}
+                              className={`transition ${msg.pinned ? "text-purple-500" : "text-gray-300 hover:text-gray-500"}`}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill={msg.pinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.85-1.65L16 12V5h1a1 1 0 0 0 0-2H7a1 1 0 0 0 0 2h1v7l-2.15 1.59A2 2 0 0 0 5 15.24V17z"/></svg>
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-[13px] leading-relaxed">{msg.text}</p>
+                          <p className="text-[10px] text-blue-200 mt-1.5">{msg.time}</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {aiLoading && (
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#a78bfa,#818cf8)" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 1.5C12.5 7.5 16.5 11.5 22.5 12C16.5 12.5 12.5 16.5 12 22.5C11.5 16.5 7.5 12.5 1.5 12C7.5 11.5 11.5 7.5 12 1.5Z"/></svg>
+                    </div>
+                    <div className="bg-gray-50 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
+                      {[0, 0.15, 0.3].map((delay, i) => (
+                        <span key={i} className="w-2 h-2 rounded-full bg-gray-400 animate-bounce inline-block" style={{ animationDelay: `${delay}s` }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Input */}
+              <div className="px-5 pt-3 pb-4 border-t border-gray-100 shrink-0">
+                <div className="flex gap-2">
+                  <input
+                    value={aiInput}
+                    onChange={(e) => setAiInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAiMsg(); } }}
+                    placeholder="Ask anything about this campaign..."
+                    className="flex-1 text-[14px] border border-blue-200 focus:border-blue-400 rounded-xl px-4 py-2.5 outline-none placeholder-gray-300 transition"
+                  />
+                  <button
+                    onClick={() => sendAiMsg()}
+                    disabled={!aiInput.trim() || aiLoading}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-[14px] font-semibold transition disabled:opacity-50"
+                    style={{ background: "linear-gradient(135deg,#818cf8,#a78bfa)" }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Send
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1.5">Chat history is automatically saved</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
