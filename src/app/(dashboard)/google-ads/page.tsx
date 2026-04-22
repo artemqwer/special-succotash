@@ -581,12 +581,31 @@ export default function GoogleAdsPage() {
   const [isPortrait, setIsPortrait] = useState(true);
   const [selectedDays, setSelectedDays] = useState(14);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
   const totalPages = 5;
 
   const { dates, barData, campaignAvgs, adPerfData, plData, plTotal, plAvgDaily, plProfitDays, plLossDays } = useMemo(
     () => generatePeriodData(selectedDays),
     [selectedDays]
   );
+
+  const displayBarData = useMemo(() =>
+    barData.map((row) => ({
+      ...row,
+      visibleTotal: campaignAvgs
+        .filter(({ name }) => !hiddenSeries.has(name))
+        .reduce((s, { name }) => s + (row[name] as number), 0),
+    })),
+    [barData, campaignAvgs, hiddenSeries]
+  );
+
+  const toggleSeries = (name: string) => {
+    setHiddenSeries((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
+  };
 
   const renderConvLabel = useMemo(() => makeRenderConvLabel(adPerfData), [adPerfData]);
   const renderCostLabel = useMemo(() => makeRenderCostLabel(adPerfData), [adPerfData]);
@@ -674,7 +693,7 @@ export default function GoogleAdsPage() {
                 {PERIOD_PRESETS.map(({ label, days }) => (
                   <button
                     key={days}
-                    onClick={() => { setSelectedDays(days); setDatePickerOpen(false); }}
+                    onClick={() => { setSelectedDays(days); setDatePickerOpen(false); setHiddenSeries(new Set()); }}
                     className={`w-full text-left px-3.5 py-2 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${selectedDays === days ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}
                   >
                     {label}
@@ -771,27 +790,40 @@ export default function GoogleAdsPage() {
             <div className="sm:overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
               <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-500px)] lg:min-h-[360px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barData} barCategoryGap="18%" margin={{ top: 28, right: 10, left: -10, bottom: isMobile ? 0 : 4 }}>
+                  <BarChart data={displayBarData} barCategoryGap="18%" margin={{ top: 28, right: 10, left: -10, bottom: isMobile ? 0 : 4 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" />
-                    <XAxis dataKey="date" tick={isMobile && barData.length > 8 ? false : <BarXTick />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={isMobile && barData.length > 8 ? 4 : 30} />
+                    <XAxis dataKey="date" tick={isMobile && displayBarData.length > 8 ? false : <BarXTick />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={isMobile && displayBarData.length > 8 ? 4 : 30} />
                     <YAxis tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} />
                     <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(99, 102, 241, 0.05)" }} />
-                    {campaignAvgs.map(({ name, color }, i) => (
-                      <Bar key={name} dataKey={name} stackId="a" fill={color} radius={i === campaignAvgs.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
-                        {i === campaignAvgs.length - 1 && <LabelList dataKey="total" content={renderTotalLabel} />}
-                      </Bar>
-                    ))}
+                    {campaignAvgs.map(({ name, color }, i) => {
+                      const isLast = i === campaignAvgs.length - 1;
+                      const visibleLast = campaignAvgs.filter(({ name: n }) => !hiddenSeries.has(n));
+                      const isVisibleTop = visibleLast.length > 0 && visibleLast[visibleLast.length - 1].name === name;
+                      return (
+                        <Bar key={name} dataKey={name} stackId="a" fill={color} hide={hiddenSeries.has(name)} radius={isVisibleTop ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
+                          {isVisibleTop && <LabelList dataKey="visibleTotal" content={renderTotalLabel} />}
+                        </Bar>
+                      );
+                    })}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
             <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 justify-center">
-              {campaignAvgs.map(({ name, color }) => (
-                <div key={name} className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-[13px] text-gray-500">
-                  <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm shrink-0" style={{ background: color }} />
-                  {name}
-                </div>
-              ))}
+              {campaignAvgs.map(({ name, color }) => {
+                const hidden = hiddenSeries.has(name);
+                return (
+                  <button
+                    key={name}
+                    onClick={() => toggleSeries(name)}
+                    className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-[13px] cursor-pointer select-none transition-opacity hover:opacity-80"
+                    style={{ opacity: hidden ? 0.38 : 1 }}
+                  >
+                    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-sm shrink-0 transition-all" style={{ background: hidden ? "#9CA3AF" : color }} />
+                    <span className={`transition-all ${hidden ? "line-through text-gray-400" : "text-gray-500"}`}>{name}</span>
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
