@@ -465,13 +465,10 @@ const AdXTick = ({ x, y, payload, data }: { x: number; y: number; payload: { val
   return (
     <g transform={`translate(${x},${y})`}>
       <circle cx={0} cy={5} r={3.5} fill="#8B5CF6" />
-      <text x={0} y={0} dy={20} fill="#6B7280" fontSize={12} textAnchor="middle" fontWeight={500}>
-        {item ? `${(item.clicks / 1000).toFixed(2)}K` : ""}
-      </text>
-      <text x={0} y={0} dy={34} fill="#9CA3AF" fontSize={12} textAnchor="middle">{payload.value}</text>
-      <text x={0} y={0} dy={48} fill="#8B5CF6" fontSize={11} textAnchor="middle" fontWeight={600}>
+      <text x={0} y={0} dy={20} fill="#8B5CF6" fontSize={11} textAnchor="middle" fontWeight={600}>
         {item ? `${item.roas.toFixed(2)}x` : ""}
       </text>
+      <text x={0} y={0} dy={34} fill="#9CA3AF" fontSize={12} textAnchor="middle">{payload.value}</text>
     </g>
   );
 };
@@ -836,7 +833,7 @@ export default function GoogleAdsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={adPerfData} barCategoryGap="18%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" yAxisId="left" />
-                    <XAxis dataKey="date" tick={(p) => <AdXTick {...p} data={adPerfData} />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={60} />
+                    <XAxis dataKey="date" tick={(p) => <AdXTick {...p} data={adPerfData} />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={48} />
                     <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} label={{ value: "Conv. Value / Profit / Cost", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                     <YAxis yAxisId="right" orientation="right" hide domain={[0, 6]} />
                     <YAxis yAxisId="clicks" orientation="right" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} domain={[0, 8000]} label={{ value: "Clicks", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
