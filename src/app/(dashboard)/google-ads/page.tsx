@@ -27,17 +27,34 @@ const sparkData = (up: boolean, seed = 1) =>
     v: up
       ? 30 + Math.sin(i * 0.7 + seed) * 8 + i * 2.5
       : 60 - Math.sin(i * 0.7 + seed) * 8 - i * 1.5,
+    date: dates[i],
   }));
 
 const kpis = [
-  { label: "Clicks", icon: I.click, value: "1.40K", delta: "+8.3%", up: true },
-  { label: "Conv. Rate", icon: I.percent, value: "2.47%", delta: "-1.8%", up: false },
-  { label: "Orders", icon: I.cart, value: "34.63K", delta: "+15.7%", up: true },
-  { label: "CPA ($)", icon: I.target, value: "20.42", delta: "-8.2%", up: false },
-  { label: "Cost ($)", icon: I.dollar, value: "701.18K", delta: "+6.4%", up: true },
-  { label: "Revenue", icon: I.trending, value: "1.25K", delta: "+18.2%", up: true },
-  { label: "ROAS", icon: I.refresh, value: "1.76", delta: "-12.1%", up: false },
-  { label: "Ad Profit ($)", icon: I.profit, value: "538.48K", delta: "+22.8%", up: true },
+  { label: "Clicks", icon: I.click, value: "1.40K", delta: "+8.3%", up: true,
+    desc: "Total ad clicks in the selected period",
+    hoverFmt: (v: number) => `${(v * 0.0083 + 0.95).toFixed(2)}K` },
+  { label: "Conv. Rate", icon: I.percent, value: "2.47%", delta: "-1.8%", up: false,
+    desc: "% of clicks that result in a conversion",
+    hoverFmt: (v: number) => `${(v * 0.032).toFixed(2)}%` },
+  { label: "Orders", icon: I.cart, value: "34.63K", delta: "+15.7%", up: true,
+    desc: "Total completed orders attributed to ads",
+    hoverFmt: (v: number) => `${(v * 0.12 + 27).toFixed(2)}K` },
+  { label: "CPA ($)", icon: I.target, value: "20.42", delta: "-8.2%", up: false,
+    desc: "Average cost per conversion/acquisition",
+    hoverFmt: (v: number) => `$${(63 - v * 0.69).toFixed(2)}` },
+  { label: "Cost ($)", icon: I.dollar, value: "701.18K", delta: "+6.4%", up: true,
+    desc: "Total advertising spend in the period",
+    hoverFmt: (v: number) => `$${(v * 2 + 590).toFixed(0)}K` },
+  { label: "Revenue", icon: I.trending, value: "1.25K", delta: "+18.2%", up: true,
+    desc: "Total revenue generated from ad-driven sales",
+    hoverFmt: (v: number) => `${(v * 0.006 + 0.92).toFixed(2)}K` },
+  { label: "ROAS", icon: I.refresh, value: "1.76", delta: "-12.1%", up: false,
+    desc: "Return on ad spend — revenue divided by cost",
+    hoverFmt: (v: number) => `${(2.3 - v * 0.012).toFixed(2)}x` },
+  { label: "Ad Profit ($)", icon: I.profit, value: "538.48K", delta: "+22.8%", up: true,
+    desc: "Revenue minus total advertising costs",
+    hoverFmt: (v: number) => `$${(v * 1.9 + 413).toFixed(0)}K` },
 ];
 
 const CAMPAIGNS = ["Brand", "Shopping", "DSA", "Remarketing", "PMax", "Search"];
@@ -262,11 +279,14 @@ function heatmapBg(value: number, min: number, max: number, color: "blue" | "gre
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function KpiCard({ label, icon, value, delta, up, spark }: {
-  label: string; icon: React.ReactNode; value: string; delta: string; up: boolean; spark: { v: number }[];
+function KpiCard({ label, icon, value, delta, up, spark, desc, hoverFmt }: {
+  label: string; icon: React.ReactNode; value: string; delta: string; up: boolean;
+  spark: { v: number; date: string }[]; desc: string; hoverFmt: (v: number) => string;
 }) {
   const color = up ? "#22C55E" : "#EF4444";
   const gradId = `kg-${label.replace(/[^a-zA-Z0-9]/g, "")}`;
+  const [hoverPt, setHoverPt] = useState<{ date: string; v: number } | null>(null);
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-2 sm:px-4 pt-2.5 sm:pt-3.5 pb-2.5 sm:pb-0 min-w-0 flex-1 overflow-hidden">
       <div className="flex items-center justify-between mb-1">
@@ -274,24 +294,48 @@ function KpiCard({ label, icon, value, delta, up, spark }: {
           <span className={`shrink-0 ${up ? "text-green-500" : "text-red-400"}`}>{icon}</span>
           <span className="text-[10px] sm:text-[13px] text-gray-500 truncate">{label}</span>
         </div>
-        <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border border-gray-200 shrink-0 ml-1" />
+        {/* Info circle */}
+        <div className="relative group shrink-0 ml-1">
+          <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border border-gray-200 flex items-center justify-center text-[7px] sm:text-[8px] text-gray-400 cursor-help select-none">i</span>
+          <div className="absolute right-0 top-5 w-[170px] bg-gray-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none shadow-lg leading-snug">
+            {desc}
+          </div>
+        </div>
       </div>
       <div className="flex items-baseline gap-1 sm:gap-2 mb-0 sm:mb-2.5 flex-wrap">
         <span className="text-[15px] sm:text-[22px] font-bold text-gray-900 leading-none truncate">{value}</span>
         <span className={`text-[10px] sm:text-[13px] font-semibold shrink-0 ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
       </div>
-      <div className="h-[58px] -mx-4 hidden sm:block">
+      <div className="h-[58px] -mx-4 hidden sm:block relative">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={spark} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+          <AreaChart
+            data={spark}
+            margin={{ top: 2, right: 0, left: 0, bottom: 0 }}
+            onMouseMove={(state) => {
+              const ap = (state as { isTooltipActive?: boolean; activePayload?: { payload: { date: string; v: number } }[] }).activePayload;
+              if ((state as { isTooltipActive?: boolean }).isTooltipActive && ap?.[0]) {
+                setHoverPt(ap[0].payload);
+              }
+            }}
+            onMouseLeave={() => setHoverPt(null)}
+          >
             <defs>
               <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={color} stopOpacity={0.18} />
                 <stop offset="100%" stopColor={color} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <Area type="natural" dataKey="v" stroke={color} strokeWidth={2} fill={`url(#${gradId})`} dot={false} isAnimationActive={false} />
+            <Area type="natural" dataKey="v" stroke={color} strokeWidth={2} fill={`url(#${gradId})`}
+              dot={false} activeDot={{ r: 3, fill: color, strokeWidth: 0 }} isAnimationActive={false} />
+            <Tooltip content={() => null} cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: "3 2", strokeOpacity: 0.5 }} />
           </AreaChart>
         </ResponsiveContainer>
+        {hoverPt && (
+          <div className="absolute bottom-2 left-4 right-4 flex items-center justify-between pointer-events-none">
+            <span className="text-[10px] text-gray-400 font-medium">{hoverPt.date}</span>
+            <span className="text-[11px] font-bold" style={{ color }}>{hoverFmt(hoverPt.v)}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -616,7 +660,7 @@ export default function GoogleAdsPage() {
       {/* KPI cards */}
       <div className="grid grid-cols-4 sm:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 mb-5">
         {kpis.map((k, i) => (
-          <KpiCard key={k.label} label={k.label} icon={k.icon} value={k.value} delta={k.delta} up={k.up} spark={sparkData(k.up, i)} />
+          <KpiCard key={k.label} label={k.label} icon={k.icon} value={k.value} delta={k.delta} up={k.up} spark={sparkData(k.up, i)} desc={k.desc} hoverFmt={k.hoverFmt} />
         ))}
       </div>
 
