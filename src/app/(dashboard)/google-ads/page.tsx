@@ -832,9 +832,9 @@ export default function GoogleAdsPage() {
         {activeTab === 1 && (
           <>
             <div className="overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
-              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-480px)] lg:min-h-[380px] min-w-[1800px]">
+              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-480px)] lg:min-h-[380px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={adPerfData} barCategoryGap="2%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
+                  <ComposedChart data={adPerfData} barCategoryGap="18%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" yAxisId="left" />
                     <XAxis dataKey="date" tick={(p) => <AdXTick {...p} data={adPerfData} />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={60} />
                     <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} label={{ value: "Conv. Value / Profit / Cost", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
