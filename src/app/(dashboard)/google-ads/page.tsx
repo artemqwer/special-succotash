@@ -211,7 +211,7 @@ const tlWebItems = [
 
 // ─── Segments data ───────────────────────────────────────────────────────────
 
-const SEG_COLORS = ["#3B82F6","#22C55E","#F97316","#A855F7","#EF4444","#06B6D4","#EC4899","#10B981","#F59E0B","#6B7280"];
+const SEG_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#6366f1", "#f43f5e", "#06b6d4", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 
 const segRevenue = [
   { name: "PMax - Men Jackets",        value: 236600 },
@@ -709,6 +709,17 @@ export default function GoogleAdsPage() {
   const [rangeStart, setRangeStart] = useState(END_MS - 13 * DAY_MS);
   const [rangeEnd, setRangeEnd] = useState(END_MS);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  const openDatePicker = () => {
+    setPickerTempStart(rangeStart);
+    setPickerTempEnd(rangeEnd);
+    setPickerStep(0);
+    setPickerHover(null);
+    const d = new Date(rangeStart);
+    setPickerViewYear(d.getFullYear());
+    setPickerViewMonth(d.getMonth());
+    setDatePickerOpen(true);
+  };
   const [pickerTempStart, setPickerTempStart] = useState<number | null>(null);
   const [pickerTempEnd, setPickerTempEnd] = useState<number | null>(null);
   const [pickerHover, setPickerHover] = useState<number | null>(null);
@@ -867,7 +878,14 @@ export default function GoogleAdsPage() {
     };
     check();
     window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
+
+    const handleOpen = () => openDatePicker();
+    window.addEventListener("open-date-picker", handleOpen);
+
+    return () => {
+      window.removeEventListener("resize", check);
+      window.removeEventListener("open-date-picker", handleOpen);
+    };
   }, []);
 
   const handleSort = (col: SortKey) => {
@@ -925,7 +943,7 @@ export default function GoogleAdsPage() {
 
   return (
     <div className="px-4 sm:px-6 py-6 bg-[#f4f6fb] min-h-screen">
-      {/* Desktop header */}
+      {/* Header */}
       <div className="hidden sm:flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -941,16 +959,8 @@ export default function GoogleAdsPage() {
         <div className="relative">
           <button
             onClick={() => {
-              if (!datePickerOpen) {
-                setPickerTempStart(rangeStart);
-                setPickerTempEnd(rangeEnd);
-                setPickerStep(0);
-                setPickerHover(null);
-                const d = new Date(rangeStart);
-                setPickerViewYear(d.getFullYear());
-                setPickerViewMonth(d.getMonth());
-              }
-              setDatePickerOpen(!datePickerOpen);
+              if (datePickerOpen) setDatePickerOpen(false);
+              else openDatePicker();
             }}
             className="flex items-center gap-2 text-[14px] text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-gray-50 transition"
           >
@@ -958,117 +968,6 @@ export default function GoogleAdsPage() {
             {fmtMs(rangeStart)} – {fmtMs(rangeEnd)}
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${datePickerOpen ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          {datePickerOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setDatePickerOpen(false)} />
-              <div
-                className="absolute right-0 top-full mt-2 z-50 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden flex"
-                onMouseLeave={() => setPickerHover(null)}
-              >
-                {/* Presets */}
-                <div className="w-[150px] border-r border-gray-100 py-2 shrink-0">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 pb-1.5">Quick select</p>
-                  {PERIOD_PRESETS.map(({ label, days }) => {
-                    const ps = END_MS - (days - 1) * DAY_MS;
-                    const isActive = pickerTempStart === ps && pickerTempEnd === END_MS;
-                    return (
-                      <button key={days}
-                        onClick={() => { setPickerTempStart(ps); setPickerTempEnd(END_MS); setPickerStep(0); }}
-                        className={`w-full text-left px-3 py-1.5 text-[12px] transition ${isActive ? "bg-blue-50 text-blue-600 font-semibold" : "text-gray-600 hover:bg-gray-50"}`}>
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-                {/* Calendars + footer */}
-                <div className="flex flex-col">
-                  {/* Month navigation */}
-                  <div className="flex items-center justify-between px-4 pt-3 pb-0">
-                    <button
-                      onClick={() => {
-                        if (pickerViewMonth === 0) { setPickerViewMonth(11); setPickerViewYear(pickerViewYear - 1); }
-                        else setPickerViewMonth(pickerViewMonth - 1);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 transition">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
-                    </button>
-                    <div />
-                    <button
-                      onClick={() => {
-                        if (pickerViewMonth === 11) { setPickerViewMonth(0); setPickerViewYear(pickerViewYear + 1); }
-                        else setPickerViewMonth(pickerViewMonth + 1);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 transition">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
-                    </button>
-                  </div>
-                  {/* Two months */}
-                  <div className="flex gap-5 px-4 pt-2 pb-3">
-                    {([0, 1] as const).map((offset) => {
-                      const m = (pickerViewMonth + offset) % 12;
-                      const y = pickerViewYear + Math.floor((pickerViewMonth + offset) / 12);
-                      return (
-                        <CalMonth key={offset} year={y} month={m}
-                          tempStart={pickerTempStart} tempEnd={pickerTempEnd}
-                          hover={pickerHover} step={pickerStep}
-                          maxMs={END_MS}
-                          onDayClick={(ts) => {
-                            if (pickerStep === 0) {
-                              setPickerTempStart(ts);
-                              setPickerTempEnd(null);
-                              setPickerStep(1);
-                            } else {
-                              if (pickerTempStart !== null && ts < pickerTempStart) {
-                                setPickerTempEnd(pickerTempStart);
-                                setPickerTempStart(ts);
-                              } else {
-                                setPickerTempEnd(ts);
-                              }
-                              setPickerStep(0);
-                            }
-                          }}
-                          onDayHover={setPickerHover}
-                        />
-                      );
-                    })}
-                  </div>
-                  {/* Footer */}
-                  <div className="flex items-center justify-between gap-4 px-4 py-3 border-t border-gray-100">
-                    <div className="text-[12px] text-gray-600 min-w-0">
-                      {pickerTempStart && pickerTempEnd ? (
-                        <span><span className="font-semibold">{fmtMs(pickerTempStart)}</span> → <span className="font-semibold">{fmtMs(pickerTempEnd)}</span></span>
-                      ) : pickerTempStart ? (
-                        <span className="text-blue-500">Select end date…</span>
-                      ) : (
-                        <span className="text-gray-400">Select start date</span>
-                      )}
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <button onClick={() => setDatePickerOpen(false)}
-                        className="px-3 py-1.5 text-[12px] border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition">
-                        Cancel
-                      </button>
-                      <button
-                        disabled={!pickerTempStart || !pickerTempEnd}
-                        onClick={() => {
-                          if (pickerTempStart && pickerTempEnd) {
-                            setRangeStart(pickerTempStart);
-                            setRangeEnd(pickerTempEnd);
-                            setDatePickerOpen(false);
-                            setHiddenSeries(new Set());
-                            setCheckedRows(new Set());
-                            setClickedRow(null);
-                          }
-                        }}
-                        className="px-3 py-1.5 text-[12px] bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition">
-                        Apply
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </div>
 
@@ -1634,7 +1533,7 @@ export default function GoogleAdsPage() {
                   ["Campaign","name","left"],["Type","type","left"],
                   ["Impr.","impr","right"],["Clicks","clicks","right"],["CPC","cpc","right"],["CTR","ctr","right"],
                   ["Conv. rate","convRate","right"],["Conv.","conv","right"],["CPA","cpa","right"],
-                  ["Revenue","revenue","right"],["Cost","cost","right"],["Profit (ads)","profit","right"],["ROAS","roas","right"],
+                  ["Revenue","revenue","right"],["Cost","cost","right"],["Profit (ads)","profit","right"],["ROAS","roasVal","right"],
                 ] as [string, SortKey, "left" | "right"][]).map(([label, col, align]) => (
                   <th key={col} onClick={() => handleSort(col)}
                     style={col === "name" ? { maxWidth: 160 } : undefined}
@@ -1693,9 +1592,9 @@ export default function GoogleAdsPage() {
                     {row.profit < 0 ? "-" : ""}{Math.abs(row.profit).toFixed(2)}K
                   </td>
                   <td className="px-2.5 py-2.5 text-right tabular-nums"
-                    style={row.roas !== "null" ? { backgroundColor: heatmapBg(parseFloat(row.roas), targetRoasMin, targetRoasMax, "green") } : undefined}>
-                    {row.roas !== "null"
-                      ? <span className="text-green-700 font-medium">{row.roas}</span>
+                    style={row.roasVal !== null ? { backgroundColor: heatmapBg(row.roasVal, targetRoasMin, targetRoasMax, "green") } : undefined}>
+                    {row.roasVal !== null
+                      ? <span className="text-green-700 font-medium">{(row.roasVal / 100).toFixed(2)}x</span>
                       : <span className="text-gray-300 text-[11px]">null</span>}
                   </td>
                 </tr>
@@ -1885,11 +1784,10 @@ export default function GoogleAdsPage() {
 
       {/* ── AI Campaign Assistant Panel ── */}
       {aiOpen && (
-        <div className="fixed inset-0 z-50 flex p-3 sm:p-8 lg:p-12">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setAiOpen(false)} />
-
-          {/* Panel */}
-          <div className="relative flex w-full rounded-2xl shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 lg:p-8">
+          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px]" />
+          <div className="relative w-full max-w-[1200px] h-[85vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-white/20 animate-in fade-in zoom-in-95 duration-300">
+            <div className="flex flex-1 min-h-0">
 
             {/* Left: Pinned Insights */}
             <div className="hidden lg:flex w-[192px] shrink-0 bg-white border-r border-gray-100 flex-col">
@@ -2045,6 +1943,133 @@ export default function GoogleAdsPage() {
                   </button>
                 </div>
                 <p className="text-[11px] text-gray-400 mt-1.5">Chat history is automatically saved</p>
+              </div>
+            </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Global Date Picker Modal ── */}
+      {datePickerOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => setDatePickerOpen(false)} />
+          <div
+            className="relative bg-white border border-gray-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-200 max-h-[95vh] overflow-y-auto"
+            onMouseLeave={() => setPickerHover(null)}
+          >
+            {/* Presets */}
+            <div className="w-full sm:w-[160px] border-b sm:border-b-0 sm:border-r border-gray-100 py-3 shrink-0 bg-gray-50/50">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 pb-2">Quick Select</p>
+              <div className="flex sm:flex-col overflow-x-auto sm:overflow-x-visible pb-2 sm:pb-0 scrollbar-none px-2 sm:px-0">
+                {PERIOD_PRESETS.map(({ label, days }) => {
+                  const ps = END_MS - (days - 1) * DAY_MS;
+                  const isActive = pickerTempStart === ps && pickerTempEnd === END_MS;
+                  return (
+                    <button key={days}
+                      onClick={() => { setPickerTempStart(ps); setPickerTempEnd(END_MS); setPickerStep(0); }}
+                      className={`whitespace-nowrap sm:whitespace-normal text-left px-4 py-2 text-[13px] transition-all ${isActive ? "bg-blue-600 text-white font-bold rounded-xl mx-2 shadow-md shadow-blue-200" : "text-gray-600 hover:bg-white hover:text-blue-600"}`}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Calendars + Content */}
+            <div className="flex flex-col flex-1 min-w-0">
+              {/* Header / Month Nav */}
+              <div className="flex items-center justify-between px-6 pt-5 pb-2">
+                <button
+                  onClick={() => {
+                    if (pickerViewMonth === 0) { setPickerViewMonth(11); setPickerViewYear(pickerViewYear - 1); }
+                    else setPickerViewMonth(pickerViewMonth - 1);
+                  }}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-400 transition-all border border-gray-100">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <div className="text-[15px] font-bold text-gray-900">
+                  Select Period
+                </div>
+                <button
+                  onClick={() => {
+                    if (pickerViewMonth === 11) { setPickerViewMonth(0); setPickerViewYear(pickerViewYear + 1); }
+                    else setPickerViewMonth(pickerViewMonth + 1);
+                  }}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-400 transition-all border border-gray-100">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+              </div>
+
+              {/* Two months scrollable area */}
+              <div className="flex flex-col lg:flex-row gap-8 px-6 py-4 overflow-y-auto lg:overflow-y-visible">
+                {([0, 1] as const).map((offset) => {
+                  const m = (pickerViewMonth + offset) % 12;
+                  const y = pickerViewYear + Math.floor((pickerViewMonth + offset) / 12);
+                  return (
+                    <CalMonth key={offset} year={y} month={m}
+                      tempStart={pickerTempStart} tempEnd={pickerTempEnd}
+                      hover={pickerHover} step={pickerStep}
+                      maxMs={END_MS}
+                      onDayClick={(ts) => {
+                        if (pickerStep === 0) {
+                          setPickerTempStart(ts);
+                          setPickerTempEnd(null);
+                          setPickerStep(1);
+                        } else {
+                          if (pickerTempStart !== null && ts < pickerTempStart) {
+                            setPickerTempEnd(pickerTempStart);
+                            setPickerTempStart(ts);
+                          } else {
+                            setPickerTempEnd(ts);
+                          }
+                          setPickerStep(0);
+                        }
+                      }}
+                      onDayHover={setPickerHover}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className="mt-auto flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-5 bg-gray-50/80 border-t border-gray-100">
+                <div className="flex flex-col items-center sm:items-start">
+                  <span className="text-[11px] text-gray-400 uppercase font-bold tracking-wider mb-1">Selected Period</span>
+                  <div className="text-[14px] text-gray-800 min-w-0">
+                    {pickerTempStart && pickerTempEnd ? (
+                      <span className="flex items-center gap-2">
+                        <span className="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg">{fmtMs(pickerTempStart)}</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        <span className="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg">{fmtMs(pickerTempEnd)}</span>
+                      </span>
+                    ) : pickerTempStart ? (
+                      <span className="text-blue-500 font-bold animate-pulse">Select end date…</span>
+                    ) : (
+                      <span className="text-gray-400 font-medium">Select start date</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-3 w-full sm:w-auto">
+                  <button onClick={() => setDatePickerOpen(false)}
+                    className="flex-1 sm:flex-none px-6 py-3 text-[14px] font-bold text-gray-600 hover:bg-white hover:shadow-sm rounded-2xl transition-all border border-gray-200">
+                    Cancel
+                  </button>
+                  <button
+                    disabled={!pickerTempStart || !pickerTempEnd}
+                    onClick={() => {
+                      if (pickerTempStart && pickerTempEnd) {
+                        setRangeStart(pickerTempStart);
+                        setRangeEnd(pickerTempEnd);
+                        setDatePickerOpen(false);
+                        setHiddenSeries(new Set());
+                        setCheckedRows(new Set());
+                        setClickedRow(null);
+                      }
+                    }}
+                    className="flex-1 sm:flex-none px-8 py-3 text-[14px] bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none transition-all">
+                    Apply Period
+                  </button>
+                </div>
               </div>
             </div>
           </div>
