@@ -932,7 +932,7 @@ export default function GoogleAdsPage() {
         {activeTab === 0 && (
           <>
             <div className="sm:overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
-              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-500px)] lg:min-h-[360px] sm:min-w-[600px]">
+              <div className="h-[260px] sm:h-[340px] lg:h-[440px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={displayBarData} barCategoryGap="18%" margin={{ top: 28, right: 10, left: -10, bottom: isMobile ? 0 : 4 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" />
@@ -976,7 +976,7 @@ export default function GoogleAdsPage() {
         {activeTab === 1 && (
           <>
             <div className="sm:overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
-              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-480px)] lg:min-h-[380px] sm:min-w-[600px]">
+              <div className="h-[260px] sm:h-[340px] lg:h-[440px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={adPerfData} barCategoryGap="18%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" yAxisId="left" />
@@ -1038,7 +1038,7 @@ export default function GoogleAdsPage() {
         {activeTab === 2 && (
           <>
             <div className="sm:overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
-              <div className="h-[260px] sm:h-[340px] lg:h-[calc(100vh-480px)] lg:min-h-[380px] sm:min-w-[600px]">
+              <div className="h-[260px] sm:h-[340px] lg:h-[440px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={plData} barCategoryGap="18%" margin={{ top: 28, right: 56, left: -10, bottom: 5 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" yAxisId="left" />
