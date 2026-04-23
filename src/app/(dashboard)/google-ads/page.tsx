@@ -405,7 +405,7 @@ function CalMonth({ year, month, tempStart, tempEnd, hover, step, maxMs, onDayCl
   }
 
   return (
-    <div className="w-[224px]">
+    <div className="w-full max-w-[280px] sm:w-[224px] mx-auto">
       <p className="text-center text-[13px] font-semibold text-gray-700 mb-2 pb-1 border-b border-gray-100">
         {MNAMES[month]} {year}
       </p>
@@ -2001,7 +2001,7 @@ export default function GoogleAdsPage() {
               </div>
 
               {/* Two months scrollable area */}
-              <div className="flex flex-col lg:flex-row gap-8 px-6 py-4 overflow-y-auto lg:overflow-y-visible">
+              <div className="flex flex-col lg:flex-row gap-8 px-6 py-4 overflow-y-auto lg:overflow-y-visible items-center sm:items-start">
                 {([0, 1] as const).map((offset) => {
                   const m = (pickerViewMonth + offset) % 12;
                   const y = pickerViewYear + Math.floor((pickerViewMonth + offset) / 12);
