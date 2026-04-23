@@ -50,7 +50,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const platform = pathname ? PLATFORM_META[pathname] : null;
 
   return (
-    <div className="flex h-screen bg-[#f4f6fb]">
+    <div className="h-screen bg-[#f4f6fb]">
+    <div className="flex h-full max-w-420">
       <Sidebar
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
@@ -100,6 +101,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
+    </div>
     </div>
   );
 }
