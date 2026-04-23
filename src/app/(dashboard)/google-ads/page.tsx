@@ -102,7 +102,7 @@ function makePeriodLabel(days: number) {
   return `${fmt(END_MS - (days - 1) * DAY_MS)} – ${fmt(END_MS)}`;
 }
 
-type AdPerfItem = { date: string; convValue: number; cost: number; profit: number; clicks: number; roas: number; costBase: number; costRestore: number; profitPos: number };
+type AdPerfItem = { date: string; convValue: number; cost: number; profit: number; clicks: number; roas: number; costBar: number; profitBar: number };
 type PlItem = { date: string; dailyProfit: number; cumulative: number };
 
 function generatePeriodData(days: number) {
@@ -143,8 +143,7 @@ function generatePeriodData(days: number) {
     const profit = convValue - cost;
     const clicks = Math.round(3200 + Math.sin(i * 0.6 + 2) * 900 + (wd === 0 || wd === 6 ? -600 : 0));
     const roas = parseFloat((convValue / cost).toFixed(2));
-    const costBase = profit >= 0 ? -cost : -(cost - Math.abs(profit));
-    return { date, convValue, cost, profit, clicks, roas, costBase, costRestore: Math.abs(costBase), profitPos: Math.max(0, profit) };
+    return { date, convValue, cost, profit, clicks, roas, costBar: cost, profitBar: Math.max(0, profit) };
   });
 
   let cum = 0;
@@ -529,11 +528,11 @@ const AdXTick = ({ x, y, payload, data }: any) => {
   const item = data.find((d: AdPerfItem) => d.date === payload.value);
   return (
     <g transform={`translate(${x},${y})`}>
-      <circle cx={0} cy={5} r={3.5} fill="#8B5CF6" />
-      <text x={0} y={0} dy={20} fill="#8B5CF6" fontSize={11} textAnchor="middle" fontWeight={600}>
-        {item ? `${item.roas.toFixed(2)}x` : ""}
+      <circle cx={0} cy={0} r={3.5} fill="#8B5CF6" />
+      <text x={0} y={0} dy={14} fill="#8B5CF6" fontSize={11} textAnchor="middle" fontWeight={600}>
+        {item ? `${item.roas.toFixed(2)}` : ""}
       </text>
-      <text x={0} y={0} dy={34} fill="#9CA3AF" fontSize={12} textAnchor="middle">{payload.value}</text>
+      <text x={0} y={0} dy={30} fill="#9CA3AF" fontSize={12} textAnchor="middle">{payload.value}</text>
     </g>
   );
 };
@@ -589,11 +588,9 @@ const renderProfitLabel = ({ x = 0, y = 0, width: w = 0, height: h = 0, value: v
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const makeRenderCostLabel = (data: AdPerfItem[]) => ({ x = 0, y = 0, width: w = 0, height: h = 0, index: idx = 0 }: any) => {
-  if (w < 34 || h < 16) return null;
-  const item = data[idx];
-  if (!item) return null;
-  return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={11} fontWeight={700} textAnchor="middle">${(item.cost / 1000).toFixed(1)}K</text>;
+const renderCostLabel = ({ x = 0, y = 0, width: w = 0, height: h = 0, value: val = 0 }: any) => {
+  if (w < 34 || h < 16 || val <= 0) return null;
+  return <text x={x + w / 2} y={y + h / 2 + 4} fill="white" fontSize={11} fontWeight={700} textAnchor="middle">${(val / 1000).toFixed(1)}K</text>;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -709,7 +706,6 @@ export default function GoogleAdsPage() {
   };
 
   const renderConvLabel = useMemo(() => makeRenderConvLabel(adPerfData), [adPerfData]);
-  const renderCostLabel = useMemo(() => makeRenderCostLabel(adPerfData), [adPerfData]);
   const renderLossTopLabel = useMemo(() => makeRenderLossTopLabel(adPerfData), [adPerfData]);
 
   useEffect(() => {
@@ -981,26 +977,22 @@ export default function GoogleAdsPage() {
                   <ComposedChart data={adPerfData} barCategoryGap="18%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" yAxisId="left" />
                     <XAxis dataKey="date" tick={isMobile && adPerfData.length > 8 ? false : (p) => <AdXTick {...p} data={adPerfData} />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={isMobile && adPerfData.length > 8 ? 4 : 48} />
-                    <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} label={{ value: "Conv. Value / Profit / Cost", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
+                    <YAxis yAxisId="left" domain={[0, "auto"]} tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} label={{ value: "Conv. Value / Profit / Cost", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                     <YAxis yAxisId="right" orientation="right" hide domain={[0, 6]} />
                     <YAxis yAxisId="clicks" orientation="right" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} domain={[0, 8000]} label={{ value: "Clicks", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                     <ReferenceLine yAxisId="left" y={0} stroke="#E5E7EB" strokeWidth={1} />
                     <Tooltip content={(p) => <AdTooltip {...p} data={adPerfData} />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
 
-                    {/* Cost base — red, goes from 0 down to -cost */}
-                    <Bar yAxisId="left" dataKey="costBase" stackId="a" radius={[0, 0, 3, 3]} isAnimationActive={false}>
-                      {adPerfData.map((_, i) => <Cell key={i} fill="#F87171" fillOpacity={0.9} />)}
-                      <LabelList dataKey="costBase" content={renderCostLabel} />
-                      <LabelList dataKey="costBase" content={renderLossTopLabel} />
+                    {/* Cost — red, from 0 up */}
+                    <Bar yAxisId="left" dataKey="costBar" stackId="a" fill="#F87171" fillOpacity={0.9} radius={[0, 0, 3, 3]} isAnimationActive={false}>
+                      <LabelList dataKey="costBar" content={renderCostLabel} />
+                      <LabelList dataKey="costBar" content={renderLossTopLabel} />
                     </Bar>
 
-                    {/* Transparent restore bar — brings stack baseline back to 0 before the green bar */}
-                    <Bar yAxisId="left" dataKey="costRestore" stackId="a" fill="transparent" fillOpacity={0} isAnimationActive={false} />
-
-                    {/* Profit positive — green, goes from 0 up to profit */}
-                    <Bar yAxisId="left" dataKey="profitPos" stackId="a" fill="#4ADE80" radius={[3, 3, 0, 0]} isAnimationActive={false}>
-                      <LabelList dataKey="profitPos" content={renderProfitLabel} />
-                      <LabelList dataKey="profitPos" content={renderConvLabel} />
+                    {/* Profit — green, stacked on top of cost */}
+                    <Bar yAxisId="left" dataKey="profitBar" stackId="a" fill="#4ADE80" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                      <LabelList dataKey="profitBar" content={renderProfitLabel} />
+                      <LabelList dataKey="profitBar" content={renderConvLabel} />
                     </Bar>
 
                     {/* Clicks line */}
