@@ -97,22 +97,27 @@ const PERIOD_PRESETS = [
 const END_MS = Date.UTC(2026, 3, 13); // Apr 13, 2026
 const DAY_MS = 86400000;
 
-function makePeriodLabel(days: number) {
-  const fmt = (ts: number) => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  return `${fmt(END_MS - (days - 1) * DAY_MS)} – ${fmt(END_MS)}`;
-}
+const fmtMs = (ts: number) => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+const TYPE_TO_GROUPS: Record<string, string[]> = {
+  Search: ["Search"],
+  PMax: ["PMax"],
+  Shopping: ["Shopping"],
+  Display: ["Remarketing"],
+};
 
 type AdPerfItem = { date: string; convValue: number; cost: number; profit: number; clicks: number; roas: number; costBar: number; profitBar: number };
 type PlItem = { date: string; dailyProfit: number; cumulative: number };
 
-function generatePeriodData(days: number) {
+function generatePeriodData(startMs: number, endMs: number) {
+  const days = Math.round((endMs - startMs) / DAY_MS) + 1;
   const genDates = Array.from({ length: days }, (_, i) => {
-    const d = new Date(END_MS - (days - 1 - i) * DAY_MS);
+    const d = new Date(startMs + i * DAY_MS);
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   });
 
   const genTotals = genDates.map((_, i) => {
-    const wd = new Date(END_MS - (days - 1 - i) * DAY_MS).getDay();
+    const wd = new Date(startMs + i * DAY_MS).getDay();
     const base = (wd === 0 || wd === 6) ? 72000 : 87000;
     return Math.round(base + Math.sin(i * 0.5 + 1.3) * 7000 + Math.cos(i * 0.9 + 0.6) * 4000);
   });
@@ -136,7 +141,7 @@ function generatePeriodData(days: number) {
   })).sort((a, b) => b.avg - a.avg);
 
   const genAdPerfData: AdPerfItem[] = genDates.map((date, i) => {
-    const wd = new Date(END_MS - (days - 1 - i) * DAY_MS).getDay();
+    const wd = new Date(startMs + i * DAY_MS).getDay();
     const base = (wd === 0 || wd === 6) ? 72000 : 87000;
     const convValue = Math.round(base + Math.sin(i * 0.5 + 1.3) * 7000 + Math.cos(i * 0.9 + 0.6) * 4000);
     const cost = Math.round(convValue * (0.27 + Math.sin(i * 0.4 + 0.8) * 0.04));
@@ -163,7 +168,6 @@ function generatePeriodData(days: number) {
 
 // ─── Timeline data (static — event log independent of period) ────────────────
 
-const tlDates = ["Mar 30","Mar 31","Apr 1","Apr 2","Apr 3","Apr 4","Apr 5","Apr 6","Apr 7","Apr 8","Apr 9","Apr 10","Apr 11","Apr 12"];
 
 const tlEventItems = [
   { date: "Mar 30", bg: "bg-orange-100", icon: "🎉" },
@@ -344,22 +348,91 @@ function getMockAiResponse(input: string): { text: string; suggestions: string[]
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
+function CalMonth({ year, month, tempStart, tempEnd, hover, step, maxMs, onDayClick, onDayHover }: {
+  year: number; month: number;
+  tempStart: number | null; tempEnd: number | null;
+  hover: number | null; step: number;
+  maxMs: number;
+  onDayClick: (ts: number) => void;
+  onDayHover: (ts: number | null) => void;
+}) {
+  const MNAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const DOW = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+  const firstDow = new Date(year, month, 1).getDay();
+  const dim = new Date(year, month + 1, 0).getDate();
+
+  let displayStart = tempStart;
+  let displayEnd = tempEnd;
+  if (step === 1 && tempStart !== null && hover !== null) {
+    displayStart = Math.min(tempStart, hover);
+    displayEnd = Math.max(tempStart, hover);
+  } else if (step === 1 && tempStart !== null) {
+    displayStart = tempStart;
+    displayEnd = null;
+  }
+
+  const cells: React.ReactNode[] = [];
+  for (let i = 0; i < firstDow; i++) cells.push(<div key={`b${i}`} />);
+  for (let d = 1; d <= dim; d++) {
+    const ts = Date.UTC(year, month, d);
+    const disabled = ts > maxMs;
+    const isStart = displayStart !== null && ts === displayStart;
+    const isEnd = displayEnd !== null && ts === displayEnd;
+    const inRange = displayStart !== null && displayEnd !== null && ts > displayStart && ts < displayEnd;
+    const dow = new Date(year, month, d).getDay();
+    const isWknd = dow === 0 || dow === 6;
+    cells.push(
+      <div key={d}
+        className={`relative h-8 flex items-center justify-center
+          ${inRange ? "bg-blue-50" : ""}
+          ${isStart && displayEnd !== null ? "bg-blue-50 rounded-l-full" : ""}
+          ${isEnd && displayStart !== null ? "bg-blue-50 rounded-r-full" : ""}
+        `}>
+        <button
+          disabled={disabled}
+          onClick={() => !disabled && onDayClick(ts)}
+          onMouseEnter={() => !disabled && onDayHover(ts)}
+          className={`w-8 h-8 text-[12px] rounded-full flex items-center justify-center relative z-10 transition leading-none
+            ${isStart || isEnd ? "bg-blue-600 text-white font-semibold shadow-sm" : ""}
+            ${inRange && !isStart && !isEnd ? "text-blue-700 hover:bg-blue-100" : ""}
+            ${!inRange && !isStart && !isEnd ? (disabled ? "text-gray-200 cursor-not-allowed" : isWknd ? "text-blue-400 hover:bg-blue-50 cursor-pointer" : "text-gray-700 hover:bg-gray-100 cursor-pointer") : ""}
+          `}
+        >
+          {d}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-[224px]">
+      <p className="text-center text-[13px] font-semibold text-gray-700 mb-2 pb-1 border-b border-gray-100">
+        {MNAMES[month]} {year}
+      </p>
+      <div className="grid grid-cols-7">
+        {DOW.map((d) => (
+          <div key={d} className="h-7 flex items-center justify-center text-[10px] text-gray-400 font-medium">{d}</div>
+        ))}
+        {cells}
+      </div>
+    </div>
+  );
+}
+
 function KpiCard({ label, icon, value, delta, up, spark, desc, hoverFmt }: {
   label: string; icon: React.ReactNode; value: string; delta: string; up: boolean;
   spark: { v: number; date: string }[]; desc: string; hoverFmt: (v: number) => string;
 }) {
   const color = up ? "#22C55E" : "#EF4444";
   const gradId = `kg-${label.replace(/[^a-zA-Z0-9]/g, "")}`;
-  const [hoverPt, setHoverPt] = useState<{ date: string; v: number } | null>(null);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-2 sm:px-4 pt-2.5 sm:pt-3.5 pb-2.5 sm:pb-0 min-w-0 flex-1 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-2 sm:px-4 pt-2.5 sm:pt-3 pb-0 min-w-0 flex-1 overflow-hidden">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1 min-w-0">
           <span className={`shrink-0 ${up ? "text-green-500" : "text-red-400"}`}>{icon}</span>
           <span className="text-[10px] sm:text-[13px] text-gray-500 truncate">{label}</span>
         </div>
-        {/* Info circle */}
         <div className="relative group shrink-0 ml-1">
           <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border border-gray-200 flex items-center justify-center text-[7px] sm:text-[8px] text-gray-400 cursor-help select-none">i</span>
           <div className="absolute right-0 top-5 w-[170px] bg-gray-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none shadow-lg leading-snug">
@@ -367,43 +440,41 @@ function KpiCard({ label, icon, value, delta, up, spark, desc, hoverFmt }: {
           </div>
         </div>
       </div>
-      <div className="mb-0 sm:mb-2.5">
-        <div className="flex items-baseline gap-1 sm:gap-2">
-          <span className="text-[15px] sm:text-[22px] font-bold text-gray-900 leading-none truncate">{value}</span>
-          <span className={`hidden sm:inline-block text-[13px] font-semibold shrink-0 ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
+      <div className="mb-1.5">
+        <div className="flex items-baseline gap-1 sm:gap-1.5">
+          <span className="text-[15px] sm:text-[22px] font-bold text-gray-900 leading-none">{value}</span>
+          <span className={`text-[10px] sm:text-[13px] font-semibold shrink-0 ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
         </div>
-        <span className={`sm:hidden text-[10px] font-semibold block mt-0.5 ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
       </div>
-      <div className="h-[58px] -mx-4 hidden sm:block relative">
+      <div className="h-[62px] sm:h-[68px] -mx-2 sm:-mx-4">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={spark}
-            margin={{ top: 2, right: 0, left: 0, bottom: 0 }}
-            onMouseMove={(state) => {
-              const ap = (state as { isTooltipActive?: boolean; activePayload?: { payload: { date: string; v: number } }[] }).activePayload;
-              if ((state as { isTooltipActive?: boolean }).isTooltipActive && ap?.[0]) {
-                setHoverPt(ap[0].payload);
-              }
-            }}
-            onMouseLeave={() => setHoverPt(null)}
-          >
+          <AreaChart data={spark} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={color} stopOpacity={0.18} />
                 <stop offset="100%" stopColor={color} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <Area type="natural" dataKey="v" stroke={color} strokeWidth={2} fill={`url(#${gradId})`}
+            <Area type="natural" dataKey="v" stroke={color} strokeWidth={1.5} fill={`url(#${gradId})`}
               dot={false} activeDot={{ r: 3, fill: color, strokeWidth: 0 }} isAnimationActive={false} />
-            <Tooltip content={() => null} cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: "3 2", strokeOpacity: 0.5 }} />
+            <Tooltip
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              content={({ active, payload, label: lbl }: any) => {
+                if (!active || !payload?.[0]) return null;
+                return (
+                  <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, padding: "3px 8px", boxShadow: "0 2px 8px rgba(0,0,0,0.10)", pointerEvents: "none" }}>
+                    <div style={{ fontSize: 9, color: "#9CA3AF", fontWeight: 500, lineHeight: 1.4 }}>{lbl}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color, lineHeight: 1.4 }}>{hoverFmt(payload[0].value)}</div>
+                  </div>
+                );
+              }}
+              cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: "3 2", strokeOpacity: 0.5 }}
+              position={{ y: 22 }}
+              isAnimationActive={false}
+              wrapperStyle={{ zIndex: 20 }}
+            />
           </AreaChart>
         </ResponsiveContainer>
-        {hoverPt && (
-          <div className="absolute bottom-2 left-4 right-4 flex items-center justify-between pointer-events-none">
-            <span className="text-[10px] text-gray-400 font-medium">{hoverPt.date}</span>
-            <span className="text-[11px] font-bold" style={{ color }}>{hoverFmt(hoverPt.v)}</span>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -574,8 +645,8 @@ const PlTooltip = ({ active, payload, label, data }: any) => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const makeRenderConvLabel = (data: AdPerfItem[]) => ({ x = 0, y = 0, width = 0, index: idx = 0 }: any) => {
-  if (width < 24) return null;
+const makeRenderConvLabel = (data: AdPerfItem[], hideConv = false) => ({ x = 0, y = 0, width = 0, index: idx = 0 }: any) => {
+  if (hideConv || width < 24) return null;
   const item = data[idx];
   if (!item || item.profit < 0) return null;
   return <text x={x + width / 2} y={y - 5} fill="#374151" fontSize={11} fontWeight={700} textAnchor="middle">${(item.convValue / 1000).toFixed(1)}K</text>;
@@ -604,8 +675,8 @@ const renderPlLabel = ({ x = 0, y = 0, width: w = 0, value: val = 0 }: any) => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const makeRenderLossTopLabel = (data: AdPerfItem[]) => ({ x = 0, y = 0, width: w = 0, index: idx = 0 }: any) => {
-  if (w < 24) return null;
+const makeRenderLossTopLabel = (data: AdPerfItem[], hideConv = false) => ({ x = 0, y = 0, width: w = 0, index: idx = 0 }: any) => {
+  if (hideConv || w < 24) return null;
   const item = data[idx];
   if (!item || item.profit >= 0) return null;
   return (
@@ -635,9 +706,22 @@ export default function GoogleAdsPage() {
   const [expandedNameIdx, setExpandedNameIdx] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isPortrait, setIsPortrait] = useState(true);
-  const [selectedDays, setSelectedDays] = useState(14);
+  const [rangeStart, setRangeStart] = useState(END_MS - 13 * DAY_MS);
+  const [rangeEnd, setRangeEnd] = useState(END_MS);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [pickerTempStart, setPickerTempStart] = useState<number | null>(null);
+  const [pickerTempEnd, setPickerTempEnd] = useState<number | null>(null);
+  const [pickerHover, setPickerHover] = useState<number | null>(null);
+  const [pickerStep, setPickerStep] = useState<0 | 1>(0);
+  const [pickerViewYear, setPickerViewYear] = useState(2026);
+  const [pickerViewMonth, setPickerViewMonth] = useState(2);
+  const [checkedRows, setCheckedRows] = useState<Set<number>>(new Set());
+  const [clickedRow, setClickedRow] = useState<number | null>(null);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
+  const [granularity, setGranularity] = useState<"days" | "weeks" | "months">("days");
+  const [granularityOpen, setGranularityOpen] = useState(false);
+  const [hiddenAdPerf, setHiddenAdPerf] = useState<Set<string>>(new Set());
+  const [hiddenPL, setHiddenPL] = useState<Set<string>>(new Set());
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiInput, setAiInput] = useState("");
@@ -654,8 +738,8 @@ export default function GoogleAdsPage() {
   const totalPages = Math.ceil(45 / rowsPerPage);
 
   const { dates, barData, campaignAvgs, adPerfData, plData, plTotal, plAvgDaily, plProfitDays, plLossDays } = useMemo(
-    () => generatePeriodData(selectedDays),
-    [selectedDays]
+    () => generatePeriodData(rangeStart, rangeEnd),
+    [rangeStart, rangeEnd]
   );
 
   const displayBarData = useMemo(() =>
@@ -667,6 +751,74 @@ export default function GoogleAdsPage() {
     })),
     [barData, campaignAvgs, hiddenSeries]
   );
+
+  const aggregatedBarData = useMemo(() => {
+    if (granularity === "days") return displayBarData;
+    const chunks: typeof displayBarData[] = [];
+    if (granularity === "weeks") {
+      for (let i = 0; i < displayBarData.length; i += 7) chunks.push(displayBarData.slice(i, i + 7));
+    } else {
+      const byMon: Record<string, typeof displayBarData> = {};
+      displayBarData.forEach((r) => { const m = (r as any).date.split(" ")[0]; (byMon[m] ??= []).push(r); });
+      Object.values(byMon).forEach((g) => chunks.push(g));
+    }
+    return chunks.map((chunk) => {
+      const agg: Record<string, number | string> = {
+        date: granularity === "weeks"
+          ? `${(chunk[0] as any).date}–${(chunk[chunk.length - 1] as any).date}`
+          : (chunk[0] as any).date.split(" ")[0],
+      };
+      CAMPAIGNS.forEach((n) => { (agg as any)[n] = chunk.reduce((s, r) => s + ((r as any)[n] as number || 0), 0); });
+      (agg as any).visibleTotal = campaignAvgs
+        .filter(({ name }) => !hiddenSeries.has(name))
+        .reduce((s, { name }) => s + ((agg as any)[name] as number), 0);
+      return agg as typeof displayBarData[0];
+    });
+  }, [displayBarData, granularity, campaignAvgs, hiddenSeries]);
+
+  const aggregatedAdPerfData = useMemo(() => {
+    if (granularity === "days") return adPerfData;
+    const chunks: AdPerfItem[][] = [];
+    if (granularity === "weeks") {
+      for (let i = 0; i < adPerfData.length; i += 7) chunks.push(adPerfData.slice(i, i + 7));
+    } else {
+      const byMon: Record<string, AdPerfItem[]> = {};
+      adPerfData.forEach((r) => { const m = r.date.split(" ")[0]; (byMon[m] ??= []).push(r); });
+      Object.values(byMon).forEach((g) => chunks.push(g));
+    }
+    return chunks.map((chunk) => {
+      const convValue = chunk.reduce((s, r) => s + r.convValue, 0);
+      const cost = chunk.reduce((s, r) => s + r.cost, 0);
+      const profit = chunk.reduce((s, r) => s + r.profit, 0);
+      const clicks = chunk.reduce((s, r) => s + r.clicks, 0);
+      const roas = parseFloat((convValue / cost).toFixed(2));
+      const date = granularity === "weeks"
+        ? `${chunk[0].date}–${chunk[chunk.length - 1].date}`
+        : chunk[0].date.split(" ")[0];
+      return { date, convValue, cost, profit, clicks, roas, costBar: cost, profitBar: Math.max(0, profit) };
+    });
+  }, [adPerfData, granularity]);
+
+  const aggregatedPlData = useMemo(() => {
+    if (granularity === "days") return plData;
+    const chunks: PlItem[][] = [];
+    if (granularity === "weeks") {
+      for (let i = 0; i < plData.length; i += 7) chunks.push(plData.slice(i, i + 7));
+    } else {
+      const byMon: Record<string, PlItem[]> = {};
+      plData.forEach((r) => { const m = r.date.split(" ")[0]; (byMon[m] ??= []).push(r); });
+      Object.values(byMon).forEach((g) => chunks.push(g));
+    }
+    let cum = 0;
+    return chunks.map((chunk) => {
+      const dailyProfit = chunk.reduce((s, r) => s + r.dailyProfit, 0);
+      cum += dailyProfit;
+      const date = granularity === "weeks"
+        ? `${chunk[0].date}–${chunk[chunk.length - 1].date}`
+        : chunk[0].date.split(" ")[0];
+      return { date, dailyProfit, cumulative: cum };
+    });
+  }, [plData, granularity]);
 
   const openAi = () => {
     if (aiMsgs.length === 0) {
@@ -705,8 +857,8 @@ export default function GoogleAdsPage() {
     });
   };
 
-  const renderConvLabel = useMemo(() => makeRenderConvLabel(adPerfData), [adPerfData]);
-  const renderLossTopLabel = useMemo(() => makeRenderLossTopLabel(adPerfData), [adPerfData]);
+  const renderConvLabel = useMemo(() => makeRenderConvLabel(aggregatedAdPerfData, hiddenAdPerf.has("conv")), [aggregatedAdPerfData, hiddenAdPerf]);
+  const renderLossTopLabel = useMemo(() => makeRenderLossTopLabel(aggregatedAdPerfData, hiddenAdPerf.has("conv")), [aggregatedAdPerfData, hiddenAdPerf]);
 
   useEffect(() => {
     const check = () => {
@@ -719,6 +871,8 @@ export default function GoogleAdsPage() {
   }, []);
 
   const handleSort = (col: SortKey) => {
+    setCheckedRows(new Set());
+    setClickedRow(null);
     if (sortCol === col) {
       const next: SortDir = sortDir === "asc" ? "desc" : sortDir === "desc" ? null : "asc";
       setSortDir(next);
@@ -744,9 +898,19 @@ export default function GoogleAdsPage() {
     return rows;
   }, [typeFilter, selectedCampaigns, sortCol, sortDir]);
 
+  const rowTypeFilter = useMemo(() => {
+    const selTypes = new Set<string>();
+    if (clickedRow !== null && filtered[clickedRow]) selTypes.add(filtered[clickedRow].type);
+    checkedRows.forEach((i) => { if (filtered[i]) selTypes.add(filtered[i].type); });
+    if (selTypes.size === 0) return null;
+    const groups = new Set<string>();
+    selTypes.forEach((t) => (TYPE_TO_GROUPS[t] ?? []).forEach((g) => groups.add(g)));
+    return groups;
+  }, [checkedRows, clickedRow, filtered]);
+
   // Compute min/max for heatmap columns
   const heatCols = useMemo(() => {
-    const keys = ["impr","clicks","cpc","ctr","convRate","conv","cpa","revenue","cost","profit","roasVal"] as const;
+    const keys = ["impr","clicks","cpc","ctr","convRate","conv","cpa","revenue","cost","profit"] as const;
     const result = {} as Record<typeof keys[number], { min: number; max: number }>;
     keys.forEach((k) => {
       const vals = campaignRows.map((r) => r[k] as number);
@@ -761,42 +925,6 @@ export default function GoogleAdsPage() {
 
   return (
     <div className="px-4 sm:px-6 py-6 bg-[#f4f6fb] min-h-screen">
-      {/* Mobile header */}
-      <div className="flex sm:hidden items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-              <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" fill="#4285F4"/>
-            </svg>
-          </div>
-          <span className="text-[15px] font-bold text-gray-900">Google Ads</span>
-        </div>
-        <div className="relative">
-          <button
-            onClick={() => setDatePickerOpen(!datePickerOpen)}
-            className="flex items-center gap-1.5 text-[12px] text-gray-600 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-gray-50 transition"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            {makePeriodLabel(selectedDays)}
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${datePickerOpen ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          {datePickerOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setDatePickerOpen(false)} />
-              <div className="absolute right-0 top-full mt-1.5 w-[160px] bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden">
-                {PERIOD_PRESETS.map(({ label, days }) => (
-                  <button key={days} onClick={() => { setSelectedDays(days); setDatePickerOpen(false); setHiddenSeries(new Set()); }}
-                    className={`w-full text-left px-3 py-2 text-[12px] hover:bg-gray-50 flex items-center justify-between transition ${selectedDays === days ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
-                    {label}
-                    {selectedDays === days && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
       {/* Desktop header */}
       <div className="hidden sm:flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -812,29 +940,132 @@ export default function GoogleAdsPage() {
         </div>
         <div className="relative">
           <button
-            onClick={() => setDatePickerOpen(!datePickerOpen)}
+            onClick={() => {
+              if (!datePickerOpen) {
+                setPickerTempStart(rangeStart);
+                setPickerTempEnd(rangeEnd);
+                setPickerStep(0);
+                setPickerHover(null);
+                const d = new Date(rangeStart);
+                setPickerViewYear(d.getFullYear());
+                setPickerViewMonth(d.getMonth());
+              }
+              setDatePickerOpen(!datePickerOpen);
+            }}
             className="flex items-center gap-2 text-[14px] text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-gray-50 transition"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            {makePeriodLabel(selectedDays)}
+            {fmtMs(rangeStart)} – {fmtMs(rangeEnd)}
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${datePickerOpen ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           {datePickerOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setDatePickerOpen(false)} />
-              <div className="absolute right-0 top-full mt-1.5 w-[180px] bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden">
-                {PERIOD_PRESETS.map(({ label, days }) => (
-                  <button
-                    key={days}
-                    onClick={() => { setSelectedDays(days); setDatePickerOpen(false); setHiddenSeries(new Set()); }}
-                    className={`w-full text-left px-3.5 py-2 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${selectedDays === days ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}
-                  >
-                    {label}
-                    {selectedDays === days && (
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    )}
-                  </button>
-                ))}
+              <div
+                className="absolute right-0 top-full mt-2 z-50 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden flex"
+                onMouseLeave={() => setPickerHover(null)}
+              >
+                {/* Presets */}
+                <div className="w-[150px] border-r border-gray-100 py-2 shrink-0">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 pb-1.5">Quick select</p>
+                  {PERIOD_PRESETS.map(({ label, days }) => {
+                    const ps = END_MS - (days - 1) * DAY_MS;
+                    const isActive = pickerTempStart === ps && pickerTempEnd === END_MS;
+                    return (
+                      <button key={days}
+                        onClick={() => { setPickerTempStart(ps); setPickerTempEnd(END_MS); setPickerStep(0); }}
+                        className={`w-full text-left px-3 py-1.5 text-[12px] transition ${isActive ? "bg-blue-50 text-blue-600 font-semibold" : "text-gray-600 hover:bg-gray-50"}`}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Calendars + footer */}
+                <div className="flex flex-col">
+                  {/* Month navigation */}
+                  <div className="flex items-center justify-between px-4 pt-3 pb-0">
+                    <button
+                      onClick={() => {
+                        if (pickerViewMonth === 0) { setPickerViewMonth(11); setPickerViewYear(pickerViewYear - 1); }
+                        else setPickerViewMonth(pickerViewMonth - 1);
+                      }}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 transition">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <div />
+                    <button
+                      onClick={() => {
+                        if (pickerViewMonth === 11) { setPickerViewMonth(0); setPickerViewYear(pickerViewYear + 1); }
+                        else setPickerViewMonth(pickerViewMonth + 1);
+                      }}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 transition">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                  </div>
+                  {/* Two months */}
+                  <div className="flex gap-5 px-4 pt-2 pb-3">
+                    {([0, 1] as const).map((offset) => {
+                      const m = (pickerViewMonth + offset) % 12;
+                      const y = pickerViewYear + Math.floor((pickerViewMonth + offset) / 12);
+                      return (
+                        <CalMonth key={offset} year={y} month={m}
+                          tempStart={pickerTempStart} tempEnd={pickerTempEnd}
+                          hover={pickerHover} step={pickerStep}
+                          maxMs={END_MS}
+                          onDayClick={(ts) => {
+                            if (pickerStep === 0) {
+                              setPickerTempStart(ts);
+                              setPickerTempEnd(null);
+                              setPickerStep(1);
+                            } else {
+                              if (pickerTempStart !== null && ts < pickerTempStart) {
+                                setPickerTempEnd(pickerTempStart);
+                                setPickerTempStart(ts);
+                              } else {
+                                setPickerTempEnd(ts);
+                              }
+                              setPickerStep(0);
+                            }
+                          }}
+                          onDayHover={setPickerHover}
+                        />
+                      );
+                    })}
+                  </div>
+                  {/* Footer */}
+                  <div className="flex items-center justify-between gap-4 px-4 py-3 border-t border-gray-100">
+                    <div className="text-[12px] text-gray-600 min-w-0">
+                      {pickerTempStart && pickerTempEnd ? (
+                        <span><span className="font-semibold">{fmtMs(pickerTempStart)}</span> → <span className="font-semibold">{fmtMs(pickerTempEnd)}</span></span>
+                      ) : pickerTempStart ? (
+                        <span className="text-blue-500">Select end date…</span>
+                      ) : (
+                        <span className="text-gray-400">Select start date</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button onClick={() => setDatePickerOpen(false)}
+                        className="px-3 py-1.5 text-[12px] border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition">
+                        Cancel
+                      </button>
+                      <button
+                        disabled={!pickerTempStart || !pickerTempEnd}
+                        onClick={() => {
+                          if (pickerTempStart && pickerTempEnd) {
+                            setRangeStart(pickerTempStart);
+                            setRangeEnd(pickerTempEnd);
+                            setDatePickerOpen(false);
+                            setHiddenSeries(new Set());
+                            setCheckedRows(new Set());
+                            setClickedRow(null);
+                          }
+                        }}
+                        className="px-3 py-1.5 text-[12px] bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition">
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </>
           )}
@@ -842,7 +1073,7 @@ export default function GoogleAdsPage() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 mb-5">
+      <div className="grid grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 mb-5">
         {kpis.map((k, i) => (
           <KpiCard key={k.label} label={k.label} icon={k.icon} value={k.value} delta={k.delta} up={k.up} spark={sparkData(k.up, i)} desc={k.desc} hoverFmt={k.hoverFmt} />
         ))}
@@ -851,7 +1082,7 @@ export default function GoogleAdsPage() {
       {/* Chart card — fills viewport so table is below the fold */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
         {/* Tabs */}
-        <div className="flex items-end justify-between gap-3 mb-5 min-w-0">
+        <div className="flex items-center justify-between gap-3 mb-5 min-w-0">
           {/* Mobile: dropdown */}
           <div className="sm:hidden relative flex-1">
             <select
@@ -880,8 +1111,7 @@ export default function GoogleAdsPage() {
                 <defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#f472b6"/><stop offset="100%" stopColor="#a78bfa"/></linearGradient></defs>
                 <path d="M12 1.5C12.5 7.5 16.5 11.5 22.5 12C16.5 12.5 12.5 16.5 12 22.5C11.5 16.5 7.5 12.5 1.5 12C7.5 11.5 11.5 7.5 12 1.5Z" fill="url(#sg)"/>
               </svg>
-              <span className="hidden sm:inline">AI Assistant</span>
-              <span className="sm:hidden">AI</span>
+              AI Assistant
             </button>
           </div>
         </div>
@@ -917,9 +1147,28 @@ export default function GoogleAdsPage() {
           )}
           {activeTab !== 0 && activeTab !== 1 && activeTab !== 2 && <div />}
           {activeTab !== 3 && (
-            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 whitespace-nowrap shrink-0">
-              Days
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setGranularityOpen(!granularityOpen)}
+                className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 whitespace-nowrap text-[14px] font-medium"
+              >
+                {granularity.charAt(0).toUpperCase() + granularity.slice(1)}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${granularityOpen ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              {granularityOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setGranularityOpen(false)} />
+                  <div className="absolute right-0 top-full mt-1.5 w-[120px] bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+                    {(["days", "weeks", "months"] as const).map((g) => (
+                      <button key={g} onClick={() => { setGranularity(g); setGranularityOpen(false); }}
+                        className={`w-full text-left px-3.5 py-2 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${granularity === g ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
+                        {g.charAt(0).toUpperCase() + g.slice(1)}
+                        {granularity === g && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -930,17 +1179,16 @@ export default function GoogleAdsPage() {
             <div className="sm:overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
               <div className="h-[260px] sm:h-[340px] lg:h-[440px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={displayBarData} barCategoryGap="18%" margin={{ top: 28, right: 10, left: -10, bottom: isMobile ? 0 : 4 }}>
+                  <BarChart data={aggregatedBarData} barCategoryGap="18%" margin={{ top: 28, right: 10, left: -10, bottom: isMobile ? 0 : 4 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" />
-                    <XAxis dataKey="date" tick={isMobile && displayBarData.length > 8 ? false : <BarXTick />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={isMobile && displayBarData.length > 8 ? 4 : 30} />
+                    <XAxis dataKey="date" tick={isMobile && aggregatedBarData.length > 8 ? false : <BarXTick />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={isMobile && aggregatedBarData.length > 8 ? 4 : 30} />
                     <YAxis tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} />
                     <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(99, 102, 241, 0.05)" }} />
-                    {campaignAvgs.map(({ name, color }, i) => {
-                      const isLast = i === campaignAvgs.length - 1;
-                      const visibleLast = campaignAvgs.filter(({ name: n }) => !hiddenSeries.has(n));
+                    {campaignAvgs.map(({ name, color }) => {
+                      const visibleLast = campaignAvgs.filter(({ name: n }) => !hiddenSeries.has(n) && (rowTypeFilter === null || rowTypeFilter.has(n)));
                       const isVisibleTop = visibleLast.length > 0 && visibleLast[visibleLast.length - 1].name === name;
                       return (
-                        <Bar key={name} dataKey={name} stackId="a" fill={color} hide={hiddenSeries.has(name)} radius={isVisibleTop ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
+                        <Bar key={name} dataKey={name} stackId="a" fill={color} hide={hiddenSeries.has(name) || (rowTypeFilter !== null && !rowTypeFilter.has(name))} radius={isVisibleTop ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
                           {isVisibleTop && <LabelList dataKey="visibleTotal" content={renderTotalLabel} />}
                         </Bar>
                       );
@@ -949,6 +1197,16 @@ export default function GoogleAdsPage() {
                 </ResponsiveContainer>
               </div>
             </div>
+            {rowTypeFilter !== null && (
+              <div className="flex items-center gap-1.5 mt-2 mb-1 justify-center">
+                <span className="text-[11px] text-blue-600 bg-blue-50 border border-blue-200 rounded-full px-2.5 py-0.5 font-medium flex items-center gap-1">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                  Filtered by {checkedRows.size + (clickedRow !== null ? 1 : 0)} selected row{checkedRows.size + (clickedRow !== null ? 1 : 0) > 1 ? "s" : ""}
+                </span>
+                <button onClick={() => { setCheckedRows(new Set()); setClickedRow(null); }}
+                  className="text-[11px] text-gray-400 hover:text-gray-700 transition">× Clear</button>
+              </div>
+            )}
             <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 justify-center">
               {campaignAvgs.map(({ name, color }) => {
                 const hidden = hiddenSeries.has(name);
@@ -974,54 +1232,50 @@ export default function GoogleAdsPage() {
             <div className="sm:overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
               <div className="h-[260px] sm:h-[340px] lg:h-[440px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={adPerfData} barCategoryGap="18%" margin={{ top: 28, right: 48, left: -10, bottom: 30 }}>
+                  <ComposedChart data={aggregatedAdPerfData} barCategoryGap="18%" margin={{ top: 28, right: isMobile ? 4 : 48, left: -10, bottom: 30 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" yAxisId="left" />
-                    <XAxis dataKey="date" tick={isMobile && adPerfData.length > 8 ? false : (p) => <AdXTick {...p} data={adPerfData} />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={isMobile && adPerfData.length > 8 ? 4 : 48} />
-                    <YAxis yAxisId="left" domain={[0, "auto"]} tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} label={{ value: "Conv. Value / Profit / Cost", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
+                    <XAxis dataKey="date" tick={isMobile && aggregatedAdPerfData.length > 8 ? false : (p) => <AdXTick {...p} data={aggregatedAdPerfData} />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={isMobile && aggregatedAdPerfData.length > 8 ? 4 : 48} />
+                    <YAxis yAxisId="left" domain={[0, "auto"]} tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} label={isMobile ? undefined : { value: "Conv. Value / Profit / Cost", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                     <YAxis yAxisId="right" orientation="right" hide domain={[0, 6]} />
-                    <YAxis yAxisId="clicks" orientation="right" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} domain={[0, 8000]} label={{ value: "Clicks", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
+                    <YAxis yAxisId="clicks" orientation="right" hide={isMobile} tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} domain={[0, 8000]} label={isMobile ? undefined : { value: "Clicks", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                     <ReferenceLine yAxisId="left" y={0} stroke="#E5E7EB" strokeWidth={1} />
-                    <Tooltip content={(p) => <AdTooltip {...p} data={adPerfData} />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
-
-                    {/* Cost — red, from 0 up */}
-                    <Bar yAxisId="left" dataKey="costBar" stackId="a" fill="#F87171" fillOpacity={0.9} radius={[0, 0, 3, 3]} isAnimationActive={false}>
+                    <Tooltip content={(p) => <AdTooltip {...p} data={aggregatedAdPerfData} />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
+                    <Bar yAxisId="left" dataKey="costBar" stackId="a" fill="#F87171" fillOpacity={0.9} radius={[0, 0, 3, 3]} hide={hiddenAdPerf.has("cost")} isAnimationActive={false}>
                       <LabelList dataKey="costBar" content={renderCostLabel} />
                       <LabelList dataKey="costBar" content={renderLossTopLabel} />
                     </Bar>
-
-                    {/* Profit — green, stacked on top of cost */}
-                    <Bar yAxisId="left" dataKey="profitBar" stackId="a" fill="#4ADE80" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                    <Bar yAxisId="left" dataKey="profitBar" stackId="a" fill="#4ADE80" radius={[3, 3, 0, 0]} hide={hiddenAdPerf.has("profit")} isAnimationActive={false}>
                       <LabelList dataKey="profitBar" content={renderProfitLabel} />
                       <LabelList dataKey="profitBar" content={renderConvLabel} />
                     </Bar>
-
-                    {/* Clicks line */}
-                    <Line yAxisId="clicks" type="monotone" dataKey="clicks" stroke="#1F2937" strokeWidth={1.5} strokeDasharray="4 3" dot={false} activeDot={{ r: 4, fill: "#1F2937" }} />
+                    <Line yAxisId="clicks" type="monotone" dataKey="clicks" stroke="#1F2937" strokeWidth={1.5} strokeDasharray="4 3" dot={false} activeDot={{ r: 4, fill: "#1F2937" }} hide={hiddenAdPerf.has("clicks")} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </div>
-            {/* Legend */}
-            <div className="flex flex-wrap gap-3 mt-2 justify-center text-[11px] sm:text-[13px] text-gray-500">
-              {[
-                { label: "Conv. Value", color: "#0EA5E9" },
-                { label: "Profit", color: "#4ADE80" },
-                { label: "Cost", color: "#F87171" },
-                { label: "Clicks", color: "#1F2937", line: true, dashed: true },
-                { label: "ROAS", color: "#8B5CF6", dot: true },
-              ].map(({ label, color, line, dot, dashed }) => (
-                <div key={label} className="flex items-center gap-1.5">
-                  {line
-                    ? dashed
-                      ? <svg width="16" height="4"><line x1="0" y1="2" x2="16" y2="2" stroke={color} strokeWidth="1.5" strokeDasharray="4 2"/></svg>
-                      : <div className="w-4 h-0.5 rounded-full" style={{ background: color }} />
-                    : dot
-                    ? <div className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-                    : <div className="w-2 h-2 rounded-sm shrink-0" style={{ background: color }} />
-                  }
-                  {label}
-                </div>
-              ))}
+            <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 justify-center">
+              {([
+                { key: "conv", label: "Conv. Value", color: "#0EA5E9" },
+                { key: "profit", label: "Profit", color: "#4ADE80" },
+                { key: "cost", label: "Cost", color: "#F87171" },
+                { key: "clicks", label: "Clicks", color: "#1F2937", line: true },
+                { key: "roas", label: "ROAS", color: "#8B5CF6", dot: true },
+              ] as { key: string; label: string; color: string; line?: boolean; dot?: boolean }[]).map(({ key, label, color, line, dot }) => {
+                const hidden = hiddenAdPerf.has(key);
+                return (
+                  <button key={key} onClick={() => setHiddenAdPerf((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; })}
+                    className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-[13px] cursor-pointer select-none transition-opacity hover:opacity-80"
+                    style={{ opacity: hidden ? 0.38 : 1 }}>
+                    {line
+                      ? <svg width="16" height="4"><line x1="0" y1="2" x2="16" y2="2" stroke={hidden ? "#9CA3AF" : color} strokeWidth="1.5" strokeDasharray="4 2"/></svg>
+                      : dot
+                      ? <div className="w-2 h-2 rounded-full shrink-0 transition-all" style={{ background: hidden ? "#9CA3AF" : color }} />
+                      : <div className="w-2 h-2 rounded-sm shrink-0 transition-all" style={{ background: hidden ? "#9CA3AF" : color }} />
+                    }
+                    <span className={`transition-all ${hidden ? "line-through text-gray-400" : "text-gray-500"}`}>{label}</span>
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
@@ -1032,25 +1286,25 @@ export default function GoogleAdsPage() {
             <div className="sm:overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
               <div className="h-[260px] sm:h-[340px] lg:h-[440px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={plData} barCategoryGap="18%" margin={{ top: 28, right: 56, left: -10, bottom: 5 }}>
+                  <ComposedChart data={aggregatedPlData} barCategoryGap="18%" margin={{ top: 28, right: isMobile ? 4 : 56, left: -10, bottom: 5 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" yAxisId="left" />
-                    <XAxis dataKey="date" tick={isMobile && plData.length > 8 ? false : { fontSize: 12, fill: "#9CA3AF" }} height={isMobile && plData.length > 8 ? 4 : undefined} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} />
+                    <XAxis dataKey="date" tick={isMobile && aggregatedPlData.length > 8 ? false : { fontSize: 12, fill: "#9CA3AF" }} height={isMobile && aggregatedPlData.length > 8 ? 4 : undefined} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} />
                     <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false}
                       tickFormatter={(v) => `$${(v / 1000).toFixed(1)}K`}
-                      label={{ value: "Cumulative Profit", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false}
+                      label={isMobile ? undefined : { value: "Cumulative Profit", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
+                    <YAxis yAxisId="right" orientation="right" hide={isMobile} tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false}
                       tickFormatter={(v) => `$${(v / 1000).toFixed(1)}K`}
-                      label={{ value: "Daily Profit", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
-                    <Tooltip content={(p) => <PlTooltip {...p} data={plData} />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
+                      label={isMobile ? undefined : { value: "Daily Profit", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
+                    <Tooltip content={(p) => <PlTooltip {...p} data={aggregatedPlData} />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
                     <ReferenceLine yAxisId="left" y={7000} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="4 3" />
                     <ReferenceLine yAxisId="left" y={3500} stroke="#E5E7EB" strokeWidth={1} strokeDasharray="4 3" />
-                    <Bar yAxisId="left" dataKey="cumulative" fill="#4ADE80" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                    <Bar yAxisId="left" dataKey="cumulative" fill="#4ADE80" radius={[3, 3, 0, 0]} hide={hiddenPL.has("cumulative")} isAnimationActive={false}>
                       <LabelList dataKey="cumulative" content={renderPlLabel} />
                     </Bar>
-                    <Line yAxisId="right" type="monotone" dataKey="dailyProfit" stroke="#1F2937" strokeWidth={1.5} strokeDasharray="4 3"
+                    <Line yAxisId="right" type="monotone" dataKey="dailyProfit" stroke="#1F2937" strokeWidth={1.5} strokeDasharray="4 3" hide={hiddenPL.has("daily")}
                       dot={(dotProps: unknown) => {
                         const p = dotProps as { cx: number; cy: number; index: number; key?: string };
-                        const item = plData[p.index];
+                        const item = aggregatedPlData[p.index];
                         return <circle key={p.index} cx={p.cx} cy={p.cy} r={3} fill={item && item.dailyProfit < 0 ? "#EF4444" : "#1F2937"} stroke="none" />;
                       }}
                       activeDot={{ r: 4 }}
@@ -1059,19 +1313,28 @@ export default function GoogleAdsPage() {
                 </ResponsiveContainer>
               </div>
             </div>
-            <div className="flex flex-wrap gap-3 mt-2 justify-center text-[11px] sm:text-[13px] text-gray-500">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-sm shrink-0 bg-[#4ADE80]" />
-                Cumulative Profit
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full shrink-0 bg-[#1F2937]" />
-                Daily Profit
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full shrink-0 bg-red-400" />
-                Daily Loss
-              </div>
+            <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 justify-center">
+              {([
+                { key: "cumulative", label: "Cumulative Profit", color: "#4ADE80" },
+                { key: "daily", label: "Daily Profit", color: "#1F2937", line: true },
+                { key: "loss", label: "Daily Loss", color: "#EF4444", dot: true },
+              ] as { key: string; label: string; color: string; line?: boolean; dot?: boolean }[]).map(({ key, label, color, line, dot }) => {
+                const hidden = hiddenPL.has(key);
+                const toggleKey = key === "loss" ? "daily" : key;
+                return (
+                  <button key={key} onClick={() => setHiddenPL((prev) => { const n = new Set(prev); n.has(toggleKey) ? n.delete(toggleKey) : n.add(toggleKey); return n; })}
+                    className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-[13px] cursor-pointer select-none transition-opacity hover:opacity-80"
+                    style={{ opacity: hidden ? 0.38 : 1 }}>
+                    {line
+                      ? <svg width="16" height="4"><line x1="0" y1="2" x2="16" y2="2" stroke={hidden ? "#9CA3AF" : color} strokeWidth="1.5" strokeDasharray="4 2"/></svg>
+                      : dot
+                      ? <div className="w-2 h-2 rounded-full shrink-0 transition-all" style={{ background: hidden ? "#9CA3AF" : color }} />
+                      : <div className="w-2 h-2 rounded-sm shrink-0 transition-all" style={{ background: hidden ? "#9CA3AF" : color }} />
+                    }
+                    <span className={`transition-all ${hidden ? "line-through text-gray-400" : "text-gray-500"}`}>{label}</span>
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
@@ -1079,17 +1342,10 @@ export default function GoogleAdsPage() {
         {/* ── Segments chart ── */}
         {activeTab === 3 && (
           <>
-            {/* Mobile: horizontal scroll */}
-            <div className="sm:hidden flex gap-3 overflow-x-auto scrollbar-none -mx-1 px-1 pb-1">
-              {[
-                { title: "Revenue", data: segRevenue, fmt: (v: number) => v >= 1000000 ? `$${(v/1000000).toFixed(2)}M` : `$${(v/1000).toFixed(2)}K`, hi: false },
-                { title: "Ad Profit", data: segAdProfit, fmt: (v: number) => v >= 1000000 ? `$${(v/1000000).toFixed(2)}M` : `$${(v/1000).toFixed(2)}K`, hi: true },
-                { title: "Conversions", data: segConversions, fmt: (v: number) => v >= 1000 ? `${(v/1000).toFixed(2)}K` : String(v), hi: false },
-              ].map(({ title, data, fmt, hi }) => (
-                <div key={title} className="min-w-[260px] flex-shrink-0">
-                  <SegmentDonut title={title} data={data} formatValue={fmt} highlight={hi} />
-                </div>
-              ))}
+            {/* Mobile: first donut only, full width */}
+            <div className="sm:hidden">
+              <SegmentDonut title="Revenue" data={segRevenue}
+                formatValue={(v) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(2)}K`} />
             </div>
             {/* Desktop: 3 columns */}
             <div className="hidden sm:grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -1166,7 +1422,7 @@ export default function GoogleAdsPage() {
                 {/* Date row */}
                 <div className="flex border-b border-gray-100 pb-1.5 mb-0.5">
                   <div className="w-[64px] shrink-0" />
-                  {tlDates.map((date) => (
+                  {dates.map((date) => (
                     <div key={date} className={`flex-1 text-center text-[9px] font-semibold ${
                       isWeekend(date) ? "text-blue-500" : "text-gray-400"
                     }`}>{date}</div>
@@ -1181,7 +1437,7 @@ export default function GoogleAdsPage() {
                   </div>
                   <div className="flex-1 flex relative">
                     <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-gray-100" />
-                    {tlDates.map((date) => {
+                    {dates.map((date) => {
                       const item = tlEventItems.find((e) => e.date === date);
                       return (
                         <div key={date} className="flex-1 flex justify-center relative z-10">
@@ -1202,7 +1458,7 @@ export default function GoogleAdsPage() {
                   </div>
                   <div className="flex-1 flex relative">
                     <div className="absolute top-1/3 left-0 right-0 border-t border-dashed border-gray-100" />
-                    {tlDates.map((date) => {
+                    {dates.map((date) => {
                       const item = tlAdItems.find((e) => e.date === date);
                       return (
                         <div key={date} className="flex-1 flex flex-col items-center relative z-10">
@@ -1228,7 +1484,7 @@ export default function GoogleAdsPage() {
                   </div>
                   <div className="flex-1 flex relative">
                     <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-gray-100" />
-                    {tlDates.map((date) => {
+                    {dates.map((date) => {
                       const item = tlWebItems.find((e) => e.date === date);
                       return (
                         <div key={date} className="flex-1 flex justify-center relative z-10">
@@ -1333,7 +1589,7 @@ export default function GoogleAdsPage() {
               )}
             </div>
 
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
+            <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setCheckedRows(new Set()); setClickedRow(null); }}
               className="text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 bg-white">
               {types.map((t) => <option key={t}>{t}</option>)}
             </select>
@@ -1342,7 +1598,7 @@ export default function GoogleAdsPage() {
             </select>
             {(selectedCampaigns.size > 0 || typeFilter !== "All") && (
               <button
-                onClick={() => { setSelectedCampaigns(new Set()); setTypeFilter("All"); }}
+                onClick={() => { setSelectedCampaigns(new Set()); setTypeFilter("All"); setCheckedRows(new Set()); setClickedRow(null); }}
                 className="text-[13px] text-blue-600 hover:text-blue-800 transition whitespace-nowrap"
               >
                 Clear all filters
@@ -1358,18 +1614,27 @@ export default function GoogleAdsPage() {
               <col className="w-14 hidden sm:table-column" />
               <col className="w-[160px]" />
               <col className="w-[90px] hidden sm:table-column" />
-              <col /><col /><col /><col /><col /><col /><col /><col /><col /><col /><col />
+              <col /><col /><col /><col /><col /><col /><col /><col /><col /><col />
               <col className="w-[108px]" />
             </colgroup>
             <thead>
               <tr className="bg-gray-50/80">
-                <th className="px-3 py-2.5 sticky left-0 z-20 bg-gray-50"><input type="checkbox" className="rounded" /></th>
+                <th className="px-3 py-2.5 sticky left-0 z-20 bg-gray-50">
+                  <input type="checkbox" className="rounded cursor-pointer"
+                    checked={checkedRows.size > 0 && checkedRows.size === filtered.length}
+                    ref={(el) => { if (el) el.indeterminate = checkedRows.size > 0 && checkedRows.size < filtered.length; }}
+                    onChange={() => {
+                      if (checkedRows.size === filtered.length) setCheckedRows(new Set());
+                      else setCheckedRows(new Set(filtered.map((_, i) => i)));
+                    }}
+                  />
+                </th>
                 <th className="px-2 py-2.5 text-left text-gray-500 font-medium text-[12px] sticky left-10 z-20 bg-gray-50 hidden sm:table-cell">Status</th>
                 {([
                   ["Campaign","name","left"],["Type","type","left"],
                   ["Impr.","impr","right"],["Clicks","clicks","right"],["CPC","cpc","right"],["CTR","ctr","right"],
                   ["Conv. rate","convRate","right"],["Conv.","conv","right"],["CPA","cpa","right"],
-                  ["Revenue","revenue","right"],["Cost","cost","right"],["Profit (ads)","profit","right"],["ROAS","roasVal","right"],["Target ROAS","roas","right"],
+                  ["Revenue","revenue","right"],["Cost","cost","right"],["Profit (ads)","profit","right"],["ROAS","roas","right"],
                 ] as [string, SortKey, "left" | "right"][]).map(([label, col, align]) => (
                   <th key={col} onClick={() => handleSort(col)}
                     style={col === "name" ? { maxWidth: 160 } : undefined}
@@ -1381,15 +1646,30 @@ export default function GoogleAdsPage() {
             </thead>
             <tbody>
               {filtered.map((row, i) => (
-                <tr key={i} className="border-t border-gray-50 hover:bg-blue-50/20 transition group">
-                  <td className="px-3 py-2.5 sticky left-0 z-10 bg-white group-hover:bg-blue-50/20 transition"><input type="checkbox" className="rounded" /></td>
-                  <td className="px-2 py-2.5 sticky left-10 z-10 bg-white group-hover:bg-blue-50/20 transition hidden sm:table-cell">
+                <tr key={i}
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).tagName === "INPUT") return;
+                    setClickedRow(clickedRow === i ? null : i);
+                  }}
+                  className={`border-t border-gray-50 cursor-pointer transition group ${
+                    clickedRow === i ? "bg-blue-100/40" : checkedRows.has(i) ? "bg-blue-50/30" : "hover:bg-blue-50/20"
+                  }`}>
+                  <td className={`px-3 py-2.5 sticky left-0 z-10 transition ${clickedRow === i ? "bg-blue-100/40" : checkedRows.has(i) ? "bg-blue-50/30" : "bg-white group-hover:bg-blue-50/20"}`}>
+                    <input type="checkbox" className="rounded cursor-pointer"
+                      checked={checkedRows.has(i)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        setCheckedRows((prev) => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; });
+                      }}
+                    />
+                  </td>
+                  <td className={`px-2 py-2.5 sticky left-10 z-10 transition hidden sm:table-cell ${clickedRow === i ? "bg-blue-100/40" : checkedRows.has(i) ? "bg-blue-50/30" : "bg-white group-hover:bg-blue-50/20"}`}>
                     <span className={`w-2 h-2 rounded-full inline-block ${row.status === "green" ? "bg-green-500" : "bg-gray-300"}`} />
                   </td>
                   <td
-                    className="px-2.5 py-2.5 sticky left-10 sm:left-24 z-10 bg-white group-hover:bg-blue-50/20 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 cursor-pointer"
+                    className={`px-2.5 py-2.5 sticky left-10 sm:left-24 z-10 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 cursor-pointer ${clickedRow === i ? "bg-blue-100/40" : checkedRows.has(i) ? "bg-blue-50/30" : "bg-white group-hover:bg-blue-50/20"}`}
                     style={{ maxWidth: 160 }}
-                    onClick={() => setExpandedNameIdx(expandedNameIdx === i ? null : i)}
+                    onClick={(e) => { e.stopPropagation(); setExpandedNameIdx(expandedNameIdx === i ? null : i); }}
                     title={row.name}
                   >
                     <span className={`font-medium text-gray-800 text-[12px] hover:text-blue-600 transition block ${expandedNameIdx === i ? "whitespace-normal break-words" : "whitespace-nowrap overflow-hidden text-ellipsis"}`}>
@@ -1411,10 +1691,6 @@ export default function GoogleAdsPage() {
                   <td className={`px-2.5 py-2.5 text-right tabular-nums ${row.profit < 0 ? "text-red-600" : "text-green-700"}`}
                     style={cellStyle("profit", Math.abs(row.profit), row.profit < 0 ? "red" : "green")}>
                     {row.profit < 0 ? "-" : ""}{Math.abs(row.profit).toFixed(2)}K
-                  </td>
-                  <td className={`px-2.5 py-2.5 text-right tabular-nums ${row.roasVal >= 100 ? "text-green-700" : "text-red-600"}`}
-                    style={cellStyle("roasVal", row.roasVal, row.roasVal >= 100 ? "green" : "red")}>
-                    {row.roasVal}%
                   </td>
                   <td className="px-2.5 py-2.5 text-right tabular-nums"
                     style={row.roas !== "null" ? { backgroundColor: heatmapBg(parseFloat(row.roas), targetRoasMin, targetRoasMax, "green") } : undefined}>
@@ -1443,7 +1719,6 @@ export default function GoogleAdsPage() {
                 <td className="px-2.5 py-3 text-right tabular-nums">$670.34K</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">$439.18K</td>
                 <td className="px-2.5 py-3 text-right tabular-nums text-red-600">-231.17K</td>
-                <td className="px-2.5 py-3 text-right tabular-nums">152.64%</td>
                 <td className="px-2.5 py-3" />
               </tr>
             </tfoot>
@@ -1659,7 +1934,7 @@ export default function GoogleAdsPage() {
                 <div className="flex items-center gap-2">
                   <button className="hidden sm:flex items-center gap-1.5 text-[13px] text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                    {makePeriodLabel(selectedDays)}
+                    {fmtMs(rangeStart)} – {fmtMs(rangeEnd)}
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
                   </button>
                   <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">

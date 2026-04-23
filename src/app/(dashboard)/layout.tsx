@@ -51,7 +51,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="h-screen bg-[#f4f6fb]">
-    <div className="flex h-full max-w-420">
+    <div className="flex h-full max-w-400">
       <Sidebar
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
