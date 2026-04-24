@@ -815,84 +815,6 @@ export default function GoogleAdsPage() {
     [rangeStart, rangeEnd]
   );
 
-  const displayBarData = useMemo(() =>
-    barData.map((row) => ({
-      ...row,
-      visibleTotal: campaignAvgs
-        .filter(({ name }) => !hiddenSeries.has(name))
-        .reduce((s, { name }) => s + (row[name] as number), 0),
-    })),
-    [barData, campaignAvgs, hiddenSeries]
-  );
-
-  const aggregatedBarData = useMemo(() => {
-    if (granularity === "days") return displayBarData;
-    const chunks: typeof displayBarData[] = [];
-    if (granularity === "weeks") {
-      for (let i = 0; i < displayBarData.length; i += 7) chunks.push(displayBarData.slice(i, i + 7));
-    } else {
-      const byMon: Record<string, typeof displayBarData> = {};
-      displayBarData.forEach((r) => { const m = (r as any).date.split(" ")[0]; (byMon[m] ??= []).push(r); });
-      Object.values(byMon).forEach((g) => chunks.push(g));
-    }
-    return chunks.map((chunk) => {
-      const agg: Record<string, number | string> = {
-        date: granularity === "weeks"
-          ? `${(chunk[0] as any).date}–${(chunk[chunk.length - 1] as any).date}`
-          : (chunk[0] as any).date.split(" ")[0],
-      };
-      CAMPAIGNS.forEach((n) => { (agg as any)[n] = chunk.reduce((s, r) => s + ((r as any)[n] as number || 0), 0); });
-      (agg as any).visibleTotal = campaignAvgs
-        .filter(({ name }) => !hiddenSeries.has(name))
-        .reduce((s, { name }) => s + ((agg as any)[name] as number), 0);
-      return agg as typeof displayBarData[0];
-    });
-  }, [displayBarData, granularity, campaignAvgs, hiddenSeries]);
-
-  const aggregatedAdPerfData = useMemo(() => {
-    if (granularity === "days") return adPerfData;
-    const chunks: AdPerfItem[][] = [];
-    if (granularity === "weeks") {
-      for (let i = 0; i < adPerfData.length; i += 7) chunks.push(adPerfData.slice(i, i + 7));
-    } else {
-      const byMon: Record<string, AdPerfItem[]> = {};
-      adPerfData.forEach((r) => { const m = r.date.split(" ")[0]; (byMon[m] ??= []).push(r); });
-      Object.values(byMon).forEach((g) => chunks.push(g));
-    }
-    return chunks.map((chunk) => {
-      const convValue = chunk.reduce((s, r) => s + r.convValue, 0);
-      const cost = chunk.reduce((s, r) => s + r.cost, 0);
-      const profit = chunk.reduce((s, r) => s + r.profit, 0);
-      const clicks = chunk.reduce((s, r) => s + r.clicks, 0);
-      const roas = parseFloat((convValue / cost).toFixed(2));
-      const date = granularity === "weeks"
-        ? `${chunk[0].date}–${chunk[chunk.length - 1].date}`
-        : chunk[0].date.split(" ")[0];
-      return { date, convValue, cost, profit, clicks, roas, costBar: cost, profitBar: Math.max(0, profit) };
-    });
-  }, [adPerfData, granularity]);
-
-  const aggregatedPlData = useMemo(() => {
-    if (granularity === "days") return plData;
-    const chunks: PlItem[][] = [];
-    if (granularity === "weeks") {
-      for (let i = 0; i < plData.length; i += 7) chunks.push(plData.slice(i, i + 7));
-    } else {
-      const byMon: Record<string, PlItem[]> = {};
-      plData.forEach((r) => { const m = r.date.split(" ")[0]; (byMon[m] ??= []).push(r); });
-      Object.values(byMon).forEach((g) => chunks.push(g));
-    }
-    let cum = 0;
-    return chunks.map((chunk) => {
-      const dailyProfit = chunk.reduce((s, r) => s + r.dailyProfit, 0);
-      cum += dailyProfit;
-      const date = granularity === "weeks"
-        ? `${chunk[0].date}–${chunk[chunk.length - 1].date}`
-        : chunk[0].date.split(" ")[0];
-      return { date, dailyProfit, cumulative: cum };
-    });
-  }, [plData, granularity]);
-
   const openAi = () => {
     if (aiMsgs.length === 0) {
       const t = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
@@ -929,9 +851,6 @@ export default function GoogleAdsPage() {
       return next;
     });
   };
-
-  const renderConvLabel = useMemo(() => makeRenderConvLabel(aggregatedAdPerfData, hiddenAdPerf.has("conv")), [aggregatedAdPerfData, hiddenAdPerf]);
-  const renderLossTopLabel = useMemo(() => makeRenderLossTopLabel(aggregatedAdPerfData, hiddenAdPerf.has("conv")), [aggregatedAdPerfData, hiddenAdPerf]);
 
   useEffect(() => {
     const check = () => {
@@ -994,6 +913,110 @@ export default function GoogleAdsPage() {
     checkedRows.forEach((i) => { if (filtered[i] && !items.includes(filtered[i])) items.push(filtered[i]); });
     return items;
   }, [clickedRow, checkedRows, filtered]);
+
+  const selectionScale = useMemo(() => {
+    if (selectedRows.length === 0) return 1;
+    const totalRev = campaignRows.reduce((s, r) => s + r.revenue, 0);
+    const selRev = selectedRows.reduce((s, r) => s + r.revenue, 0);
+    return selRev / totalRev;
+  }, [selectedRows]);
+
+  const displayBarData = useMemo(() =>
+    barData.map((row) => ({
+      ...row,
+      visibleTotal: campaignAvgs
+        .filter(({ name }) => !hiddenSeries.has(name) && (rowTypeFilter === null || rowTypeFilter.has(name)))
+        .reduce((s, { name }) => s + (row[name] as number), 0),
+    })),
+    [barData, campaignAvgs, hiddenSeries, rowTypeFilter]
+  );
+
+  const aggregatedBarData = useMemo(() => {
+    if (granularity === "days") return displayBarData;
+    const chunks: typeof displayBarData[] = [];
+    if (granularity === "weeks") {
+      for (let i = 0; i < displayBarData.length; i += 7) chunks.push(displayBarData.slice(i, i + 7));
+    } else {
+      const byMon: Record<string, typeof displayBarData> = {};
+      displayBarData.forEach((r) => { const m = (r as any).date.split(" ")[0]; (byMon[m] ??= []).push(r); });
+      Object.values(byMon).forEach((g) => chunks.push(g));
+    }
+    return chunks.map((chunk) => {
+      const agg: Record<string, number | string> = {
+        date: granularity === "weeks"
+          ? `${(chunk[0] as any).date}–${(chunk[chunk.length - 1] as any).date}`
+          : (chunk[0] as any).date.split(" ")[0],
+      };
+      CAMPAIGNS.forEach((n) => { (agg as any)[n] = chunk.reduce((s, r) => s + ((r as any)[n] as number || 0), 0); });
+      (agg as any).visibleTotal = campaignAvgs
+        .filter(({ name }) => !hiddenSeries.has(name) && (rowTypeFilter === null || rowTypeFilter.has(name)))
+        .reduce((s, { name }) => s + ((agg as any)[name] as number), 0);
+      return agg as typeof displayBarData[0];
+    });
+  }, [displayBarData, granularity, campaignAvgs, hiddenSeries, rowTypeFilter]);
+
+  const aggregatedAdPerfData = useMemo(() => {
+    const data = adPerfData.map(d => ({
+      ...d,
+      convValue: d.convValue * selectionScale,
+      cost: d.cost * selectionScale,
+      profit: d.profit * selectionScale,
+      clicks: d.clicks * selectionScale,
+      costBar: d.costBar * selectionScale,
+      profitBar: d.profitBar * selectionScale,
+    }));
+    if (granularity === "days") return data;
+    const chunks: AdPerfItem[][] = [];
+    if (granularity === "weeks") {
+      for (let i = 0; i < data.length; i += 7) chunks.push(data.slice(i, i + 7));
+    } else {
+      const byMon: Record<string, AdPerfItem[]> = {};
+      data.forEach((r) => { const m = r.date.split(" ")[0]; (byMon[m] ??= []).push(r); });
+      Object.values(byMon).forEach((g) => chunks.push(g));
+    }
+    return chunks.map((chunk) => {
+      const convValue = chunk.reduce((s, r) => s + r.convValue, 0);
+      const cost = chunk.reduce((s, r) => s + r.cost, 0);
+      const profit = chunk.reduce((s, r) => s + r.profit, 0);
+      const clicks = chunk.reduce((s, r) => s + r.clicks, 0);
+      const roas = parseFloat((convValue / cost).toFixed(2));
+      const date = granularity === "weeks"
+        ? `${chunk[0].date}–${chunk[chunk.length - 1].date}`
+        : chunk[0].date.split(" ")[0];
+      return { date, convValue, cost, profit, clicks, roas, costBar: cost, profitBar: Math.max(0, profit) };
+    });
+  }, [adPerfData, granularity, selectionScale]);
+
+  const aggregatedPlData = useMemo(() => {
+    const data = plData.map(d => ({
+      ...d,
+      dailyProfit: d.dailyProfit * selectionScale,
+    }));
+    if (granularity === "days") {
+      let c = 0;
+      return data.map(d => { c += d.dailyProfit; return { ...d, cumulative: c }; });
+    }
+    const chunks: PlItem[][] = [];
+    if (granularity === "weeks") {
+      for (let i = 0; i < data.length; i += 7) chunks.push(data.slice(i, i + 7));
+    } else {
+      const byMon: Record<string, PlItem[]> = {};
+      data.forEach((r) => { const m = r.date.split(" ")[0]; (byMon[m] ??= []).push(r); });
+      Object.values(byMon).forEach((g) => chunks.push(g));
+    }
+    let cum = 0;
+    return chunks.map((chunk) => {
+      const dailyProfit = chunk.reduce((s, r) => s + r.dailyProfit, 0);
+      cum += dailyProfit;
+      const date = granularity === "weeks"
+        ? `${chunk[0].date}–${chunk[chunk.length - 1].date}`
+        : chunk[0].date.split(" ")[0];
+      return { date, dailyProfit, cumulative: cum };
+    });
+  }, [plData, granularity, selectionScale]);
+
+  const renderConvLabel = useMemo(() => makeRenderConvLabel(aggregatedAdPerfData, hiddenAdPerf.has("conv")), [aggregatedAdPerfData, hiddenAdPerf]);
+  const renderLossTopLabel = useMemo(() => makeRenderLossTopLabel(aggregatedAdPerfData, hiddenAdPerf.has("conv")), [aggregatedAdPerfData, hiddenAdPerf]);
 
   const dynKpis = useMemo(() => {
     if (selectedRows.length === 0) return null;
@@ -1341,13 +1364,13 @@ export default function GoogleAdsPage() {
           )}
           {activeTab === 2 && (
             <div className="flex items-center gap-3 flex-wrap text-[13px]">
-              <span className="text-gray-600">Total: <span className="text-green-700 font-bold">${(plTotal / 1000).toFixed(1)}K</span></span>
+              <span className="text-gray-600">Total: <span className="text-green-700 font-bold">${((aggregatedPlData[aggregatedPlData.length - 1]?.cumulative || 0) / 1000).toFixed(1)}K</span></span>
               <span className="text-gray-400">|</span>
-              <span className="text-gray-600">Avg Daily: <span className="font-bold">${(plAvgDaily / 1000).toFixed(1)}K</span></span>
+              <span className="text-gray-600">Avg Daily: <span className="font-bold">${(( (aggregatedPlData[aggregatedPlData.length - 1]?.cumulative || 0) / dates.length ) / 1000).toFixed(1)}K</span></span>
               <span className="text-gray-400">|</span>
-              <span className="text-green-600 font-semibold">↗ {plProfitDays} days</span>
+              <span className="text-green-600 font-semibold">↗ {aggregatedPlData.filter(d => d.dailyProfit > 0).length} days</span>
               <span className="text-gray-400">|</span>
-              <span className="text-red-500 font-semibold">↘ {plLossDays} days</span>
+              <span className="text-red-500 font-semibold">↘ {aggregatedPlData.filter(d => d.dailyProfit <= 0).length} days</span>
             </div>
           )}
           {activeTab !== 0 && activeTab !== 1 && activeTab !== 2 && <div />}
@@ -1854,8 +1877,8 @@ export default function GoogleAdsPage() {
             <tbody>
               {filtered.map((row, i) => (
                 <tr key={i}
-                  onClick={(e) => {
-                    if ((e.target as HTMLElement).tagName === "INPUT") return;
+                  onClick={() => {
+                    setCheckedRows(new Set());
                     setClickedRow(clickedRow === i ? null : i);
                   }}
                   className={`border-t border-gray-50 cursor-pointer transition group ${
@@ -1866,6 +1889,7 @@ export default function GoogleAdsPage() {
                       checked={checkedRows.has(i)}
                       onChange={(e) => {
                         e.stopPropagation();
+                        setClickedRow(null);
                         setCheckedRows((prev) => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; });
                       }}
                     />
@@ -1876,7 +1900,13 @@ export default function GoogleAdsPage() {
                   <td
                     className={`px-2.5 py-2.5 sticky left-10 sm:left-24 z-10 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 cursor-pointer ${clickedRow === i ? "bg-blue-100/40" : checkedRows.has(i) ? "bg-blue-50/30" : "bg-white group-hover:bg-blue-50/20"}`}
                     style={{ maxWidth: 160 }}
-                    onClick={(e) => { e.stopPropagation(); setExpandedNameIdx(expandedNameIdx === i ? null : i); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedNameIdx(expandedNameIdx === i ? null : i);
+                      // Also select the row
+                      setCheckedRows(new Set());
+                      setClickedRow(clickedRow === i ? null : i);
+                    }}
                     title={row.name}
                   >
                     <span className={`font-medium text-gray-800 text-[12px] hover:text-blue-600 transition block ${expandedNameIdx === i ? "whitespace-normal break-words" : "whitespace-nowrap overflow-hidden text-ellipsis"}`}>
