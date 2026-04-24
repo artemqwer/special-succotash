@@ -402,13 +402,13 @@ function CalMonth({ year, month, tempStart, tempEnd, hover, step, maxMs, onDayCl
   }
 
   return (
-    <div className="w-full max-w-[280px] sm:w-[224px] mx-auto">
-      <p className="text-center text-[13px] font-semibold text-gray-700 mb-2 pb-1 border-b border-gray-100">
+    <div className="w-full max-w-[300px] mx-auto">
+      <p className="text-center text-[13px] font-bold text-gray-700 mb-2 pb-1 border-b border-gray-100 uppercase tracking-wide">
         {MNAMES[month]} {year}
       </p>
       <div className="grid grid-cols-7">
         {DOW.map((d) => (
-          <div key={d} className="h-7 flex items-center justify-center text-[10px] text-gray-400 font-medium">{d}</div>
+          <div key={d} className="h-7 flex items-center justify-center text-[10px] text-gray-400 font-bold uppercase">{d}</div>
         ))}
         {cells}
       </div>
@@ -745,7 +745,70 @@ export default function GoogleAdsPage() {
   const [evtEndDate, setEvtEndDate] = useState("");
   const [evtTitle, setEvtTitle] = useState("");
   const [evtDesc, setEvtDesc] = useState("");
+  const [compareEnabled, setCompareEnabled] = useState(false);
+  const [daysUpToToday, setDaysUpToToday] = useState<number | string>(30);
+  const [daysUpToYesterday, setDaysUpToYesterday] = useState<number | string>(30);
   const totalPages = Math.ceil(45 / rowsPerPage);
+  
+  const handlePresetClick = (label: string) => {
+    const today = new Date(END_MS);
+    today.setUTCHours(0,0,0,0);
+    const nowTs = today.getTime();
+    let start = nowTs;
+    let end = nowTs;
+
+    switch (label) {
+      case "Today":
+        start = nowTs; end = nowTs; break;
+      case "Yesterday":
+        start = nowTs - DAY_MS; end = nowTs - DAY_MS; break;
+      case "This week (Sun - Today)": {
+        const d = new Date(nowTs);
+        const day = d.getUTCDay();
+        start = nowTs - day * DAY_MS;
+        end = nowTs;
+        break;
+      }
+      case "Last 7 days":
+        start = nowTs - 6 * DAY_MS; end = nowTs; break;
+      case "Last week (Sun - Sat)": {
+        const d = new Date(nowTs);
+        const day = d.getUTCDay();
+        end = nowTs - (day + 1) * DAY_MS;
+        start = end - 6 * DAY_MS;
+        break;
+      }
+      case "Last 14 days":
+        start = nowTs - 13 * DAY_MS; end = nowTs; break;
+      case "This month": {
+        const d = new Date(nowTs);
+        d.setUTCDate(1);
+        start = d.getTime(); end = nowTs; break;
+      }
+      case "Last 30 days":
+        start = nowTs - 29 * DAY_MS; end = nowTs; break;
+      case "Last month": {
+        const d = new Date(nowTs);
+        d.setUTCMonth(d.getUTCMonth() - 1);
+        d.setUTCDate(1);
+        start = d.getTime();
+        const d2 = new Date(start);
+        d2.setUTCMonth(d2.getUTCMonth() + 1);
+        d2.setUTCDate(0);
+        end = d2.getTime();
+        break;
+      }
+      case "All time":
+        start = Date.UTC(2025, 0, 1); end = nowTs; break;
+      default: return;
+    }
+    setPickerTempStart(start);
+    setPickerTempEnd(end);
+    setPickerStep(0);
+    const sd = new Date(start);
+    setPickerViewMonth(sd.getUTCMonth());
+    setPickerViewYear(sd.getUTCFullYear());
+  };
 
   const { dates, barData, campaignAvgs, adPerfData, plData, plTotal, plAvgDaily, plProfitDays, plLossDays } = useMemo(
     () => generatePeriodData(rangeStart, rangeEnd),
@@ -1001,6 +1064,176 @@ export default function GoogleAdsPage() {
             {fmtMs(rangeStart)} – {fmtMs(rangeEnd)}
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${datePickerOpen ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
           </button>
+
+          {/* Desktop Date Picker Dropdown */}
+          {datePickerOpen && (
+            <div className="hidden sm:block absolute right-0 top-full mt-2 w-[580px] bg-white border border-gray-100 rounded-2xl shadow-2xl z-[300] overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
+              <div className="flex h-[580px]">
+                {/* Sidebar */}
+                <div className="w-[190px] border-r border-gray-100 py-4 flex flex-col bg-gray-50/30">
+                  <div className="flex-1 overflow-y-auto scrollbar-none px-2 space-y-0.5">
+                    {[
+                      "Custom", "Today", "Yesterday", "This week (Sun - Today)",
+                      "Last 7 days", "Last week (Sun - Sat)", "Last 14 days",
+                      "This month", "Last 30 days", "Last month", "All time"
+                    ].map((label) => {
+                      return (
+                        <button
+                          key={label}
+                          onClick={() => handlePresetClick(label)}
+                          className={`w-full text-left px-4 py-2 text-[13px] rounded-lg transition-colors flex items-center justify-between ${
+                            (label === "Custom" && !pickerTempStart) ? "text-blue-600 font-medium" : "text-gray-600 hover:bg-white hover:text-blue-600"
+                          }`}
+                        >
+                          {label}
+                          {(label.includes(">") || label.includes("This week") || label.includes("Last week")) && (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="px-4 py-4 border-t border-gray-100 space-y-3 bg-white">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={daysUpToToday}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setDaysUpToToday(v);
+                          const num = parseInt(v);
+                          if (!isNaN(num)) {
+                            const end = new Date(END_MS).getTime();
+                            const start = end - (num - 1) * DAY_MS;
+                            setPickerTempStart(start);
+                            setPickerTempEnd(end);
+                          }
+                        }}
+                        className="w-12 h-8 border border-gray-200 rounded-md text-[13px] px-1 text-center outline-none focus:border-blue-400"
+                      />
+                      <span className="text-[12px] text-gray-500">days up to today</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={daysUpToYesterday}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setDaysUpToYesterday(v);
+                          const num = parseInt(v);
+                          if (!isNaN(num)) {
+                            const end = new Date(END_MS).getTime() - DAY_MS;
+                            const start = end - (num - 1) * DAY_MS;
+                            setPickerTempStart(start);
+                            setPickerTempEnd(end);
+                          }
+                        }}
+                        className="w-12 h-8 border border-gray-200 rounded-md text-[13px] px-1 text-center outline-none focus:border-blue-400"
+                      />
+                      <span className="text-[12px] text-gray-500">days up to yesterday</span>
+                    </div>
+
+                    <div className="pt-4 flex items-center justify-between">
+                      <span className="text-[13px] text-gray-600 font-medium">Compare</span>
+                      <button
+                        onClick={() => setCompareEnabled(!compareEnabled)}
+                        className={`w-10 h-5 rounded-full transition-colors relative ${compareEnabled ? "bg-blue-600" : "bg-gray-200"}`}
+                      >
+                        <div className={`absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform ${compareEnabled ? "translate-x-5" : ""}`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main Content */}
+                <div className="flex-1 flex flex-col bg-white">
+                  {/* Date Inputs */}
+                  <div className="px-4 py-5 flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Start date*</label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={pickerTempStart ? new Date(pickerTempStart).toLocaleDateString() : ""}
+                        className="w-full h-9 border border-gray-200 rounded-lg px-3 text-[13px] bg-gray-50/50"
+                      />
+                    </div>
+                    <div className="pt-4 text-gray-300">—</div>
+                    <div className="flex-1">
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">End date*</label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={pickerTempEnd ? new Date(pickerTempEnd).toLocaleDateString() : ""}
+                        className="w-full h-9 border border-gray-200 rounded-lg px-3 text-[13px] bg-gray-50/50"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Calendar Area */}
+                  <div className="flex-1 overflow-y-auto px-4 py-2 space-y-8 scrollbar-thin">
+                    {([0, 1, 2] as const).map((offset) => {
+                      const m = (pickerViewMonth + offset) % 12;
+                      const y = pickerViewYear + Math.floor((pickerViewMonth + offset) / 12);
+                      return (
+                        <div key={offset} className="pb-4">
+                          <CalMonth
+                            year={y} month={m}
+                            tempStart={pickerTempStart} tempEnd={pickerTempEnd}
+                            hover={pickerHover} step={pickerStep}
+                            maxMs={END_MS}
+                            onDayClick={(ts) => {
+                              if (pickerStep === 0) {
+                                setPickerTempStart(ts);
+                                setPickerTempEnd(null);
+                                setPickerStep(1);
+                              } else {
+                                if (pickerTempStart !== null && ts < pickerTempStart) {
+                                  setPickerTempEnd(pickerTempStart);
+                                  setPickerTempStart(ts);
+                                } else {
+                                  setPickerTempEnd(ts);
+                                }
+                                setPickerStep(0);
+                              }
+                            }}
+                            onDayHover={setPickerHover}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="px-4 py-4 border-t border-gray-100 flex justify-end gap-3 bg-white">
+                    <button
+                      onClick={() => setDatePickerOpen(false)}
+                      className="px-6 py-2 text-[14px] font-semibold text-gray-600 hover:bg-gray-50 rounded-xl transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      disabled={!pickerTempStart || !pickerTempEnd}
+                      onClick={() => {
+                        if (pickerTempStart && pickerTempEnd) {
+                          setRangeStart(pickerTempStart);
+                          setRangeEnd(pickerTempEnd);
+                          setDatePickerOpen(false);
+                          setHiddenSeries(new Set());
+                          setCheckedRows(new Set());
+                          setClickedRow(null);
+                        }
+                      }}
+                      className="px-8 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 transition shadow-lg shadow-blue-100"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1076,11 +1309,12 @@ export default function GoogleAdsPage() {
               </button>
             ))}
           </div>
-          <div className="p-px rounded-lg shrink-0 mb-1" style={{ background: "linear-gradient(135deg,#f472b6,#a78bfa,#60a5fa)" }}>
-            <button onClick={openAi} className="flex items-center gap-1.5 text-[14px] font-semibold text-purple-600 bg-white hover:bg-purple-50/60 px-3 py-[5px] rounded-[7px] transition whitespace-nowrap">
-              <svg width="14" height="14" viewBox="0 0 24 24">
-                <defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#f472b6"/><stop offset="100%" stopColor="#a78bfa"/></linearGradient></defs>
-                <path d="M12 1.5C12.5 7.5 16.5 11.5 22.5 12C16.5 12.5 12.5 16.5 12 22.5C11.5 16.5 7.5 12.5 1.5 12C7.5 11.5 11.5 7.5 12 1.5Z" fill="url(#sg)"/>
+          <div className="p-[2px] rounded-xl shrink-0 mb-1" style={{ background: "linear-gradient(135deg, #3b82f6, #a78bfa, #f472b6)" }}>
+            <button onClick={openAi} className="flex items-center gap-1.5 text-[14px] font-bold text-gray-800 bg-white hover:bg-gray-50/80 px-4 py-[6px] rounded-[10px] transition whitespace-nowrap">
+              <svg width="16" height="16" viewBox="0 0 24 24">
+                <defs><linearGradient id="ai-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#8b5cf6"/><stop offset="100%" stopColor="#ec4899"/></linearGradient></defs>
+                <path d="M12 1.5C12.5 7.5 16.5 11.5 22.5 12C16.5 12.5 12.5 16.5 12 22.5C11.5 16.5 7.5 12.5 1.5 12C7.5 11.5 11.5 7.5 12 1.5Z" fill="url(#ai-grad)"/>
+                <circle cx="18" cy="6" r="1.5" fill="url(#ai-grad)" />
               </svg>
               AI Assistant
             </button>
