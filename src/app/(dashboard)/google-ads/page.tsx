@@ -270,9 +270,6 @@ const tabs = ["Period Analysis", "Ad Performance", "Profit / Loss", "Segments"];
 type SortDir = "asc" | "desc" | null;
 type SortKey = keyof (typeof campaignRows)[number];
 
-const _trNums = campaignRows.filter(r => r.roas !== "null").map(r => parseFloat(r.roas));
-const targetRoasMin = Math.min(..._trNums);
-const targetRoasMax = Math.max(..._trNums);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -449,6 +446,7 @@ function KpiCard({ label, icon, value, delta, up, spark, desc, hoverFmt }: {
       <div className="h-[62px] sm:h-[68px] -mx-2 sm:-mx-4">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={spark} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+            <XAxis dataKey="date" hide />
             <defs>
               <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={color} stopOpacity={0.18} />
@@ -510,15 +508,16 @@ function SortIcon({ dir }: { dir: SortDir }) {
   );
 }
 
-function SegmentDonut({ title, data, formatValue, highlight }: {
+function SegmentDonut({ title, data, formatValue, colorScheme = "blue" }: {
   title: string;
   data: { name: string; value: number }[];
   formatValue: (v: number) => string;
-  highlight?: boolean;
+  colorScheme?: "blue" | "green" | "violet";
 }) {
   const total = data.reduce((s, d) => s + d.value, 0);
+  const bgCls = colorScheme === "green" ? "bg-green-50 border-green-100" : colorScheme === "violet" ? "bg-violet-50 border-violet-100" : "bg-blue-50 border-blue-100";
   return (
-    <div className={`rounded-2xl border p-4 flex flex-col ${highlight ? "bg-green-50/40 border-green-100" : "bg-blue-50/30 border-gray-100"}`}>
+    <div className={`rounded-2xl border p-4 flex flex-col ${bgCls}`}>
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-[12px] font-medium cursor-pointer hover:bg-gray-50">
           {title}
@@ -926,6 +925,40 @@ export default function GoogleAdsPage() {
     return groups;
   }, [checkedRows, clickedRow, filtered]);
 
+  const selectedRows = useMemo(() => {
+    const items: (typeof filtered)[number][] = [];
+    if (clickedRow !== null && filtered[clickedRow]) items.push(filtered[clickedRow]);
+    checkedRows.forEach((i) => { if (filtered[i] && !items.includes(filtered[i])) items.push(filtered[i]); });
+    return items;
+  }, [clickedRow, checkedRows, filtered]);
+
+  const dynKpis = useMemo(() => {
+    if (selectedRows.length === 0) return null;
+    const selClicks = selectedRows.reduce((s, r) => s + r.clicks, 0);
+    const selConv   = selectedRows.reduce((s, r) => s + r.conv, 0);
+    const selCost   = selectedRows.reduce((s, r) => s + r.cost, 0);
+    const selRev    = selectedRows.reduce((s, r) => s + r.revenue, 0);
+    const selProfit = selectedRows.reduce((s, r) => s + r.profit, 0);
+    const totClicks = campaignRows.reduce((s, r) => s + r.clicks, 0);
+    const totConv   = campaignRows.reduce((s, r) => s + r.conv, 0);
+    const totCost   = campaignRows.reduce((s, r) => s + r.cost, 0);
+    const totRev    = campaignRows.reduce((s, r) => s + r.revenue, 0);
+    const convRate  = selClicks > 0 ? selConv / selClicks * 100 : 0;
+    const cpa       = selConv  > 0 ? selCost / selConv : 0;
+    const roas      = selCost  > 0 ? selRev  / selCost : 0;
+    const fmtPct = (a: number, b: number) => b > 0 ? `${((a / b) * 100).toFixed(1)}% of total` : "—";
+    return [
+      { value: selClicks >= 1000 ? `${(selClicks/1000).toFixed(2)}K` : String(selClicks), delta: fmtPct(selClicks, totClicks), up: selClicks >= totClicks / campaignRows.length },
+      { value: `${convRate.toFixed(2)}%`,  delta: convRate > 2.47 ? "▲ above avg" : "▼ below avg", up: convRate >= 2.47 },
+      { value: selConv >= 1000 ? `${(selConv/1000).toFixed(2)}K` : String(selConv), delta: fmtPct(selConv, totConv), up: true },
+      { value: `${cpa.toFixed(2)}`,        delta: cpa < 20.42 ? "▲ below avg CPA" : "▼ above avg CPA", up: cpa <= 20.42 },
+      { value: selCost >= 1000 ? `${(selCost/1000).toFixed(2)}K` : selCost.toFixed(2), delta: fmtPct(selCost, totCost), up: true },
+      { value: selRev  >= 1000 ? `${(selRev/1000).toFixed(2)}K`  : selRev.toFixed(2),  delta: fmtPct(selRev, totRev), up: true },
+      { value: `${roas.toFixed(2)}x`,      delta: roas > 1.76 ? "▲ above avg" : "▼ below avg", up: roas >= 1.76 },
+      { value: selProfit >= 0 ? (selProfit >= 1000 ? `${(selProfit/1000).toFixed(2)}K` : selProfit.toFixed(0)) : `-${(Math.abs(selProfit)/1000).toFixed(2)}K`, delta: selProfit >= 0 ? "Profitable" : "Loss", up: selProfit >= 0 },
+    ];
+  }, [selectedRows]);
+
   // Compute min/max for heatmap columns
   const heatCols = useMemo(() => {
     const keys = ["impr","clicks","cpc","ctr","convRate","conv","cpa","revenue","cost","profit"] as const;
@@ -942,7 +975,7 @@ export default function GoogleAdsPage() {
   });
 
   return (
-    <div className="px-4 sm:px-6 py-6 bg-[#f4f6fb] min-h-screen">
+    <div className={`px-4 sm:px-6 py-6 bg-[#f4f6fb] min-h-screen transition-[padding] duration-300 ease-out ${aiOpen ? "lg:pr-[456px]" : ""}`}>
       {/* Header */}
       <div className="hidden sm:flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -971,19 +1004,58 @@ export default function GoogleAdsPage() {
         </div>
       </div>
 
+      {/* Mobile date trigger */}
+      <div className="sm:hidden flex items-center justify-between mb-4">
+        <h1 className="text-[17px] font-bold text-gray-900">Google Ads</h1>
+        <button
+          onClick={() => {
+            if (!datePickerOpen) {
+              setPickerTempStart(rangeStart);
+              setPickerTempEnd(rangeEnd);
+              setPickerStep(0);
+              setPickerHover(null);
+              const d = new Date(rangeStart);
+              setPickerViewYear(d.getFullYear());
+              setPickerViewMonth(d.getMonth());
+            }
+            setDatePickerOpen(!datePickerOpen);
+          }}
+          className="flex items-center gap-1.5 text-[13px] text-gray-600 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          {fmtMs(rangeStart)} – {fmtMs(rangeEnd)}
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+
       {/* KPI cards */}
+      {dynKpis && (
+        <div className="flex items-center gap-1.5 mb-2 text-[12px] text-blue-600">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          Showing metrics for {selectedRows.length} selected campaign{selectedRows.length > 1 ? "s" : ""}
+          <button onClick={() => { setCheckedRows(new Set()); setClickedRow(null); }} className="ml-1 text-gray-400 hover:text-gray-700 transition">× Clear</button>
+        </div>
+      )}
       <div className="grid grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 mb-5">
-        {kpis.map((k, i) => (
-          <KpiCard key={k.label} label={k.label} icon={k.icon} value={k.value} delta={k.delta} up={k.up} spark={sparkData(k.up, i)} desc={k.desc} hoverFmt={k.hoverFmt} />
-        ))}
+        {kpis.map((k, i) => {
+          const dyn = dynKpis?.[i];
+          return (
+            <KpiCard key={k.label} label={k.label} icon={k.icon}
+              value={dyn?.value ?? k.value}
+              delta={dyn?.delta ?? k.delta}
+              up={dyn?.up ?? k.up}
+              spark={sparkData(dyn?.up ?? k.up, dyn ? i + selectedRows.length * 3 : i)}
+              desc={k.desc} hoverFmt={k.hoverFmt} />
+          );
+        })}
       </div>
 
       {/* Chart card — fills viewport so table is below the fold */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
         {/* Tabs */}
-        <div className="flex items-center justify-between gap-3 mb-5 min-w-0">
+        <div className="flex items-center justify-between gap-3 mb-5 min-w-0 border-b border-gray-100">
           {/* Mobile: dropdown */}
-          <div className="sm:hidden relative flex-1">
+          <div className="sm:hidden relative flex-1 pb-2">
             <select
               value={activeTab}
               onChange={(e) => setActiveTab(Number(e.target.value))}
@@ -994,7 +1066,7 @@ export default function GoogleAdsPage() {
             <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           {/* Desktop: tab buttons */}
-          <div className="hidden sm:flex gap-1 border-b border-gray-100 flex-1 overflow-x-auto scrollbar-none min-w-0">
+          <div className="hidden sm:flex gap-1 flex-1 overflow-x-auto scrollbar-none min-w-0">
             {tabs.map((t, i) => (
               <button key={t} onClick={() => setActiveTab(i)}
                 className={`px-3 py-2 text-[14px] font-medium border-b-2 transition whitespace-nowrap ${
@@ -1004,7 +1076,7 @@ export default function GoogleAdsPage() {
               </button>
             ))}
           </div>
-          <div className="p-px rounded-lg shrink-0 self-center" style={{ background: "linear-gradient(135deg,#f472b6,#a78bfa,#60a5fa)" }}>
+          <div className="p-px rounded-lg shrink-0 mb-1" style={{ background: "linear-gradient(135deg,#f472b6,#a78bfa,#60a5fa)" }}>
             <button onClick={openAi} className="flex items-center gap-1.5 text-[14px] font-semibold text-purple-600 bg-white hover:bg-purple-50/60 px-3 py-[5px] rounded-[7px] transition whitespace-nowrap">
               <svg width="14" height="14" viewBox="0 0 24 24">
                 <defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#f472b6"/><stop offset="100%" stopColor="#a78bfa"/></linearGradient></defs>
@@ -1249,12 +1321,14 @@ export default function GoogleAdsPage() {
             {/* Desktop: 3 columns */}
             <div className="hidden sm:grid grid-cols-1 lg:grid-cols-3 gap-4">
               <SegmentDonut title="Revenue" data={segRevenue}
-                formatValue={(v) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(2)}K`} />
+                formatValue={(v) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(2)}K`}
+                colorScheme="blue" />
               <SegmentDonut title="Ad Profit" data={segAdProfit}
                 formatValue={(v) => v >= 1000000 ? `$${(v / 1000000).toFixed(2)}M` : `$${(v / 1000).toFixed(2)}K`}
-                highlight />
+                colorScheme="green" />
               <SegmentDonut title="Conversions" data={segConversions}
-                formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(2)}K` : String(v)} />
+                formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(2)}K` : String(v)}
+                colorScheme="violet" />
             </div>
           </>
         )}
@@ -1533,7 +1607,7 @@ export default function GoogleAdsPage() {
                   ["Campaign","name","left"],["Type","type","left"],
                   ["Impr.","impr","right"],["Clicks","clicks","right"],["CPC","cpc","right"],["CTR","ctr","right"],
                   ["Conv. rate","convRate","right"],["Conv.","conv","right"],["CPA","cpa","right"],
-                  ["Revenue","revenue","right"],["Cost","cost","right"],["Profit (ads)","profit","right"],["ROAS","roasVal","right"],
+                  ["Revenue","revenue","right"],["Cost","cost","right"],["Profit (ads)","profit","right"],["ROAS","roas","right"],
                 ] as [string, SortKey, "left" | "right"][]).map(([label, col, align]) => (
                   <th key={col} onClick={() => handleSort(col)}
                     style={col === "name" ? { maxWidth: 160 } : undefined}
@@ -1592,10 +1666,10 @@ export default function GoogleAdsPage() {
                     {row.profit < 0 ? "-" : ""}{Math.abs(row.profit).toFixed(2)}K
                   </td>
                   <td className="px-2.5 py-2.5 text-right tabular-nums"
-                    style={row.roasVal !== null ? { backgroundColor: heatmapBg(row.roasVal, targetRoasMin, targetRoasMax, "green") } : undefined}>
-                    {row.roasVal !== null
-                      ? <span className="text-green-700 font-medium">{(row.roasVal / 100).toFixed(2)}x</span>
-                      : <span className="text-gray-300 text-[11px]">null</span>}
+                    style={{ backgroundColor: row.roasColor === "green" ? "#DCFCE7" : row.roasColor === "red" ? "#FEE2E2" : row.roasColor === "orange" ? "#FFEDD5" : "transparent" }}>
+                    <span className="font-medium" style={{ color: row.roasColor === "green" ? "#15803D" : row.roasColor === "red" ? "#DC2626" : row.roasColor === "orange" ? "#EA580C" : "#9CA3AF" }}>
+                      {row.roas !== "null" ? row.roas : "—"}
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -1782,91 +1856,52 @@ export default function GoogleAdsPage() {
         </div>
       )}
 
-      {/* ── AI Campaign Assistant Panel ── */}
-      {aiOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 lg:p-8">
-          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px]" />
-          <div className="relative w-full max-w-[1200px] h-[85vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-white/20 animate-in fade-in zoom-in-95 duration-300">
-            <div className="flex flex-1 min-h-0">
+      {/* ── AI Campaign Assistant Sidebar ── */}
+      {/* Mobile backdrop */}
+      {aiOpen && <div className="fixed inset-0 bg-black/40 z-[99] lg:hidden" onClick={() => setAiOpen(false)} />}
 
-            {/* Left: Pinned Insights */}
-            <div className="hidden lg:flex w-[192px] shrink-0 bg-white border-r border-gray-100 flex-col">
-              <div className="px-4 py-3.5 border-b border-gray-100 flex items-center gap-2">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.85-1.65L16 12V5h1a1 1 0 0 0 0-2H7a1 1 0 0 0 0 2h1v7l-2.15 1.59A2 2 0 0 0 5 15.24V17z"/></svg>
-                <span className="text-[13px] font-semibold text-gray-800">Pinned Insights</span>
-              </div>
-              <div className="flex-1 flex flex-col overflow-y-auto">
-                {aiMsgs.filter(m => m.pinned).length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center p-5 text-center">
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="1.5"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.85-1.65L16 12V5h1a1 1 0 0 0 0-2H7a1 1 0 0 0 0 2h1v7l-2.15 1.59A2 2 0 0 0 5 15.24V17z"/></svg>
-                    <p className="text-[12px] text-gray-400 mt-3 font-medium">No pinned messages yet</p>
-                    <p className="text-[11px] text-gray-400 mt-1 leading-snug">Pin important AI insights to save them here</p>
-                  </div>
-                ) : (
-                  <div className="p-3 space-y-2">
-                    {aiMsgs.filter(m => m.pinned).map(m => (
-                      <div key={m.id} className="bg-purple-50 rounded-lg p-2.5 text-[11px] text-gray-700 leading-snug cursor-pointer hover:bg-purple-100 transition">
-                        <p className="line-clamp-3">{m.text.replace(/\*\*/g, "").split("\n")[0]}</p>
-                        <p className="text-gray-400 mt-1">{m.time}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+      {/* Sliding panel */}
+      <div className={`fixed right-0 top-0 h-screen z-[100] flex flex-col bg-white shadow-2xl border-l border-gray-200 transition-transform duration-300 ease-out w-full sm:w-[440px] ${aiOpen ? "translate-x-0" : "translate-x-full"}`}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#a78bfa,#818cf8)" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 1.5C12.5 7.5 16.5 11.5 22.5 12C16.5 12.5 12.5 16.5 12 22.5C11.5 16.5 7.5 12.5 1.5 12C7.5 11.5 11.5 7.5 12 1.5Z"/></svg>
             </div>
+            <div>
+              <h3 className="text-[15px] font-bold text-gray-900">AI Campaign Assistant</h3>
+              <p className="text-[12px] text-gray-400">All Account Data</p>
+            </div>
+          </div>
+          <button onClick={() => setAiOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 transition">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
 
-            {/* Right: Chat */}
-            <div className="flex-1 flex flex-col bg-white min-w-0">
+        {/* Metrics bar */}
+        <div className="flex items-center gap-4 px-5 py-2.5 border-b border-gray-100 overflow-x-auto scrollbar-none shrink-0">
+          {AI_METRICS.map(({ label, value, hi }) => (
+            <div key={label} className="flex flex-col shrink-0">
+              <span className="text-[11px] text-gray-400 whitespace-nowrap">{label}</span>
+              <span className={`text-[13px] font-bold whitespace-nowrap ${hi ?? "text-gray-900"}`}>{value}</span>
+            </div>
+          ))}
+        </div>
 
-              {/* Header */}
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#a78bfa,#818cf8)" }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 1.5C12.5 7.5 16.5 11.5 22.5 12C16.5 12.5 12.5 16.5 12 22.5C11.5 16.5 7.5 12.5 1.5 12C7.5 11.5 11.5 7.5 12 1.5Z"/></svg>
-                  </div>
-                  <div>
-                    <h3 className="text-[15px] font-bold text-gray-900">AI Campaign Assistant</h3>
-                    <p className="text-[12px] text-gray-400">All Account Data</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className="hidden sm:flex items-center gap-1.5 text-[13px] text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                    {fmtMs(rangeStart)} – {fmtMs(rangeEnd)}
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-                  </button>
-                  <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
-                    <svg width="16" height="4" viewBox="0 0 16 4" fill="currentColor"><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="14" cy="2" r="1.5"/></svg>
-                  </button>
-                  <button onClick={() => setAiOpen(false)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
-                </div>
-              </div>
+        {/* Quick actions */}
+        <div className="flex items-center gap-2 px-5 py-2.5 border-b border-gray-100 shrink-0 overflow-x-auto scrollbar-none">
+          <span className="text-[12px] text-gray-400 shrink-0">Quick:</span>
+          {AI_QUICK.map(({ label, icon }) => (
+            <button key={label} onClick={() => sendAiMsg(label)}
+              className="flex items-center gap-1.5 text-[12px] text-gray-600 border border-gray-200 rounded-full px-3 py-1 hover:bg-gray-50 whitespace-nowrap shrink-0 transition">
+              <span className="text-gray-400">{icon}</span>{label}
+            </button>
+          ))}
+        </div>
 
-              {/* Metrics bar */}
-              <div className="flex items-center gap-5 px-5 py-2.5 border-b border-gray-100 overflow-x-auto scrollbar-none shrink-0">
-                {AI_METRICS.map(({ label, value, hi }) => (
-                  <div key={label} className="flex flex-col shrink-0">
-                    <span className="text-[11px] text-gray-400 whitespace-nowrap">{label}</span>
-                    <span className={`text-[14px] font-bold whitespace-nowrap ${hi ?? "text-gray-900"}`}>{value}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Quick actions */}
-              <div className="flex items-center gap-2 px-5 py-2.5 border-b border-gray-100 shrink-0 overflow-x-auto scrollbar-none">
-                <span className="text-[12px] text-gray-400 shrink-0">Quick:</span>
-                {AI_QUICK.map(({ label, icon }) => (
-                  <button key={label} onClick={() => sendAiMsg(label)}
-                    className="flex items-center gap-1.5 text-[12px] text-gray-600 border border-gray-200 rounded-full px-3 py-1 hover:bg-gray-50 whitespace-nowrap shrink-0 transition">
-                    <span className="text-gray-400">{icon}</span>{label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Messages */}
-              <div ref={aiScrollRef} className="flex-1 overflow-y-auto p-5 space-y-4">
+        {/* Messages */}
+        <div ref={aiScrollRef} className="flex-1 overflow-y-auto p-5 space-y-4">
                 {aiMsgs.map((msg) => (
                   <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
                     {msg.role === "assistant" && (
@@ -1944,19 +1979,20 @@ export default function GoogleAdsPage() {
                 </div>
                 <p className="text-[11px] text-gray-400 mt-1.5">Chat history is automatically saved</p>
               </div>
-            </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* ── Global Date Picker Modal ── */}
+
+      </div>
+
+      {/* ── Mobile Date Picker Modal ── */}
       {datePickerOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => setDatePickerOpen(false)} />
+        <div className="sm:hidden fixed inset-0 z-[200] flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setDatePickerOpen(false)} />
           <div
-            className="relative bg-white border border-gray-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95 duration-200 max-h-[95vh] overflow-y-auto"
+            className="relative bg-white rounded-t-3xl shadow-2xl overflow-hidden flex flex-col w-full max-h-[92vh] overflow-y-auto"
             onMouseLeave={() => setPickerHover(null)}
           >
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
+            </div>
             {/* Presets */}
             <div className="w-full sm:w-[160px] border-b sm:border-b-0 sm:border-r border-gray-100 py-3 shrink-0 bg-gray-50/50">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 pb-2">Quick Select</p>
@@ -2032,44 +2068,26 @@ export default function GoogleAdsPage() {
               </div>
 
               {/* Footer */}
-              <div className="mt-auto flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-5 bg-gray-50/80 border-t border-gray-100">
-                <div className="flex flex-col items-center sm:items-start">
-                  <span className="text-[11px] text-gray-400 uppercase font-bold tracking-wider mb-1">Selected Period</span>
-                  <div className="text-[14px] text-gray-800 min-w-0">
-                    {pickerTempStart && pickerTempEnd ? (
-                      <span className="flex items-center gap-2">
-                        <span className="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg">{fmtMs(pickerTempStart)}</span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                        <span className="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg">{fmtMs(pickerTempEnd)}</span>
-                      </span>
-                    ) : pickerTempStart ? (
-                      <span className="text-blue-500 font-bold animate-pulse">Select end date…</span>
-                    ) : (
-                      <span className="text-gray-400 font-medium">Select start date</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-3 w-full sm:w-auto">
-                  <button onClick={() => setDatePickerOpen(false)}
-                    className="flex-1 sm:flex-none px-6 py-3 text-[14px] font-bold text-gray-600 hover:bg-white hover:shadow-sm rounded-2xl transition-all border border-gray-200">
-                    Cancel
-                  </button>
-                  <button
-                    disabled={!pickerTempStart || !pickerTempEnd}
-                    onClick={() => {
-                      if (pickerTempStart && pickerTempEnd) {
-                        setRangeStart(pickerTempStart);
-                        setRangeEnd(pickerTempEnd);
-                        setDatePickerOpen(false);
-                        setHiddenSeries(new Set());
-                        setCheckedRows(new Set());
-                        setClickedRow(null);
-                      }
-                    }}
-                    className="flex-1 sm:flex-none px-8 py-3 text-[14px] bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none transition-all">
-                    Apply Period
-                  </button>
-                </div>
+              <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+                <button onClick={() => setDatePickerOpen(false)}
+                  className="flex-1 py-3 text-[14px] font-bold text-gray-600 hover:bg-gray-50 rounded-2xl transition-all border border-gray-200">
+                  Cancel
+                </button>
+                <button
+                  disabled={!pickerTempStart || !pickerTempEnd}
+                  onClick={() => {
+                    if (pickerTempStart && pickerTempEnd) {
+                      setRangeStart(pickerTempStart);
+                      setRangeEnd(pickerTempEnd);
+                      setDatePickerOpen(false);
+                      setHiddenSeries(new Set());
+                      setCheckedRows(new Set());
+                      setClickedRow(null);
+                    }
+                  }}
+                  className="flex-1 py-3 text-[14px] bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 transition-all">
+                  Apply Period
+                </button>
               </div>
             </div>
           </div>
