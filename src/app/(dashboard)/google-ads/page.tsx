@@ -5,6 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line,
   LabelList, ComposedChart, ReferenceLine, Cell, PieChart, Pie, AreaChart, Area, CartesianGrid,
 } from "recharts";
+import { fetchWindsorData, WindsorDataRow } from "@/lib/windsor";
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -747,6 +748,66 @@ export default function GoogleAdsPage() {
   const [evtDesc, setEvtDesc] = useState("");
   const [compareEnabled, setCompareEnabled] = useState(false);
   const [daysUpToToday, setDaysUpToToday] = useState<number | string>(30);
+  const [windsorApiKey, setWindsorApiKey] = useState("");
+  const [isWindsorLoading, setIsWindsorLoading] = useState(false);
+  const [windsorError, setWindsorError] = useState<string | null>(null);
+  const [realCampaignRows, setRealCampaignRows] = useState<any[] | null>(null);
+  const [realBarData, setRealBarData] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    if (!windsorApiKey) {
+      setRealCampaignRows(null);
+      setRealBarData(null);
+      return;
+    }
+
+    const loadData = async () => {
+      setIsWindsorLoading(true);
+      setWindsorError(null);
+      try {
+        const start = new Date(rangeStart).toISOString().split('T')[0];
+        const end = new Date(rangeEnd).toISOString().split('T')[0];
+
+        const campData = await fetchWindsorData(windsorApiKey, start, end, 'campaign');
+        const mappedRows = campData.map(d => ({
+          status: "green",
+          name: d.campaign || "Unknown",
+          type: "Search",
+          roas: d.spend > 0 ? `${((d.conversion_value / d.spend) * 100).toFixed(0)}%` : "0%",
+          impr: Number(d.impressions) || 0,
+          clicks: Number(d.clicks) || 0,
+          cpc: d.clicks > 0 ? Number(d.spend) / Number(d.clicks) : 0,
+          ctr: d.impressions > 0 ? (Number(d.clicks) / Number(d.impressions)) * 100 : 0,
+          convRate: d.clicks > 0 ? (Number(d.conversions) / Number(d.clicks)) * 100 : 0,
+          conv: Number(d.conversions) || 0,
+          cpa: d.conversions > 0 ? Number(d.spend) / Number(d.conversions) : 0,
+          revenue: Number(d.conversion_value) || 0,
+          cost: Number(d.spend) || 0,
+          profit: (Number(d.conversion_value) || 0) - (Number(d.spend) || 0),
+          roasVal: d.spend > 0 ? (Number(d.conversion_value) / Number(d.spend)) * 100 : 0
+        }));
+        setRealCampaignRows(mappedRows);
+
+        const dailyData = await fetchWindsorData(windsorApiKey, start, end, 'date,campaign');
+        const dateMap: Record<string, any> = {};
+        dailyData.forEach(d => {
+          const dt = d.date!;
+          if (!dateMap[dt]) dateMap[dt] = { date: new Date(dt).toLocaleDateString("en-US", { month: "short", day: "numeric" }), total: 0 };
+          const val = Number(d.conversion_value) || 0;
+          dateMap[dt][d.campaign || 'Unknown'] = val;
+          dateMap[dt].total += val;
+        });
+        setRealBarData(Object.values(dateMap));
+      } catch (err) {
+        setWindsorError("API Error. Check key.");
+      } finally {
+        setIsWindsorLoading(false);
+      }
+    };
+
+    const timer = setTimeout(loadData, 500);
+    return () => clearTimeout(timer);
+  }, [windsorApiKey, rangeStart, rangeEnd]);
   const [daysUpToYesterday, setDaysUpToYesterday] = useState<number | string>(30);
   const totalPages = Math.ceil(45 / rowsPerPage);
   
@@ -811,8 +872,23 @@ export default function GoogleAdsPage() {
   };
 
   const { dates, barData, campaignAvgs, adPerfData, plData, plTotal, plAvgDaily, plProfitDays, plLossDays } = useMemo(
-    () => generatePeriodData(rangeStart, rangeEnd),
-    [rangeStart, rangeEnd]
+    () => {
+      const mock = generatePeriodData(rangeStart, rangeEnd);
+      if (realBarData) {
+        const names = Array.from(new Set(realBarData.flatMap(d => Object.keys(d).filter(k => k !== 'date' && k !== 'total'))));
+        return {
+          ...mock,
+          barData: realBarData,
+          campaignAvgs: names.map((name, i) => ({
+            name,
+            color: COLORS[i % COLORS.length],
+            avg: realBarData.reduce((s, d) => s + (d[name] || 0), 0) / realBarData.length
+          })).sort((a, b) => b.avg - a.avg)
+        };
+      }
+      return mock;
+    },
+    [rangeStart, rangeEnd, realBarData]
   );
 
   const openAi = () => {
@@ -882,10 +958,12 @@ export default function GoogleAdsPage() {
     }
   };
 
-  const types = ["All", ...Array.from(new Set(campaignRows.map((r) => r.type)))];
+  const currentRows = realCampaignRows || campaignRows;
+  const types = ["All", ...Array.from(new Set(currentRows.map((r) => r.type)))];
 
   const filtered = useMemo(() => {
-    let rows = typeFilter === "All" ? campaignRows : campaignRows.filter((r) => r.type === typeFilter);
+    const base = realCampaignRows || campaignRows;
+    let rows = typeFilter === "All" ? base : base.filter((r) => r.type === typeFilter);
     if (selectedCampaigns.size > 0) rows = rows.filter((r) => selectedCampaigns.has(r.name));
     if (sortCol && sortDir) {
       rows = [...rows].sort((a, b) => {
@@ -915,11 +993,12 @@ export default function GoogleAdsPage() {
   }, [clickedRow, checkedRows, filtered]);
 
   const selectionScale = useMemo(() => {
+    const base = realCampaignRows || campaignRows;
     if (selectedRows.length === 0) return 1;
-    const totalRev = campaignRows.reduce((s, r) => s + r.revenue, 0);
+    const totalRev = base.reduce((s, r) => s + r.revenue, 0);
     const selRev = selectedRows.reduce((s, r) => s + r.revenue, 0);
     return selRev / totalRev;
-  }, [selectedRows]);
+  }, [selectedRows, realCampaignRows]);
 
   const displayBarData = useMemo(() =>
     barData.map((row) => ({
@@ -1075,21 +1154,38 @@ export default function GoogleAdsPage() {
             <p className="text-[13px] text-gray-400">Campaign Performance Analytics</p>
           </div>
         </div>
-        <div className="relative">
-          <button
-            onClick={() => {
-              if (datePickerOpen) setDatePickerOpen(false);
-              else openDatePicker();
-            }}
-            className="flex items-center gap-2 text-[14px] text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-gray-50 transition"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            {fmtMs(rangeStart)} – {fmtMs(rangeEnd)}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${datePickerOpen ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
+        <div className="flex items-center gap-3">
+          {/* Windsor API Key Input */}
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3m-3-3l-2.5-2.5"/></svg>
+            <input
+              type="password"
+              placeholder="Windsor.ai API Key"
+              value={windsorApiKey}
+              onChange={(e) => setWindsorApiKey(e.target.value)}
+              className="text-[13px] outline-none w-40 placeholder:text-gray-300"
+            />
+            {isWindsorLoading && <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />}
+            {windsorError && <span className="text-[10px] text-red-500 font-medium">{windsorError}</span>}
+            {!windsorApiKey && <span className="text-[10px] text-orange-500 font-medium">Demo Mode</span>}
+            {windsorApiKey && !isWindsorLoading && !windsorError && <span className="text-[10px] text-green-500 font-medium">Connected</span>}
+          </div>
+
+          <div className="relative">
+            <button
+              onClick={() => {
+                if (datePickerOpen) setDatePickerOpen(false);
+                else openDatePicker();
+              }}
+              className="flex items-center gap-2 text-[14px] text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-gray-50 transition"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              {fmtMs(rangeStart)} – {fmtMs(rangeEnd)}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${datePickerOpen ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
 
           {/* Desktop Date Picker Dropdown */}
-          {datePickerOpen && (
+          {datePickerOpen &&
             <div className="hidden sm:block absolute right-0 top-full mt-2 w-[580px] bg-white border border-gray-100 rounded-2xl shadow-2xl z-[300] overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
               <div className="flex h-[580px]">
                 {/* Sidebar */}
@@ -1256,9 +1352,10 @@ export default function GoogleAdsPage() {
                 </div>
               </div>
             </div>
-          )}
+          }
         </div>
       </div>
+    </div>
 
       {/* Mobile date trigger */}
       <div className="sm:hidden flex items-center justify-between mb-4">
