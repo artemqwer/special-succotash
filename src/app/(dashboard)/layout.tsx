@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { getSession, clearSession, type Session } from "@/lib/auth";
 
-const PLATFORM_META: Record<string, { icon: React.ReactNode; name: string; date: string }> = {
+const PLATFORM_META: Record<string, { icon: React.ReactNode; name: string; defaultDate: string }> = {
   "/google-ads": {
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -13,14 +13,18 @@ const PLATFORM_META: Record<string, { icon: React.ReactNode; name: string; date:
       </svg>
     ),
     name: "Google Ads",
-    date: "Mar 31 – Apr 13, 2026",
+    defaultDate: "Mar 31 – Apr 13, 2026",
   },
 };
+
+const fmtTs = (ts: number) =>
+  new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
+  const [headerDate, setHeaderDate] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -33,6 +37,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setChecking(false);
     }
   }, [router]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { start, end } = (e as CustomEvent<{ start: number; end: number }>).detail;
+      setHeaderDate(`${fmtTs(start)} – ${fmtTs(end)}`);
+    };
+    window.addEventListener("date-range-changed", handler);
+    return () => window.removeEventListener("date-range-changed", handler);
+  }, []);
 
   const handleLogout = () => {
     clearSession();
@@ -48,6 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const platform = pathname ? PLATFORM_META[pathname] : null;
+  const displayDate = headerDate ?? platform?.defaultDate ?? "";
 
   return (
     <div className="bg-[#f4f6fb]">
@@ -89,12 +103,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </div>
           {platform && (
-            <div 
+            <div
               onClick={() => window.dispatchEvent(new CustomEvent("open-date-picker"))}
               className="flex items-center gap-1.5 text-[12px] text-gray-600 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 cursor-pointer active:bg-gray-50 transition-colors"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              <span className="truncate max-w-[120px]">{platform.date}</span>
+              <span className="truncate max-w-32.5">{displayDate}</span>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
           )}

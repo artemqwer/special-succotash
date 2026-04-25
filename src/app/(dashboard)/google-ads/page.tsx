@@ -945,6 +945,12 @@ export default function GoogleAdsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("date-range-changed", {
+      detail: { start: rangeStart, end: rangeEnd }
+    }));
+  }, [rangeStart, rangeEnd]);
+
   const handleSort = (col: SortKey) => {
     setCheckedRows(new Set());
     setClickedRow(null);
@@ -1357,29 +1363,6 @@ export default function GoogleAdsPage() {
       </div>
     </div>
 
-      {/* Mobile date trigger */}
-      <div className="sm:hidden flex items-center justify-between mb-4">
-        <h1 className="text-[17px] font-bold text-gray-900">Google Ads</h1>
-        <button
-          onClick={() => {
-            if (!datePickerOpen) {
-              setPickerTempStart(rangeStart);
-              setPickerTempEnd(rangeEnd);
-              setPickerStep(0);
-              setPickerHover(null);
-              const d = new Date(rangeStart);
-              setPickerViewYear(d.getFullYear());
-              setPickerViewMonth(d.getMonth());
-            }
-            setDatePickerOpen(!datePickerOpen);
-          }}
-          className="flex items-center gap-1.5 text-[13px] text-gray-600 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          {fmtMs(rangeStart)} – {fmtMs(rangeEnd)}
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-      </div>
 
       {/* KPI cards */}
       {dynKpis && (
@@ -1430,13 +1413,13 @@ export default function GoogleAdsPage() {
             ))}
           </div>
           <div className="p-[2px] rounded-xl shrink-0 mb-1" style={{ background: "linear-gradient(135deg, #3b82f6, #a78bfa, #f472b6)" }}>
-            <button onClick={openAi} className="flex items-center gap-1.5 text-[14px] font-bold text-gray-800 bg-white hover:bg-gray-50/80 px-4 py-[6px] rounded-[10px] transition whitespace-nowrap">
+            <button onClick={openAi} className="flex items-center gap-1.5 text-[13px] sm:text-[14px] font-bold text-gray-800 bg-white hover:bg-gray-50/80 px-2.5 sm:px-4 py-[6px] rounded-[10px] transition whitespace-nowrap">
               <svg width="16" height="16" viewBox="0 0 24 24">
                 <defs><linearGradient id="ai-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#8b5cf6"/><stop offset="100%" stopColor="#ec4899"/></linearGradient></defs>
                 <path d="M12 1.5C12.5 7.5 16.5 11.5 22.5 12C16.5 12.5 12.5 16.5 12 22.5C11.5 16.5 7.5 12.5 1.5 12C7.5 11.5 11.5 7.5 12 1.5Z" fill="url(#ai-grad)"/>
                 <circle cx="18" cy="6" r="1.5" fill="url(#ai-grad)" />
               </svg>
-              AI Assistant
+              AI<span className="hidden sm:inline"> Assistant</span>
             </button>
           </div>
         </div>
