@@ -720,6 +720,8 @@ export default function GoogleAdsPage() {
     setPickerViewMonth(d.getMonth());
     setDatePickerOpen(true);
   };
+  const openDatePickerRef = useRef(openDatePicker);
+  useEffect(() => { openDatePickerRef.current = openDatePicker; });
   const [pickerTempStart, setPickerTempStart] = useState<number | null>(null);
   const [pickerTempEnd, setPickerTempEnd] = useState<number | null>(null);
   const [pickerHover, setPickerHover] = useState<number | null>(null);
@@ -769,23 +771,29 @@ export default function GoogleAdsPage() {
         const end = new Date(rangeEnd).toISOString().split('T')[0];
 
         const campData = await fetchWindsorData(windsorApiKey, start, end, 'campaign');
-        const mappedRows = campData.map(d => ({
-          status: "green",
-          name: d.campaign || "Unknown",
-          type: "Search",
-          roas: d.spend > 0 ? `${((d.conversion_value / d.spend) * 100).toFixed(0)}%` : "0%",
-          impr: Number(d.impressions) || 0,
-          clicks: Number(d.clicks) || 0,
-          cpc: d.clicks > 0 ? Number(d.spend) / Number(d.clicks) : 0,
-          ctr: d.impressions > 0 ? (Number(d.clicks) / Number(d.impressions)) * 100 : 0,
-          convRate: d.clicks > 0 ? (Number(d.conversions) / Number(d.clicks)) * 100 : 0,
-          conv: Number(d.conversions) || 0,
-          cpa: d.conversions > 0 ? Number(d.spend) / Number(d.conversions) : 0,
-          revenue: Number(d.conversion_value) || 0,
-          cost: Number(d.spend) || 0,
-          profit: (Number(d.conversion_value) || 0) - (Number(d.spend) || 0),
-          roasVal: d.spend > 0 ? (Number(d.conversion_value) / Number(d.spend)) * 100 : 0
-        }));
+        const mappedRows = campData.map(d => {
+          const roasNum = d.spend > 0 ? (Number(d.conversion_value) / Number(d.spend)) * 100 : 0;
+          const revenue = Number(d.conversion_value) || 0;
+          const cost = Number(d.spend) || 0;
+          return {
+            status: cost > 0 ? "green" : "gray",
+            name: d.campaign || "Unknown",
+            type: "Search",
+            roas: d.spend > 0 ? `${roasNum.toFixed(0)}%` : "null",
+            roasColor: d.spend === 0 ? "gray" : roasNum >= 150 ? "green" : roasNum >= 100 ? "orange" : "red",
+            impr: Number(d.impressions) || 0,
+            clicks: Number(d.clicks) || 0,
+            cpc: d.clicks > 0 ? cost / Number(d.clicks) : 0,
+            ctr: d.impressions > 0 ? (Number(d.clicks) / Number(d.impressions)) * 100 : 0,
+            convRate: d.clicks > 0 ? (Number(d.conversions) / Number(d.clicks)) * 100 : 0,
+            conv: Number(d.conversions) || 0,
+            cpa: d.conversions > 0 ? cost / Number(d.conversions) : 0,
+            revenue,
+            cost,
+            profit: revenue - cost,
+            roasVal: roasNum,
+          };
+        });
         setRealCampaignRows(mappedRows);
 
         const dailyData = await fetchWindsorData(windsorApiKey, start, end, 'date,campaign');
@@ -809,7 +817,6 @@ export default function GoogleAdsPage() {
     return () => clearTimeout(timer);
   }, [windsorApiKey, rangeStart, rangeEnd]);
   const [daysUpToYesterday, setDaysUpToYesterday] = useState<number | string>(30);
-  const totalPages = Math.ceil(45 / rowsPerPage);
   
   const handlePresetClick = (label: string) => {
     const today = new Date(END_MS);
@@ -936,7 +943,7 @@ export default function GoogleAdsPage() {
     check();
     window.addEventListener("resize", check);
 
-    const handleOpen = () => openDatePicker();
+    const handleOpen = () => openDatePickerRef.current();
     window.addEventListener("open-date-picker", handleOpen);
 
     return () => {
@@ -979,7 +986,11 @@ export default function GoogleAdsPage() {
       });
     }
     return rows;
-  }, [typeFilter, selectedCampaigns, sortCol, sortDir]);
+  }, [typeFilter, selectedCampaigns, sortCol, sortDir, realCampaignRows]);
+
+  const totalPages = Math.ceil(filtered.length / rowsPerPage);
+
+  useEffect(() => { setPage(1); }, [filtered, rowsPerPage]);
 
   const rowTypeFilter = useMemo(() => {
     const selTypes = new Set<string>();
@@ -1110,16 +1121,16 @@ export default function GoogleAdsPage() {
     const selCost   = selectedRows.reduce((s, r) => s + r.cost, 0);
     const selRev    = selectedRows.reduce((s, r) => s + r.revenue, 0);
     const selProfit = selectedRows.reduce((s, r) => s + r.profit, 0);
-    const totClicks = campaignRows.reduce((s, r) => s + r.clicks, 0);
-    const totConv   = campaignRows.reduce((s, r) => s + r.conv, 0);
-    const totCost   = campaignRows.reduce((s, r) => s + r.cost, 0);
-    const totRev    = campaignRows.reduce((s, r) => s + r.revenue, 0);
+    const totClicks = currentRows.reduce((s, r) => s + r.clicks, 0);
+    const totConv   = currentRows.reduce((s, r) => s + r.conv, 0);
+    const totCost   = currentRows.reduce((s, r) => s + r.cost, 0);
+    const totRev    = currentRows.reduce((s, r) => s + r.revenue, 0);
     const convRate  = selClicks > 0 ? selConv / selClicks * 100 : 0;
     const cpa       = selConv  > 0 ? selCost / selConv : 0;
     const roas      = selCost  > 0 ? selRev  / selCost : 0;
     const fmtPct = (a: number, b: number) => b > 0 ? `${((a / b) * 100).toFixed(1)}% of total` : "—";
     return [
-      { value: selClicks >= 1000 ? `${(selClicks/1000).toFixed(2)}K` : String(selClicks), delta: fmtPct(selClicks, totClicks), up: selClicks >= totClicks / campaignRows.length },
+      { value: selClicks >= 1000 ? `${(selClicks/1000).toFixed(2)}K` : String(selClicks), delta: fmtPct(selClicks, totClicks), up: selClicks >= totClicks / currentRows.length },
       { value: `${convRate.toFixed(2)}%`,  delta: convRate > 2.47 ? "▲ above avg" : "▼ below avg", up: convRate >= 2.47 },
       { value: selConv >= 1000 ? `${(selConv/1000).toFixed(2)}K` : String(selConv), delta: fmtPct(selConv, totConv), up: true },
       { value: `${cpa.toFixed(2)}`,        delta: cpa < 20.42 ? "▲ below avg CPA" : "▼ above avg CPA", up: cpa <= 20.42 },
@@ -1128,18 +1139,33 @@ export default function GoogleAdsPage() {
       { value: `${roas.toFixed(2)}x`,      delta: roas > 1.76 ? "▲ above avg" : "▼ below avg", up: roas >= 1.76 },
       { value: selProfit >= 0 ? (selProfit >= 1000 ? `${(selProfit/1000).toFixed(2)}K` : selProfit.toFixed(0)) : `-${(Math.abs(selProfit)/1000).toFixed(2)}K`, delta: selProfit >= 0 ? "Profitable" : "Loss", up: selProfit >= 0 },
     ];
-  }, [selectedRows]);
+  }, [selectedRows, currentRows]);
 
   // Compute min/max for heatmap columns
   const heatCols = useMemo(() => {
     const keys = ["impr","clicks","cpc","ctr","convRate","conv","cpa","revenue","cost","profit"] as const;
     const result = {} as Record<typeof keys[number], { min: number; max: number }>;
     keys.forEach((k) => {
-      const vals = campaignRows.map((r) => r[k] as number);
+      const vals = currentRows.map((r) => r[k] as number);
       result[k] = { min: Math.min(...vals), max: Math.max(...vals) };
     });
     return result;
-  }, []);
+  }, [currentRows]);
+
+  const tableTotals = useMemo(() => {
+    const rows = filtered;
+    const totImpr     = rows.reduce((s, r) => s + r.impr, 0);
+    const totClicks   = rows.reduce((s, r) => s + r.clicks, 0);
+    const totConv     = rows.reduce((s, r) => s + r.conv, 0);
+    const totCost     = rows.reduce((s, r) => s + r.cost, 0);
+    const totRev      = rows.reduce((s, r) => s + r.revenue, 0);
+    const totProfit   = rows.reduce((s, r) => s + r.profit, 0);
+    const avgCpc      = totClicks > 0 ? totCost / totClicks : 0;
+    const avgCtr      = totImpr > 0 ? (totClicks / totImpr) * 100 : 0;
+    const avgConvRate = totClicks > 0 ? (totConv / totClicks) * 100 : 0;
+    const avgCpa      = totConv > 0 ? totCost / totConv : 0;
+    return { totImpr, totClicks, totConv, totCost, totRev, totProfit, avgCpc, avgCtr, avgConvRate, avgCpa };
+  }, [filtered]);
 
   const cellStyle = (col: keyof typeof heatCols, value: number, color: "blue" | "green" | "red") => ({
     backgroundColor: heatmapBg(value, heatCols[col].min, heatCols[col].max, color),
@@ -1817,7 +1843,7 @@ export default function GoogleAdsPage() {
         <div className="px-4 sm:px-5 py-4 flex items-start justify-between flex-wrap gap-2 sm:gap-3 border-b border-gray-100">
           <div className="min-w-0">
             <h2 className="text-[15px] sm:text-[17px] font-bold text-gray-900">Campaign Performance</h2>
-            <p className="text-[13px] text-gray-400 mt-0.5 hidden sm:block">Detailed analytics for 45 campaigns • Mar 31, 2026 – Apr 13, 2026</p>
+            <p className="text-[13px] text-gray-400 mt-0.5 hidden sm:block">Detailed analytics for {currentRows.length} campaigns • {fmtMs(rangeStart)} – {fmtMs(rangeEnd)}</p>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap w-full sm:w-auto">
             <span className="text-[13px] text-gray-500 hidden sm:inline">Filters:</span>
@@ -1861,15 +1887,15 @@ export default function GoogleAdsPage() {
                     <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox"
-                          checked={selectedCampaigns.size === campaignRows.length}
+                          checked={selectedCampaigns.size === currentRows.length && currentRows.length > 0}
                           onChange={() => {
-                            if (selectedCampaigns.size === campaignRows.length) setSelectedCampaigns(new Set());
-                            else setSelectedCampaigns(new Set(campaignRows.map((r) => r.name)));
+                            if (selectedCampaigns.size === currentRows.length) setSelectedCampaigns(new Set());
+                            else setSelectedCampaigns(new Set(currentRows.map((r) => r.name)));
                           }}
                           className="rounded"
                         />
                         <span className="text-[11px] text-gray-500">
-                          {selectedCampaigns.size === 0 ? "Select All" : `${selectedCampaigns.size} of 45 selected`}
+                          {selectedCampaigns.size === 0 ? "Select All" : `${selectedCampaigns.size} of ${currentRows.length} selected`}
                         </span>
                       </label>
                       {selectedCampaigns.size > 0 && (
@@ -1877,7 +1903,7 @@ export default function GoogleAdsPage() {
                       )}
                     </div>
                     <div className="max-h-[200px] overflow-y-auto py-1">
-                      {campaignRows
+                      {currentRows
                         .filter((r) => r.name.toLowerCase().includes(campaignSearch.toLowerCase()))
                         .map((r) => (
                           <label key={r.name} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer">
@@ -1955,7 +1981,9 @@ export default function GoogleAdsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((row, i) => (
+              {filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage).map((row, pageI) => {
+                const i = (page - 1) * rowsPerPage + pageI;
+                return (
                 <tr key={i}
                   onClick={() => {
                     setCheckedRows(new Set());
@@ -2007,7 +2035,7 @@ export default function GoogleAdsPage() {
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("cost", row.cost, "green")}>${fmtK(row.cost)}</td>
                   <td className={`px-2.5 py-2.5 text-right tabular-nums ${row.profit < 0 ? "text-red-600" : "text-green-700"}`}
                     style={cellStyle("profit", Math.abs(row.profit), row.profit < 0 ? "red" : "green")}>
-                    {row.profit < 0 ? "-" : ""}{Math.abs(row.profit).toFixed(2)}K
+                    {row.profit < 0 ? "-$" : "$"}{Math.abs(row.profit).toFixed(2)}K
                   </td>
                   <td className="px-2.5 py-2.5 text-right tabular-nums"
                     style={{ backgroundColor: row.roasColor === "green" ? "#DCFCE7" : row.roasColor === "red" ? "#FEE2E2" : row.roasColor === "orange" ? "#FFEDD5" : "transparent" }}>
@@ -2016,26 +2044,29 @@ export default function GoogleAdsPage() {
                     </span>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
             <tfoot>
               <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold text-gray-800 text-[13px]">
                 <td className="px-3 py-3 sticky left-0 z-10 bg-gray-50" />
                 <td className="px-2 py-3 sticky left-10 z-10 bg-gray-50 hidden sm:table-cell" />
                 <td className="px-2.5 py-3 sticky left-10 sm:left-24 z-10 bg-gray-50 whitespace-nowrap overflow-hidden after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200" style={{ maxWidth: 160 }}>
-                  Total <span className="text-gray-400 font-normal text-[11px]">(45)</span>
+                  Total <span className="text-gray-400 font-normal text-[11px]">({filtered.length})</span>
                 </td>
                 <td className="px-2.5 py-3 hidden sm:table-cell" />
-                <td className="px-2.5 py-3 text-right tabular-nums">10,073,857</td>
-                <td className="px-2.5 py-3 text-right tabular-nums">115,078</td>
-                <td className="px-2.5 py-3 text-right tabular-nums">$3.82</td>
-                <td className="px-2.5 py-3 text-right tabular-nums">1.14%</td>
-                <td className="px-2.5 py-3 text-right tabular-nums">0.58%</td>
-                <td className="px-2.5 py-3 text-right tabular-nums">3,190</td>
-                <td className="px-2.5 py-3 text-right tabular-nums">137.6</td>
-                <td className="px-2.5 py-3 text-right tabular-nums">$670.34K</td>
-                <td className="px-2.5 py-3 text-right tabular-nums">$439.18K</td>
-                <td className="px-2.5 py-3 text-right tabular-nums text-red-600">-231.17K</td>
+                <td className="px-2.5 py-3 text-right tabular-nums">{fmtNum(tableTotals.totImpr)}</td>
+                <td className="px-2.5 py-3 text-right tabular-nums">{fmtNum(tableTotals.totClicks)}</td>
+                <td className="px-2.5 py-3 text-right tabular-nums">{fmtCurrency(tableTotals.avgCpc)}</td>
+                <td className="px-2.5 py-3 text-right tabular-nums">{fmtPct(tableTotals.avgCtr)}</td>
+                <td className="px-2.5 py-3 text-right tabular-nums">{fmtPct(tableTotals.avgConvRate)}</td>
+                <td className="px-2.5 py-3 text-right tabular-nums">{fmtNum(tableTotals.totConv)}</td>
+                <td className="px-2.5 py-3 text-right tabular-nums">{tableTotals.avgCpa.toFixed(1)}</td>
+                <td className="px-2.5 py-3 text-right tabular-nums">${fmtK(tableTotals.totRev)}</td>
+                <td className="px-2.5 py-3 text-right tabular-nums">${fmtK(tableTotals.totCost)}</td>
+                <td className={`px-2.5 py-3 text-right tabular-nums ${tableTotals.totProfit < 0 ? "text-red-600" : "text-green-700"}`}>
+                  {tableTotals.totProfit < 0 ? "-$" : "$"}{Math.abs(tableTotals.totProfit).toFixed(2)}K
+                </td>
                 <td className="px-2.5 py-3" />
               </tr>
             </tfoot>
@@ -2045,8 +2076,8 @@ export default function GoogleAdsPage() {
         {/* Pagination */}
         <div className="px-4 sm:px-5 py-3 flex items-center justify-between flex-wrap gap-2 border-t border-gray-100">
           <p className="text-[13px] text-gray-500">
-            <span className="hidden sm:inline">Showing {(page - 1) * rowsPerPage + 1} to {Math.min(page * rowsPerPage, 45)} of 45 campaigns</span>
-            <span className="sm:hidden">{(page - 1) * rowsPerPage + 1}–{Math.min(page * rowsPerPage, 45)} / 45</span>
+            <span className="hidden sm:inline">Showing {(page - 1) * rowsPerPage + 1} to {Math.min(page * rowsPerPage, filtered.length)} of {filtered.length} campaigns</span>
+            <span className="sm:hidden">{(page - 1) * rowsPerPage + 1}–{Math.min(page * rowsPerPage, filtered.length)} / {filtered.length}</span>
             <span className="mx-2 hidden sm:inline">|</span>
             <span className="hidden sm:inline">Rows per page:</span>
             <select
