@@ -1946,7 +1946,7 @@ export default function GoogleAdsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-[13px] border-collapse min-w-[1280px]">
+          <table className="w-full text-[13px] border-separate border-spacing-0 min-w-[1280px]">
             <colgroup>
               <col className="w-10" />
               <col className="w-14 hidden sm:table-column" />
@@ -2002,7 +2002,7 @@ export default function GoogleAdsPage() {
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="[&_td]:border-t [&_td]:border-gray-100">
               {filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage).map((row, pageI) => {
                 const i = (page - 1) * rowsPerPage + pageI;
                 return (
@@ -2011,7 +2011,7 @@ export default function GoogleAdsPage() {
                     setCheckedRows(new Set());
                     setClickedRow(clickedRow === i ? null : i);
                   }}
-                  className={`border-t border-gray-50 cursor-pointer transition group ${
+                  className={`cursor-pointer group ${
                     clickedRow === i ? "bg-blue-100/40" : checkedRows.has(i) ? "bg-blue-50/30" : "hover:bg-blue-50/20"
                   }`}>
                   <td className={`px-3 py-2.5 sticky left-0 z-10 will-change-transform ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}>
