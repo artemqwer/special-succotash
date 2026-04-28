@@ -731,6 +731,7 @@ export default function GoogleAdsPage() {
   const [pickerViewMonth, setPickerViewMonth] = useState(2);
   const [checkedRows, setCheckedRows] = useState<Set<number>>(new Set());
   const [clickedRow, setClickedRow] = useState<number | null>(null);
+  const [namesCollapsed, setNamesCollapsed] = useState(false);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
   const [granularity, setGranularity] = useState<"days" | "weeks" | "months">("days");
   const [granularityOpen, setGranularityOpen] = useState(false);
@@ -1974,9 +1975,27 @@ export default function GoogleAdsPage() {
                   ["Revenue","revenue","right"],["Cost","cost","right"],["Profit (ads)","profit","right"],["ROAS","roas","right"],
                 ] as [string, SortKey, "left" | "right"][]).map(([label, col, align]) => (
                   <th key={col} onClick={() => handleSort(col)}
-                    style={col === "name" ? { maxWidth: 160 } : undefined}
-                    className={`px-2.5 py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[12px]${col === "name" ? " sticky left-10 sm:left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 overflow-hidden" : ""}${col === "type" ? " hidden sm:table-cell" : ""}`}>
-                    {label}<SortIcon dir={sortCol === col ? sortDir : null} />
+                    style={col === "name" ? { maxWidth: namesCollapsed ? 28 : 160, minWidth: namesCollapsed ? 28 : undefined } : undefined}
+                    className={`py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[12px]${col === "name" ? ` sticky left-10 sm:left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 overflow-hidden${namesCollapsed ? " px-1 w-7" : " px-2.5"}` : " px-2.5"}${col === "type" ? " hidden sm:table-cell" : ""}`}>
+                    {col === "name" ? (
+                      namesCollapsed ? (
+                        <button onClick={(e) => { e.stopPropagation(); setNamesCollapsed(false); }}
+                          className="flex items-center justify-center w-full text-gray-400 hover:text-blue-500 transition">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          {label}
+                          <button onClick={(e) => { e.stopPropagation(); setNamesCollapsed(true); }}
+                            className="text-gray-300 hover:text-gray-500 transition ml-0.5">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                          </button>
+                          <SortIcon dir={sortCol === col ? sortDir : null} />
+                        </span>
+                      )
+                    ) : (
+                      <>{label}<SortIcon dir={sortCol === col ? sortDir : null} /></>
+                    )}
                   </th>
                 ))}
               </tr>
@@ -2007,20 +2026,22 @@ export default function GoogleAdsPage() {
                     <span className={`w-2 h-2 rounded-full inline-block ${row.status === "green" ? "bg-green-500" : "bg-gray-300"}`} />
                   </td>
                   <td
-                    className={`px-2.5 py-2.5 sticky left-10 sm:left-24 z-10 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 cursor-pointer ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}
-                    style={{ maxWidth: 160 }}
+                    className={`py-2.5 sticky left-10 sm:left-24 z-10 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 cursor-pointer ${namesCollapsed ? "px-1 w-7" : "px-2.5"} ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}
+                    style={{ maxWidth: namesCollapsed ? 28 : 160, minWidth: namesCollapsed ? 28 : undefined }}
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (namesCollapsed) { setNamesCollapsed(false); return; }
                       setExpandedNameIdx(expandedNameIdx === i ? null : i);
-                      // Also select the row
                       setCheckedRows(new Set());
                       setClickedRow(clickedRow === i ? null : i);
                     }}
-                    title={row.name}
+                    title={namesCollapsed ? undefined : row.name}
                   >
-                    <span className={`font-medium text-gray-800 text-[12px] hover:text-blue-600 transition block ${expandedNameIdx === i ? "whitespace-normal break-words" : "whitespace-nowrap overflow-hidden text-ellipsis"}`}>
-                      {row.name}
-                    </span>
+                    {namesCollapsed ? null : (
+                      <span className={`font-medium text-gray-800 text-[12px] hover:text-blue-600 transition block ${expandedNameIdx === i ? "whitespace-normal wrap-break-word" : "whitespace-nowrap overflow-hidden text-ellipsis"}`}>
+                        {row.name}
+                      </span>
+                    )}
                   </td>
                   <td className="px-2.5 py-2.5 hidden sm:table-cell">
                     <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-medium">{row.type}</span>
@@ -2052,8 +2073,9 @@ export default function GoogleAdsPage() {
               <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold text-gray-800 text-[13px]">
                 <td className="px-3 py-3 sticky left-0 z-10 bg-gray-50" />
                 <td className="px-2 py-3 sticky left-10 z-10 bg-gray-50 hidden sm:table-cell" />
-                <td className="px-2.5 py-3 sticky left-10 sm:left-24 z-10 bg-gray-50 whitespace-nowrap overflow-hidden after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200" style={{ maxWidth: 160 }}>
-                  Total <span className="text-gray-400 font-normal text-[11px]">({filtered.length})</span>
+                <td className={`py-3 sticky left-10 sm:left-24 z-10 bg-gray-50 whitespace-nowrap overflow-hidden after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 ${namesCollapsed ? "px-1 w-7" : "px-2.5"}`}
+                  style={{ maxWidth: namesCollapsed ? 28 : 160, minWidth: namesCollapsed ? 28 : undefined }}>
+                  {!namesCollapsed && <>Total <span className="text-gray-400 font-normal text-[11px]">({filtered.length})</span></>}
                 </td>
                 <td className="px-2.5 py-3 hidden sm:table-cell" />
                 <td className="px-2.5 py-3 text-right tabular-nums">{fmtNum(tableTotals.totImpr)}</td>
