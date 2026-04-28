@@ -1993,7 +1993,7 @@ export default function GoogleAdsPage() {
                   className={`border-t border-gray-50 cursor-pointer transition group ${
                     clickedRow === i ? "bg-blue-100/40" : checkedRows.has(i) ? "bg-blue-50/30" : "hover:bg-blue-50/20"
                   }`}>
-                  <td className={`px-3 py-2.5 sticky left-0 z-10 transition ${clickedRow === i ? "bg-blue-100/40" : checkedRows.has(i) ? "bg-blue-50/30" : "bg-white group-hover:bg-blue-50/20"}`}>
+                  <td className={`px-3 py-2.5 sticky left-0 z-10 transition ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}>
                     <input type="checkbox" className="rounded cursor-pointer"
                       checked={checkedRows.has(i)}
                       onChange={(e) => {
@@ -2003,11 +2003,11 @@ export default function GoogleAdsPage() {
                       }}
                     />
                   </td>
-                  <td className={`px-2 py-2.5 sticky left-10 z-10 transition hidden sm:table-cell ${clickedRow === i ? "bg-blue-100/40" : checkedRows.has(i) ? "bg-blue-50/30" : "bg-white group-hover:bg-blue-50/20"}`}>
+                  <td className={`px-2 py-2.5 sticky left-10 z-10 transition hidden sm:table-cell ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}>
                     <span className={`w-2 h-2 rounded-full inline-block ${row.status === "green" ? "bg-green-500" : "bg-gray-300"}`} />
                   </td>
                   <td
-                    className={`px-2.5 py-2.5 sticky left-10 sm:left-24 z-10 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 cursor-pointer ${clickedRow === i ? "bg-blue-100/40" : checkedRows.has(i) ? "bg-blue-50/30" : "bg-white group-hover:bg-blue-50/20"}`}
+                    className={`px-2.5 py-2.5 sticky left-10 sm:left-24 z-10 transition after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 cursor-pointer ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}
                     style={{ maxWidth: 160 }}
                     onClick={(e) => {
                       e.stopPropagation();
