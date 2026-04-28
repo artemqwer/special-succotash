@@ -1950,7 +1950,7 @@ export default function GoogleAdsPage() {
             <colgroup>
               <col className="w-10" />
               <col className="w-14 hidden sm:table-column" />
-              <col className="w-[160px]" />
+              <col style={{ width: namesCollapsed ? 0 : 160 }} />
               <col className="w-[90px] hidden sm:table-column" />
               <col /><col /><col /><col /><col /><col /><col /><col /><col /><col />
               <col className="w-[108px]" />
@@ -1969,8 +1969,8 @@ export default function GoogleAdsPage() {
                     />
                     {namesCollapsed && (
                       <button onClick={() => setNamesCollapsed(false)}
-                        className="text-gray-400 hover:text-blue-500 transition">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                        className="flex items-center justify-center w-6 h-6 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 transition shrink-0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                       </button>
                     )}
                   </div>
@@ -1989,7 +1989,7 @@ export default function GoogleAdsPage() {
                       <span className="flex items-center gap-1">
                         {label}
                         <button onClick={(e) => { e.stopPropagation(); setNamesCollapsed(true); }}
-                          className="text-gray-300 hover:text-gray-500 transition ml-0.5">
+                          className="flex items-center justify-center w-5 h-5 rounded bg-gray-100 text-gray-500 hover:bg-gray-200 transition ml-0.5 shrink-0">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                         </button>
                         <SortIcon dir={sortCol === col ? sortDir : null} />
