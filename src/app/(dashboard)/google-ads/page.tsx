@@ -1984,7 +1984,7 @@ export default function GoogleAdsPage() {
                 ] as [string, SortKey, "left" | "right"][]).map(([label, col, align]) => (
                   <th key={col} onClick={() => handleSort(col)}
                     style={col === "name" ? { maxWidth: namesCollapsed ? 0 : 160, width: namesCollapsed ? 0 : undefined, padding: namesCollapsed ? 0 : undefined } : undefined}
-                    className={`py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[12px]${col === "name" ? ` sticky left-10 sm:left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 overflow-hidden${namesCollapsed ? " !p-0 !w-0 !max-w-0" : " px-2.5"}` : " px-2.5"}${col === "type" ? " hidden sm:table-cell" : ""}`}>
+                    className={`py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[12px]${col === "name" ? ` sticky left-10 sm:left-24 z-20 bg-gray-50 border-r border-gray-200 overflow-hidden${namesCollapsed ? " !p-0 !w-0 !max-w-0 !border-r-0" : " px-2.5"}` : " px-2.5"}${col === "type" ? " hidden sm:table-cell" : ""}`}>
                     {col === "name" && !namesCollapsed ? (
                       <span className="flex items-center justify-between w-full">
                         <span className="flex items-center gap-0.5">
@@ -2028,7 +2028,7 @@ export default function GoogleAdsPage() {
                     <span className={`w-2 h-2 rounded-full inline-block ${row.status === "green" ? "bg-green-500" : "bg-gray-300"}`} />
                   </td>
                   <td
-                    className={`sticky left-10 sm:left-24 z-10 will-change-transform overflow-hidden after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 ${namesCollapsed ? "!p-0 !w-0 !max-w-0" : "px-2.5 py-2.5 cursor-pointer"} ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}
+                    className={`sticky left-10 sm:left-24 z-10 will-change-transform overflow-hidden border-r border-gray-100 ${namesCollapsed ? "!p-0 !w-0 !max-w-0 !border-r-0" : "px-2.5 py-2.5 cursor-pointer"} ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}
                     style={{ maxWidth: namesCollapsed ? 0 : 160, width: namesCollapsed ? 0 : undefined, padding: namesCollapsed ? 0 : undefined }}
                     onClick={namesCollapsed ? undefined : (e) => {
                       e.stopPropagation();
@@ -2074,7 +2074,7 @@ export default function GoogleAdsPage() {
               <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold text-gray-800 text-[13px]">
                 <td className="px-3 py-3 sticky left-0 z-10 bg-gray-50" />
                 <td className="px-2 py-3 sticky left-10 z-10 bg-gray-50 hidden sm:table-cell" />
-                <td className={`sticky left-10 sm:left-24 z-10 bg-gray-50 overflow-hidden after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 ${namesCollapsed ? "!p-0 !w-0 !max-w-0" : "px-2.5 py-3 whitespace-nowrap"}`}
+                <td className={`sticky left-10 sm:left-24 z-10 bg-gray-50 overflow-hidden border-r border-gray-200 ${namesCollapsed ? "!p-0 !w-0 !max-w-0 !border-r-0" : "px-2.5 py-3 whitespace-nowrap"}`}
                   style={{ maxWidth: namesCollapsed ? 0 : 160, width: namesCollapsed ? 0 : undefined, padding: namesCollapsed ? 0 : undefined }}>
                   {!namesCollapsed && <>Total <span className="text-gray-400 font-normal text-[11px]">({filtered.length})</span></>}
                 </td>
