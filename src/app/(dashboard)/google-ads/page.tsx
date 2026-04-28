@@ -767,8 +767,12 @@ export default function GoogleAdsPage() {
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [evtCategory, setEvtCategory] = useState<"Events" | "Ads" | "Website">("Events");
   const [evtType, setEvtType] = useState<string | null>(null);
-  const [evtStartDate, setEvtStartDate] = useState("2026-04-14");
-  const [evtEndDate, setEvtEndDate] = useState("");
+  const [evtDateStart, setEvtDateStart] = useState<number | null>(null);
+  const [evtDateEnd, setEvtDateEnd] = useState<number | null>(null);
+  const [evtDateStep, setEvtDateStep] = useState<0 | 1>(0);
+  const [evtDateHover, setEvtDateHover] = useState<number | null>(null);
+  const [evtViewMonth, setEvtViewMonth] = useState(3);
+  const [evtViewYear, setEvtViewYear] = useState(2026);
   const [evtTitle, setEvtTitle] = useState("");
   const [evtDesc, setEvtDesc] = useState("");
   const [compareEnabled, setCompareEnabled] = useState(false);
@@ -1838,7 +1842,7 @@ export default function GoogleAdsPage() {
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <button
-                onClick={() => { setAddEventOpen(true); setEvtCategory("Events"); setEvtType(null); setEvtStartDate("2026-04-14"); setEvtEndDate(""); setEvtTitle(""); setEvtDesc(""); }}
+                onClick={() => { setAddEventOpen(true); setEvtCategory("Events"); setEvtType(null); setEvtDateStart(null); setEvtDateEnd(null); setEvtDateStep(0); setEvtTitle(""); setEvtDesc(""); }}
                 className="text-[12px] border border-gray-200 rounded-lg px-2.5 py-1 hover:bg-gray-50 flex items-center gap-1 whitespace-nowrap"
               >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -2286,7 +2290,7 @@ export default function GoogleAdsPage() {
       {addEventOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 touch-none">
           <div className="absolute inset-0 bg-black/40 animate-in fade-in duration-200" onClick={() => setAddEventOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[480px] animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[480px] flex flex-col animate-in fade-in zoom-in-95 duration-200" style={{ maxHeight: "calc(100svh - 32px)" }}>
             {/* Header */}
             <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-gray-100">
               <div className="flex items-center gap-2.5">
@@ -2303,7 +2307,7 @@ export default function GoogleAdsPage() {
               </button>
             </div>
 
-            <div className="px-5 py-4 space-y-5">
+            <div className="px-5 py-4 space-y-5 overflow-y-auto flex-1">
               {/* Select Category */}
               <div>
                 <p className="text-[12px] font-semibold text-gray-700 mb-2">Select Category</p>
@@ -2347,18 +2351,72 @@ export default function GoogleAdsPage() {
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                   <p className="text-[12px] font-semibold text-gray-700">Date</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-[11px] text-gray-500 mb-1">Start Date</p>
-                    <input type="date" value={evtStartDate} onChange={(e) => setEvtStartDate(e.target.value)}
-                      className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-blue-400 bg-white" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-gray-500 mb-1">End Date <span className="text-gray-400">(Optional)</span></p>
-                    <input type="date" value={evtEndDate} onChange={(e) => setEvtEndDate(e.target.value)}
-                      className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-blue-400 bg-white" />
-                  </div>
+                {/* Date range display */}
+                <div className="flex items-center gap-2 mb-3">
+                  <button
+                    onClick={() => setEvtDateStep(0)}
+                    className={`flex-1 h-8 border rounded-lg px-2.5 flex items-center text-[12px] transition-colors ${evtDateStep === 0 ? "border-blue-400 bg-blue-50" : "border-gray-200"}`}
+                  >
+                    {evtDateStart
+                      ? <span className="text-gray-800">{new Date(evtDateStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                      : <span className="text-gray-300">Start date</span>}
+                  </button>
+                  <span className="text-gray-300 text-[12px]">→</span>
+                  <button
+                    onClick={() => evtDateStart && setEvtDateStep(1)}
+                    className={`flex-1 h-8 border rounded-lg px-2.5 flex items-center text-[12px] transition-colors ${evtDateStep === 1 ? "border-blue-400 bg-blue-50" : "border-gray-200"}`}
+                  >
+                    {evtDateEnd
+                      ? <span className="text-gray-800">{new Date(evtDateEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                      : <span className="text-gray-300">End date</span>}
+                  </button>
                 </div>
+                {/* Month navigation */}
+                <div className="flex items-center justify-between mb-1 px-1">
+                  <button
+                    onClick={() => {
+                      if (evtViewMonth === 0) { setEvtViewMonth(11); setEvtViewYear(evtViewYear - 1); }
+                      else setEvtViewMonth(evtViewMonth - 1);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 transition"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+                  </button>
+                  <span className="text-[12px] font-bold text-gray-600 uppercase tracking-wide">
+                    {["January","February","March","April","May","June","July","August","September","October","November","December"][evtViewMonth]} {evtViewYear}
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (evtViewMonth === 11) { setEvtViewMonth(0); setEvtViewYear(evtViewYear + 1); }
+                      else setEvtViewMonth(evtViewMonth + 1);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 transition"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                </div>
+                <CalMonth
+                  year={evtViewYear} month={evtViewMonth}
+                  tempStart={evtDateStart} tempEnd={evtDateEnd}
+                  hover={evtDateHover} step={evtDateStep}
+                  maxMs={Date.UTC(2030, 11, 31)}
+                  onDayClick={(ts) => {
+                    if (evtDateStep === 0) {
+                      setEvtDateStart(ts);
+                      setEvtDateEnd(null);
+                      setEvtDateStep(1);
+                    } else {
+                      if (evtDateStart !== null && ts < evtDateStart) {
+                        setEvtDateEnd(evtDateStart);
+                        setEvtDateStart(ts);
+                      } else {
+                        setEvtDateEnd(ts);
+                      }
+                      setEvtDateStep(0);
+                    }
+                  }}
+                  onDayHover={setEvtDateHover}
+                />
                 <p className="text-[11px] text-gray-400 mt-1.5">Leave end date empty for single-day event</p>
               </div>
 
