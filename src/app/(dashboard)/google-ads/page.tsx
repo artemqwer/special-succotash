@@ -1445,7 +1445,7 @@ export default function GoogleAdsPage() {
                 <path d="M12 1.5C12.5 7.5 16.5 11.5 22.5 12C16.5 12.5 12.5 16.5 12 22.5C11.5 16.5 7.5 12.5 1.5 12C7.5 11.5 11.5 7.5 12 1.5Z" fill="url(#ai-grad)"/>
                 <circle cx="18" cy="6" r="1.5" fill="url(#ai-grad)" />
               </svg>
-              AI<span className="hidden sm:inline"> Assistant</span>
+              AI Assistant
             </button>
           </div>
         </div>
