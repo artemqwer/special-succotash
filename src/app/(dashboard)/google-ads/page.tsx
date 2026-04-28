@@ -2283,9 +2283,9 @@ export default function GoogleAdsPage() {
 
       {/* ── Add Custom Event Modal ── */}
       {addEventOpen && (
-        <div className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center sm:p-4 touch-none">
-          <div className="absolute inset-0 bg-black/50 animate-in fade-in duration-200" onClick={() => setAddEventOpen(false)} />
-          <div className="relative bg-white w-full sm:max-w-[480px] sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-y-auto overscroll-contain touch-auto animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300" style={{ maxHeight: "calc(100dvh - 48px)", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 touch-none">
+          <div className="absolute inset-0 bg-black/40 animate-in fade-in duration-200" onClick={() => setAddEventOpen(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[480px] overflow-y-auto overscroll-contain touch-auto animate-in fade-in zoom-in-95 duration-200" style={{ maxHeight: "min(90dvh, 90vh)", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
             {/* Header */}
             <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-gray-100">
               <div className="flex items-center gap-2.5">
