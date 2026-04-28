@@ -38,28 +38,28 @@ const sparkData = (up: boolean, seed = 1) =>
   }));
 
 const kpis = [
-  { label: "Clicks", icon: I.click, value: "1.40K", delta: "+8.3%", up: true,
+  { label: "Clicks", shortLabel: "Clicks", icon: I.click, value: "1.40K", delta: "+8.3%", up: true,
     desc: "Total ad clicks in the selected period",
     hoverFmt: (v: number) => `${(v * 0.0083 + 0.95).toFixed(2)}K` },
-  { label: "Conv. Rate", icon: I.percent, value: "2.47%", delta: "-1.8%", up: false,
+  { label: "Conv. Rate", shortLabel: "CVR", icon: I.percent, value: "2.47%", delta: "-1.8%", up: false,
     desc: "% of clicks that result in a conversion",
     hoverFmt: (v: number) => `${(v * 0.032).toFixed(2)}%` },
-  { label: "Orders", icon: I.cart, value: "34.63K", delta: "+15.7%", up: true,
+  { label: "Orders", shortLabel: "Orders", icon: I.cart, value: "34.63K", delta: "+15.7%", up: true,
     desc: "Total completed orders attributed to ads",
     hoverFmt: (v: number) => `${(v * 0.12 + 27).toFixed(2)}K` },
-  { label: "CPA ($)", icon: I.target, value: "20.42", delta: "-8.2%", up: false,
+  { label: "CPA ($)", shortLabel: "CPA", icon: I.target, value: "20.42", delta: "-8.2%", up: false,
     desc: "Average cost per conversion/acquisition",
     hoverFmt: (v: number) => `$${(63 - v * 0.69).toFixed(2)}` },
-  { label: "Cost ($)", icon: I.dollar, value: "701.18K", delta: "+6.4%", up: true,
+  { label: "Cost ($)", shortLabel: "Cost", icon: I.dollar, value: "701.18K", delta: "+6.4%", up: true,
     desc: "Total advertising spend in the period",
     hoverFmt: (v: number) => `$${(v * 2 + 590).toFixed(0)}K` },
-  { label: "Revenue", icon: I.trending, value: "1.25K", delta: "+18.2%", up: true,
+  { label: "Revenue", shortLabel: "Revenue", icon: I.trending, value: "1.25K", delta: "+18.2%", up: true,
     desc: "Total revenue generated from ad-driven sales",
     hoverFmt: (v: number) => `${(v * 0.006 + 0.92).toFixed(2)}K` },
-  { label: "ROAS", icon: I.refresh, value: "1.76", delta: "-12.1%", up: false,
+  { label: "ROAS", shortLabel: "ROAS", icon: I.refresh, value: "1.76", delta: "-12.1%", up: false,
     desc: "Return on ad spend — revenue divided by cost",
     hoverFmt: (v: number) => `${(2.3 - v * 0.012).toFixed(2)}x` },
-  { label: "Ad Profit ($)", icon: I.profit, value: "538.48K", delta: "+22.8%", up: true,
+  { label: "Ad Profit ($)", shortLabel: "Profit", icon: I.profit, value: "538.48K", delta: "+22.8%", up: true,
     desc: "Revenue minus total advertising costs",
     hoverFmt: (v: number) => `$${(v * 1.9 + 413).toFixed(0)}K` },
 ];
@@ -417,8 +417,8 @@ function CalMonth({ year, month, tempStart, tempEnd, hover, step, maxMs, onDayCl
   );
 }
 
-function KpiCard({ label, icon, value, delta, up, spark, desc, hoverFmt }: {
-  label: string; icon: React.ReactNode; value: string; delta: string; up: boolean;
+function KpiCard({ label, shortLabel, icon, value, delta, up, spark, desc, hoverFmt }: {
+  label: string; shortLabel?: string; icon: React.ReactNode; value: string; delta: string; up: boolean;
   spark: { v: number; date: string }[]; desc: string; hoverFmt: (v: number) => string;
 }) {
   const color = up ? "#22C55E" : "#EF4444";
@@ -429,7 +429,8 @@ function KpiCard({ label, icon, value, delta, up, spark, desc, hoverFmt }: {
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1 min-w-0">
           <span className={`shrink-0 ${up ? "text-green-500" : "text-red-400"}`}>{icon}</span>
-          <span className="text-[10px] sm:text-[13px] text-gray-500 truncate">{label}</span>
+          <span className="sm:hidden text-[10px] text-gray-500 truncate">{shortLabel ?? label}</span>
+          <span className="hidden sm:inline text-[13px] text-gray-500 truncate">{label}</span>
         </div>
         <div className="relative group shrink-0 ml-1">
           <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border border-gray-200 flex items-center justify-center text-[7px] sm:text-[8px] text-gray-400 cursor-help select-none">i</span>
@@ -1402,7 +1403,7 @@ export default function GoogleAdsPage() {
         {kpis.map((k, i) => {
           const dyn = dynKpis?.[i];
           return (
-            <KpiCard key={k.label} label={k.label} icon={k.icon}
+            <KpiCard key={k.label} label={k.label} shortLabel={k.shortLabel} icon={k.icon}
               value={dyn?.value ?? k.value}
               delta={dyn?.delta ?? k.delta}
               up={dyn?.up ?? k.up}
