@@ -440,9 +440,9 @@ function KpiCard({ label, shortLabel, icon, value, delta, up, spark, desc, hover
         </div>
       </div>
       <div className="mb-1.5">
-        <div className="flex items-baseline gap-1 sm:gap-1.5">
-          <span className="text-[15px] sm:text-[22px] font-bold text-gray-900 leading-none">{value}</span>
-          <span className={`text-[10px] sm:text-[13px] font-semibold shrink-0 ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
+        <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-1.5">
+          <span className="text-[15px] sm:text-[22px] font-bold text-gray-900 leading-tight">{value}</span>
+          <span className={`text-[10px] sm:text-[13px] font-semibold leading-tight ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
         </div>
       </div>
       <div className="h-[62px] sm:h-[68px] -mx-2 sm:-mx-4">
