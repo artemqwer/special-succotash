@@ -1946,7 +1946,7 @@ export default function GoogleAdsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-[13px] border-separate border-spacing-0 min-w-[1280px]">
+          <table className="w-full text-[13px] border-collapse min-w-[1280px]">
             <colgroup>
               <col className="w-10" />
               <col className="w-14 hidden sm:table-column" />
@@ -1984,7 +1984,7 @@ export default function GoogleAdsPage() {
                 ] as [string, SortKey, "left" | "right"][]).map(([label, col, align]) => (
                   <th key={col} onClick={() => handleSort(col)}
                     style={col === "name" ? { maxWidth: namesCollapsed ? 0 : 160, width: namesCollapsed ? 0 : undefined, padding: namesCollapsed ? 0 : undefined } : undefined}
-                    className={`py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[12px]${col === "name" ? ` sticky left-10 sm:left-24 z-20 bg-gray-50 border-r border-gray-200 overflow-hidden${namesCollapsed ? " !p-0 !w-0 !max-w-0 !border-r-0" : " px-2.5"}` : " px-2.5"}${col === "type" ? " hidden sm:table-cell" : ""}`}>
+                    className={`py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[12px]${col === "name" ? ` sticky left-10 sm:left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 overflow-hidden${namesCollapsed ? " !p-0 !w-0 !max-w-0" : " px-2.5"}` : " px-2.5"}${col === "type" ? " hidden sm:table-cell" : ""}`}>
                     {col === "name" && !namesCollapsed ? (
                       <span className="flex items-center justify-between w-full">
                         <span className="flex items-center gap-0.5">
@@ -2002,7 +2002,7 @@ export default function GoogleAdsPage() {
                 ))}
               </tr>
             </thead>
-            <tbody className="[&_td]:border-t [&_td]:border-gray-100">
+            <tbody>
               {filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage).map((row, pageI) => {
                 const i = (page - 1) * rowsPerPage + pageI;
                 return (
@@ -2011,10 +2011,10 @@ export default function GoogleAdsPage() {
                     setCheckedRows(new Set());
                     setClickedRow(clickedRow === i ? null : i);
                   }}
-                  className={`cursor-pointer group ${
+                  className={`border-t border-gray-100 cursor-pointer group ${
                     clickedRow === i ? "bg-blue-100/40" : checkedRows.has(i) ? "bg-blue-50/30" : "hover:bg-blue-50/20"
                   }`}>
-                  <td className={`px-3 py-2.5 sticky left-0 z-10 will-change-transform ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}>
+                  <td className={`px-3 py-2.5 sticky left-0 z-10 isolate ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}>
                     <input type="checkbox" className="rounded cursor-pointer"
                       checked={checkedRows.has(i)}
                       onChange={(e) => {
@@ -2024,11 +2024,11 @@ export default function GoogleAdsPage() {
                       }}
                     />
                   </td>
-                  <td className={`px-2 py-2.5 sticky left-10 z-10 will-change-transform hidden sm:table-cell ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}>
+                  <td className={`px-2 py-2.5 sticky left-10 z-10 isolate hidden sm:table-cell ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}>
                     <span className={`w-2 h-2 rounded-full inline-block ${row.status === "green" ? "bg-green-500" : "bg-gray-300"}`} />
                   </td>
                   <td
-                    className={`sticky left-10 sm:left-24 z-10 will-change-transform overflow-hidden border-r border-gray-100 ${namesCollapsed ? "!p-0 !w-0 !max-w-0 !border-r-0" : "px-2.5 py-2.5 cursor-pointer"} ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}
+                    className={`sticky left-10 sm:left-24 z-10 isolate overflow-hidden after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 ${namesCollapsed ? "!p-0 !w-0 !max-w-0" : "px-2.5 py-2.5 cursor-pointer"} ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}
                     style={{ maxWidth: namesCollapsed ? 0 : 160, width: namesCollapsed ? 0 : undefined, padding: namesCollapsed ? 0 : undefined }}
                     onClick={namesCollapsed ? undefined : (e) => {
                       e.stopPropagation();
@@ -2074,7 +2074,7 @@ export default function GoogleAdsPage() {
               <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold text-gray-800 text-[13px]">
                 <td className="px-3 py-3 sticky left-0 z-10 bg-gray-50" />
                 <td className="px-2 py-3 sticky left-10 z-10 bg-gray-50 hidden sm:table-cell" />
-                <td className={`sticky left-10 sm:left-24 z-10 bg-gray-50 overflow-hidden border-r border-gray-200 ${namesCollapsed ? "!p-0 !w-0 !max-w-0 !border-r-0" : "px-2.5 py-3 whitespace-nowrap"}`}
+                <td className={`sticky left-10 sm:left-24 z-10 bg-gray-50 overflow-hidden after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 ${namesCollapsed ? "!p-0 !w-0 !max-w-0" : "px-2.5 py-3 whitespace-nowrap"}`}
                   style={{ maxWidth: namesCollapsed ? 0 : 160, width: namesCollapsed ? 0 : undefined, padding: namesCollapsed ? 0 : undefined }}>
                   {!namesCollapsed && <>Total <span className="text-gray-400 font-normal text-[11px]">({filtered.length})</span></>}
                 </td>
