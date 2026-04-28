@@ -764,7 +764,6 @@ export default function GoogleAdsPage() {
   const [aiMsgs, setAiMsgs] = useState<AiMessage[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const aiScrollRef = useRef<HTMLDivElement>(null);
-  const addEventModalRef = useRef<HTMLDivElement>(null);
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [evtCategory, setEvtCategory] = useState<"Events" | "Ads" | "Website">("Events");
   const [evtType, setEvtType] = useState<string | null>(null);
@@ -965,16 +964,6 @@ export default function GoogleAdsPage() {
     };
   }, [addEventOpen, aiOpen]);
 
-  // iOS: block touchmove on backdrop, allow it only inside modal content (non-passive)
-  useEffect(() => {
-    if (!addEventOpen) return;
-    const handler = (e: TouchEvent) => {
-      if (addEventModalRef.current && addEventModalRef.current.contains(e.target as Node)) return;
-      e.preventDefault();
-    };
-    document.addEventListener("touchmove", handler, { passive: false });
-    return () => document.removeEventListener("touchmove", handler);
-  }, [addEventOpen]);
 
   const toggleSeries = (name: string) => {
     setHiddenSeries((prev) => {
@@ -2297,7 +2286,7 @@ export default function GoogleAdsPage() {
       {addEventOpen && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 touch-none">
           <div className="absolute inset-0 bg-black/40 animate-in fade-in duration-200" onClick={() => setAddEventOpen(false)} />
-          <div ref={addEventModalRef} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[480px] overflow-y-auto animate-in fade-in zoom-in-95 duration-200" style={{ maxHeight: "min(90dvh, 90vh)", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" } as React.CSSProperties}>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[480px] animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-gray-100">
               <div className="flex items-center gap-2.5">
