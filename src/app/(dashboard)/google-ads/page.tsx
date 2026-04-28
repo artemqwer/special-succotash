@@ -2286,7 +2286,7 @@ export default function GoogleAdsPage() {
       {addEventOpen && (
         <div className="fixed inset-0 z-[500] flex items-end">
           <div className="absolute inset-0 bg-black/40 animate-in fade-in duration-200" onClick={() => setAddEventOpen(false)} />
-          <div className="relative bg-white rounded-t-3xl shadow-2xl w-full flex flex-col animate-in slide-in-from-bottom duration-300" style={{ maxHeight: "92svh" }}>
+          <div className="relative bg-white rounded-t-3xl shadow-2xl w-full max-w-xl mx-auto flex flex-col animate-in slide-in-from-bottom duration-300" style={{ maxHeight: "92svh" }}>
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 bg-gray-200 rounded-full" />
@@ -2294,16 +2294,16 @@ export default function GoogleAdsPage() {
             {/* Header */}
             <div className="flex items-start justify-between px-5 pt-3 pb-4 border-b border-gray-100 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </div>
                 <div>
-                  <h3 className="text-[15px] font-bold text-gray-900">Add Custom Event</h3>
-                  <p className="text-[12px] text-gray-400 mt-0.5">Add your own event to the timeline</p>
+                  <h3 className="text-[16px] font-bold text-gray-900">Add Custom Event</h3>
+                  <p className="text-[12px] text-gray-400">Add your own event to the timeline</p>
                 </div>
               </div>
-              <button onClick={() => setAddEventOpen(false)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 transition">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <button onClick={() => setAddEventOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-400 transition-colors">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
 
@@ -2318,7 +2318,7 @@ export default function GoogleAdsPage() {
                     { id: "Website" as const, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>, color: "text-pink-500 border-pink-400 bg-pink-50" },
                   ] as { id: "Events"|"Ads"|"Website"; icon: React.ReactNode; color: string }[]).map(({ id, icon, color }) => (
                     <button key={id} onClick={() => setEvtCategory(id)}
-                      className={`flex items-center justify-center gap-1.5 py-2 rounded-lg border text-[13px] font-medium transition ${evtCategory === id ? color : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
+                      className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-[13px] font-medium transition-all ${evtCategory === id ? color + " shadow-sm ring-1 ring-inset ring-current" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
                       {icon}{id}
                     </button>
                   ))}
@@ -2349,21 +2349,21 @@ export default function GoogleAdsPage() {
               <div>
                 <div className="flex items-center gap-1.5 mb-2">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  <p className="text-[12px] font-semibold text-gray-700">Date</p>
+                  <p className="text-[12px] font-semibold text-gray-700">Date Range</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-[11px] text-gray-500 mb-1">Start Date</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="relative">
+                    <p className="text-[11px] text-gray-400 mb-1 ml-1 font-medium">Start Date</p>
                     <input type="date" value={evtStartDate} onChange={(e) => setEvtStartDate(e.target.value)}
-                      className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-blue-400 bg-white" />
+                      className="w-full text-[14px] border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 bg-white transition-all appearance-none min-h-[44px]" />
                   </div>
-                  <div>
-                    <p className="text-[11px] text-gray-500 mb-1">End Date <span className="text-gray-400">(Optional)</span></p>
+                  <div className="relative">
+                    <p className="text-[11px] text-gray-400 mb-1 ml-1 font-medium">End Date <span className="opacity-60">(Optional)</span></p>
                     <input type="date" value={evtEndDate} onChange={(e) => setEvtEndDate(e.target.value)}
-                      className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-blue-400 bg-white" />
+                      className="w-full text-[14px] border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 bg-white transition-all appearance-none min-h-[44px]" />
                   </div>
                 </div>
-                <p className="text-[11px] text-gray-400 mt-1.5">Leave end date empty for single-day event</p>
+                <p className="text-[11px] text-gray-400 mt-2 ml-1">Leave end date empty for a single-day event</p>
               </div>
 
               {/* Event Title */}
@@ -2374,8 +2374,10 @@ export default function GoogleAdsPage() {
                 </div>
                 <input type="text" maxLength={80} value={evtTitle} onChange={(e) => setEvtTitle(e.target.value)}
                   placeholder="e.g., Black Friday Campaign Launch"
-                  className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-blue-400 placeholder-gray-300" />
-                <p className="text-[11px] text-gray-400 mt-1">{evtTitle.length}/80 characters</p>
+                  className="w-full text-[14px] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 bg-white transition-all placeholder-gray-300" />
+                <div className="flex justify-end mt-1">
+                  <p className="text-[10px] font-medium text-gray-400">{evtTitle.length}/80</p>
+                </div>
               </div>
 
               {/* Description */}
@@ -2386,7 +2388,7 @@ export default function GoogleAdsPage() {
                 </div>
                 <textarea rows={3} value={evtDesc} onChange={(e) => setEvtDesc(e.target.value)}
                   placeholder="Add additional details about this event..."
-                  className="w-full text-[13px] border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-blue-400 placeholder-gray-300 resize-none" />
+                  className="w-full text-[14px] border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 bg-white transition-all placeholder-gray-300 resize-none" />
               </div>
             </div>
 
