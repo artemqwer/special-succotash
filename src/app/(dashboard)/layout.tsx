@@ -64,8 +64,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const displayDate = headerDate ?? platform?.defaultDate ?? "";
 
   return (
-    <div className="bg-[#f4f6fb]">
-    <div className="flex min-h-screen max-w-420">
+    <div className="bg-[#f4f6fb] overflow-x-hidden">
+    <div className="flex min-h-screen max-w-420 overflow-x-hidden">
       <Sidebar
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
