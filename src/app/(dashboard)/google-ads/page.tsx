@@ -440,7 +440,7 @@ function KpiCard({ label, shortLabel, icon, value, delta, up, spark, desc, hover
   const gradId = `kg-${label.replace(/[^a-zA-Z0-9]/g, "")}`;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-2 sm:px-4 pt-2.5 sm:pt-3 pb-0 min-w-0 flex-1 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-2 sm:px-4 pt-2.5 sm:pt-3 pb-0 min-w-0 flex-1 overflow-hidden hover:shadow-md hover:-translate-y-px transition-all duration-200">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1 min-w-0">
           <span className={`shrink-0 ${up ? "text-green-500" : "text-red-400"}`}>{icon}</span>
@@ -950,20 +950,16 @@ export default function GoogleAdsPage() {
     if (aiScrollRef.current) aiScrollRef.current.scrollTop = aiScrollRef.current.scrollHeight;
   }, [aiMsgs, aiLoading]);
 
-  // iOS body scroll lock for modals
+  // Prevent background scroll when modal is open (no position:fixed — that breaks iOS fixed overlays)
   useEffect(() => {
     const isOpen = addEventOpen || aiOpen;
     if (!isOpen) return;
     const scrollY = window.scrollY;
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = "100%";
-    document.body.style.overflowY = "scroll";
+    document.documentElement.style.overflow = "hidden";
+    document.documentElement.style.height = "100%";
     return () => {
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.width = "";
-      document.body.style.overflowY = "";
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.height = "";
       window.scrollTo(0, scrollY);
     };
   }, [addEventOpen, aiOpen]);
@@ -1548,7 +1544,7 @@ export default function GoogleAdsPage() {
                 {chartMetricOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setChartMetricOpen(false)} />
-                    <div className="absolute left-0 top-full mt-1.5 w-[130px] bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+                    <div className="absolute left-0 top-full mt-1.5 w-[130px] bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-150 origin-top">
                       {CHART_METRICS.map((m) => (
                         <button key={m} onClick={() => { setChartMetric(m); setChartMetricOpen(false); setHiddenSeries(new Set()); }}
                           className={`w-full text-left px-3.5 py-2 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${chartMetric === m ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
@@ -1573,7 +1569,7 @@ export default function GoogleAdsPage() {
                 {chartGroupByOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setChartGroupByOpen(false)} />
-                    <div className="absolute left-0 top-full mt-1.5 w-[120px] bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+                    <div className="absolute left-0 top-full mt-1.5 w-[120px] bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-150 origin-top">
                       {CHART_GROUPBY.map((g) => (
                         <button key={g} onClick={() => { setChartGroupBy(g); setChartGroupByOpen(false); setHiddenSeries(new Set()); }}
                           className={`w-full text-left px-3.5 py-2 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${chartGroupBy === g ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
@@ -1614,7 +1610,7 @@ export default function GoogleAdsPage() {
               {granularityOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setGranularityOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1.5 w-[120px] bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-1.5 w-[120px] bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-150 origin-top-right">
                     {(["days", "weeks", "months"] as const).map((g) => (
                       <button key={g} onClick={() => { setGranularity(g); setGranularityOpen(false); }}
                         className={`w-full text-left px-3.5 py-2 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${granularity === g ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
@@ -1631,7 +1627,7 @@ export default function GoogleAdsPage() {
 
         {/* ── Period Analysis chart ── */}
         {activeTab === 0 && (
-          <>
+          <div className="animate-in fade-in duration-200">
             <div className="sm:overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
               <div className="h-[260px] sm:h-[340px] lg:h-[440px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1680,12 +1676,12 @@ export default function GoogleAdsPage() {
                 );
               })}
             </div>
-          </>
+          </div>
         )}
 
         {/* ── Ad Performance chart ── */}
         {activeTab === 1 && (
-          <>
+          <div className="animate-in fade-in duration-200">
             <div className="sm:overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
               <div className="h-[260px] sm:h-[340px] lg:h-[440px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1734,12 +1730,12 @@ export default function GoogleAdsPage() {
                 );
               })}
             </div>
-          </>
+          </div>
         )}
 
         {/* ── Profit / Loss chart ── */}
         {activeTab === 2 && (
-          <>
+          <div className="animate-in fade-in duration-200">
             <div className="sm:overflow-x-auto scrollbar-none -mx-1 px-1 outline-none focus:outline-none">
               <div className="h-[260px] sm:h-[340px] lg:h-[440px] sm:min-w-[600px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1793,12 +1789,12 @@ export default function GoogleAdsPage() {
                 );
               })}
             </div>
-          </>
+          </div>
         )}
 
         {/* ── Segments chart ── */}
         {activeTab === 3 && (
-          <>
+          <div className="animate-in fade-in duration-200">
             {/* Mobile: first donut only, full width */}
             <div className="sm:hidden">
               <SegmentDonut title="Revenue" data={segRevenue}
@@ -1816,7 +1812,7 @@ export default function GoogleAdsPage() {
                 formatValue={(v) => v >= 1000 ? `${(v / 1000).toFixed(2)}K` : String(v)}
                 colorScheme="violet" />
             </div>
-          </>
+          </div>
         )}
 
         {/* Event Timeline */}
@@ -2071,7 +2067,7 @@ export default function GoogleAdsPage() {
             <colgroup>
               <col className="w-10" />
               <col className="w-14 hidden sm:table-column" />
-              <col style={{ width: namesCollapsed ? 0 : 160 }} />
+              <col />
               <col className="w-[90px] hidden sm:table-column" />
               <col /><col /><col /><col /><col /><col /><col /><col /><col /><col />
               <col className="w-[108px]" />
@@ -2104,21 +2100,32 @@ export default function GoogleAdsPage() {
                   ["Revenue","revenue","right"],["Cost","cost","right"],["Profit (ads)","profit","right"],["ROAS","roas","right"],
                 ] as [string, SortKey, "left" | "right"][]).map(([label, col, align]) => (
                   <th key={col} onClick={() => handleSort(col)}
-                    style={col === "name" ? { maxWidth: namesCollapsed ? 0 : 160, width: namesCollapsed ? 0 : undefined, padding: namesCollapsed ? 0 : undefined } : undefined}
-                    className={`py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[12px]${col === "name" ? ` sticky left-10 sm:left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 overflow-hidden${namesCollapsed ? " !p-0 !w-0 !max-w-0" : " px-2.5"}` : " px-2.5"}${col === "type" ? " hidden sm:table-cell" : ""}`}>
-                    {col === "name" && !namesCollapsed ? (
-                      <span className="flex items-center justify-between w-full">
-                        <span className="flex items-center gap-0.5">
-                          {label}<SortIcon dir={sortCol === col ? sortDir : null} />
+                    className={`text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[12px]${col === "name" ? " sticky left-10 sm:left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 overflow-hidden p-0" : " px-2.5 py-2.5"}${col === "type" ? " hidden sm:table-cell" : ""}`}>
+                    {col === "name" ? (
+                      <div style={{
+                        width: namesCollapsed ? 0 : 160,
+                        overflow: "hidden",
+                        paddingLeft: namesCollapsed ? 0 : 10,
+                        paddingRight: namesCollapsed ? 0 : 10,
+                        paddingTop: 10,
+                        paddingBottom: 10,
+                        opacity: namesCollapsed ? 0 : 1,
+                        transition: "width 380ms cubic-bezier(0.4, 0, 0.2, 1), padding-left 380ms cubic-bezier(0.4, 0, 0.2, 1), padding-right 380ms cubic-bezier(0.4, 0, 0.2, 1), opacity 260ms ease",
+                        whiteSpace: "nowrap",
+                      }}>
+                        <span className="flex items-center justify-between w-full">
+                          <span className="flex items-center gap-0.5">
+                            {label}<SortIcon dir={sortCol === col ? sortDir : null} />
+                          </span>
+                          <button onClick={(e) => { e.stopPropagation(); setNamesCollapsed(true); }}
+                            className="flex items-center justify-center w-5 h-5 rounded bg-gray-100 text-gray-500 hover:bg-gray-200 transition shrink-0 mr-1">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                          </button>
                         </span>
-                        <button onClick={(e) => { e.stopPropagation(); setNamesCollapsed(true); }}
-                          className="flex items-center justify-center w-5 h-5 rounded bg-gray-100 text-gray-500 hover:bg-gray-200 transition shrink-0 mr-1">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-                        </button>
-                      </span>
-                    ) : col !== "name" ? (
+                      </div>
+                    ) : (
                       <>{label}<SortIcon dir={sortCol === col ? sortDir : null} /></>
-                    ) : null}
+                    )}
                   </th>
                 ))}
               </tr>
@@ -2132,7 +2139,7 @@ export default function GoogleAdsPage() {
                     setCheckedRows(new Set());
                     setClickedRow(clickedRow === i ? null : i);
                   }}
-                  className={`border-t border-gray-100 cursor-pointer group ${
+                  className={`border-t border-gray-100 cursor-pointer group transition-colors duration-150 ${
                     clickedRow === i ? "bg-blue-100/40" : checkedRows.has(i) ? "bg-blue-50/30" : "hover:bg-blue-50/20"
                   }`}>
                   <td className={`px-3 py-2.5 sticky left-0 z-10 isolate ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}>
@@ -2148,22 +2155,31 @@ export default function GoogleAdsPage() {
                   <td className={`px-2 py-2.5 sticky left-10 z-10 isolate hidden sm:table-cell ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}>
                     <span className={`w-2 h-2 rounded-full inline-block ${row.status === "green" ? "bg-green-500" : "bg-gray-300"}`} />
                   </td>
-                  <td
-                    className={`sticky left-10 sm:left-24 z-10 isolate overflow-hidden after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 ${namesCollapsed ? "!p-0 !w-0 !max-w-0" : "px-2.5 py-2.5 cursor-pointer"} ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}
-                    style={{ maxWidth: namesCollapsed ? 0 : 160, width: namesCollapsed ? 0 : undefined, padding: namesCollapsed ? 0 : undefined }}
-                    onClick={namesCollapsed ? undefined : (e) => {
-                      e.stopPropagation();
-                      setExpandedNameIdx(expandedNameIdx === i ? null : i);
-                      setCheckedRows(new Set());
-                      setClickedRow(clickedRow === i ? null : i);
-                    }}
-                    title={namesCollapsed ? undefined : row.name}
-                  >
-                    {!namesCollapsed && (
+                  <td className={`sticky left-10 sm:left-24 z-10 isolate overflow-hidden after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-100 p-0 ${clickedRow === i ? "bg-blue-100" : checkedRows.has(i) ? "bg-blue-50" : "bg-white group-hover:bg-blue-50"}`}>
+                    <div
+                      style={{
+                        width: namesCollapsed ? 0 : 160,
+                        overflow: "hidden",
+                        paddingLeft: namesCollapsed ? 0 : 10,
+                        paddingRight: namesCollapsed ? 0 : 10,
+                        paddingTop: 10,
+                        paddingBottom: 10,
+                        opacity: namesCollapsed ? 0 : 1,
+                        cursor: namesCollapsed ? undefined : "pointer",
+                        transition: "width 380ms cubic-bezier(0.4, 0, 0.2, 1), padding-left 380ms cubic-bezier(0.4, 0, 0.2, 1), padding-right 380ms cubic-bezier(0.4, 0, 0.2, 1), opacity 260ms ease",
+                      }}
+                      onClick={namesCollapsed ? undefined : (e) => {
+                        e.stopPropagation();
+                        setExpandedNameIdx(expandedNameIdx === i ? null : i);
+                        setCheckedRows(new Set());
+                        setClickedRow(clickedRow === i ? null : i);
+                      }}
+                      title={namesCollapsed ? undefined : row.name}
+                    >
                       <span className={`font-medium text-gray-800 text-[12px] hover:text-blue-600 transition block ${expandedNameIdx === i ? "whitespace-normal wrap-break-word" : "whitespace-nowrap overflow-hidden text-ellipsis"}`}>
                         {row.name}
                       </span>
-                    )}
+                    </div>
                   </td>
                   <td className="px-2.5 py-2.5 hidden sm:table-cell">
                     <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-medium">{row.type}</span>
@@ -2195,9 +2211,20 @@ export default function GoogleAdsPage() {
               <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold text-gray-800 text-[13px]">
                 <td className="px-3 py-3 sticky left-0 z-10 bg-gray-50" />
                 <td className="px-2 py-3 sticky left-10 z-10 bg-gray-50 hidden sm:table-cell" />
-                <td className={`sticky left-10 sm:left-24 z-10 bg-gray-50 overflow-hidden after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 ${namesCollapsed ? "!p-0 !w-0 !max-w-0" : "px-2.5 py-3 whitespace-nowrap"}`}
-                  style={{ maxWidth: namesCollapsed ? 0 : 160, width: namesCollapsed ? 0 : undefined, padding: namesCollapsed ? 0 : undefined }}>
-                  {!namesCollapsed && <>Total <span className="text-gray-400 font-normal text-[11px]">({filtered.length})</span></>}
+                <td className="sticky left-10 sm:left-24 z-10 bg-gray-50 overflow-hidden after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 p-0">
+                  <div style={{
+                    width: namesCollapsed ? 0 : 160,
+                    overflow: "hidden",
+                    paddingLeft: namesCollapsed ? 0 : 10,
+                    paddingRight: namesCollapsed ? 0 : 10,
+                    paddingTop: 12,
+                    paddingBottom: 12,
+                    opacity: namesCollapsed ? 0 : 1,
+                    whiteSpace: "nowrap",
+                    transition: "width 380ms cubic-bezier(0.4, 0, 0.2, 1), padding-left 380ms cubic-bezier(0.4, 0, 0.2, 1), padding-right 380ms cubic-bezier(0.4, 0, 0.2, 1), opacity 260ms ease",
+                  }}>
+                    Total <span className="text-gray-400 font-normal text-[11px]">({filtered.length})</span>
+                  </div>
                 </td>
                 <td className="px-2.5 py-3 hidden sm:table-cell" />
                 <td className="px-2.5 py-3 text-right tabular-nums">{fmtNum(tableTotals.totImpr)}</td>
@@ -2256,9 +2283,9 @@ export default function GoogleAdsPage() {
 
       {/* ── Add Custom Event Modal ── */}
       {addEventOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 touch-none">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setAddEventOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[480px] max-h-[90vh] overflow-y-auto overscroll-contain touch-auto" style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
+        <div className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center sm:p-4 touch-none">
+          <div className="absolute inset-0 bg-black/50 animate-in fade-in duration-200" onClick={() => setAddEventOpen(false)} />
+          <div className="relative bg-white w-full sm:max-w-[480px] sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-y-auto overscroll-contain touch-auto animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300" style={{ maxHeight: "calc(100dvh - 48px)", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
             {/* Header */}
             <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-gray-100">
               <div className="flex items-center gap-2.5">
@@ -2378,7 +2405,7 @@ export default function GoogleAdsPage() {
 
       {/* ── AI Campaign Assistant Sidebar ── */}
       {/* Mobile backdrop */}
-      {aiOpen && <div className="fixed inset-0 bg-black/40 z-[99] lg:hidden" onClick={() => setAiOpen(false)} />}
+      {aiOpen && <div className="fixed inset-0 bg-black/40 z-[99] lg:hidden animate-in fade-in duration-200" onClick={() => setAiOpen(false)} />}
 
       {/* Sliding panel */}
       <div className={`fixed right-0 top-0 h-screen z-[100] flex flex-col bg-white shadow-2xl border-l border-gray-200 transition-transform duration-300 ease-out w-full sm:w-[440px] ${aiOpen ? "translate-x-0" : "translate-x-full"}`}>
