@@ -67,6 +67,21 @@ const kpis = [
 const CAMPAIGNS = ["Brand", "Shopping", "DSA", "Remarketing", "PMax", "Search"];
 const COLORS = ["#F472B6", "#FB923C", "#FACC15", "#4ADE80", "#A78BFA", "#60A5FA"];
 
+const CAMPAIGN_TYPE_MAP: Record<string, string> = {
+  Brand: "Search", Shopping: "Shopping", DSA: "Search",
+  Remarketing: "Display", PMax: "PMax", Search: "Search",
+};
+const TYPES = ["Search", "Shopping", "PMax", "Display"];
+const TYPE_COLORS_MAP: Record<string, string> = {
+  Search: "#60A5FA", Shopping: "#FACC15", PMax: "#A78BFA", Display: "#F472B6",
+};
+
+type ChartMetric = "Revenue" | "Cost" | "Clicks";
+type ChartGroupBy = "Campaign" | "Type";
+
+const CHART_METRICS: ChartMetric[] = ["Revenue", "Cost", "Clicks"];
+const CHART_GROUPBY: ChartGroupBy[] = ["Campaign", "Type"];
+
 // Per-day share distribution (cycling for any period length)
 const shareMatrix: number[][] = [
   [0.08, 0.22, 0.07, 0.12, 0.18, 0.33],
@@ -480,9 +495,10 @@ function KpiCard({ label, shortLabel, icon, value, delta, up, spark, desc, hover
   );
 }
 
-const ChartTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {
+const ChartTooltip = ({ active, payload, label, metric = "Revenue" }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string; metric?: ChartMetric }) => {
   if (!active || !payload?.length) return null;
   const total = payload.reduce((s, p) => s + p.value, 0);
+  const fmtV = (v: number) => metric === "Clicks" ? `${(v / 1000).toFixed(1)}K` : `$${(v / 1000).toFixed(1)}K`;
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-md px-2.5 py-2 text-[11px]">
       <p className="font-semibold text-gray-700 mb-1.5">{label}</p>
@@ -492,11 +508,11 @@ const ChartTooltip = ({ active, payload, label }: { active?: boolean; payload?: 
             <div className="w-1.5 h-1.5 rounded-sm shrink-0" style={{ background: p.color }} />
             <span className="text-gray-500">{p.name}</span>
           </span>
-          <span className="font-medium text-gray-700">${(p.value / 1000).toFixed(1)}K</span>
+          <span className="font-medium text-gray-700">{fmtV(p.value)}</span>
         </div>
       ))}
       <div className="border-t border-gray-100 mt-1.5 pt-1 flex justify-between font-semibold text-gray-800">
-        <span>Total</span><span>${(total / 1000).toFixed(1)}K</span>
+        <span>Total</span><span>{fmtV(total)}</span>
       </div>
     </div>
   );
@@ -580,15 +596,16 @@ const BarXTick = ({ x, y, payload }: any) => {
 
 // Custom label renderer for stacked bar totals — hidden on narrow bars
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const renderTotalLabel = ({ x: rawX, y: rawY, width: rawW, value: rawV }: any) => {
+const makeRenderTotalLabel = (metric: ChartMetric) => ({ x: rawX, y: rawY, width: rawW, value: rawV }: any) => {
   const x = typeof rawX === "number" ? rawX : 0;
   const y = typeof rawY === "number" ? rawY : 0;
   const width = typeof rawW === "number" ? rawW : 0;
   const value = typeof rawV === "number" ? rawV : 0;
   if (width < 30) return null;
+  const label = metric === "Clicks" ? `${(value / 1000).toFixed(1)}K` : `$${(value / 1000).toFixed(1)}K`;
   return (
     <text x={x + width / 2} y={y - 6} fill="#374151" fontSize={12} fontWeight={600} textAnchor="middle">
-      ${(value / 1000).toFixed(1)}K
+      {label}
     </text>
   );
 };
@@ -737,6 +754,10 @@ export default function GoogleAdsPage() {
   const [granularityOpen, setGranularityOpen] = useState(false);
   const [hiddenAdPerf, setHiddenAdPerf] = useState<Set<string>>(new Set());
   const [hiddenPL, setHiddenPL] = useState<Set<string>>(new Set());
+  const [chartMetric, setChartMetric] = useState<ChartMetric>("Revenue");
+  const [chartGroupBy, setChartGroupBy] = useState<ChartGroupBy>("Campaign");
+  const [chartMetricOpen, setChartMetricOpen] = useState(false);
+  const [chartGroupByOpen, setChartGroupByOpen] = useState(false);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiInput, setAiInput] = useState("");
@@ -956,18 +977,21 @@ export default function GoogleAdsPage() {
   };
 
   useEffect(() => {
-    const check = () => {
-      setIsMobile(window.innerWidth < 640);
-      setIsPortrait(window.innerHeight > window.innerWidth);
-    };
-    check();
-    window.addEventListener("resize", check);
+    const checkSize = () => setIsMobile(window.innerWidth < 640);
+    const portraitMql = window.matchMedia("(orientation: portrait)");
+    const checkOrientation = (e: MediaQueryListEvent | MediaQueryList) => setIsPortrait(e.matches);
+
+    checkSize();
+    checkOrientation(portraitMql);
+    window.addEventListener("resize", checkSize);
+    portraitMql.addEventListener("change", checkOrientation);
 
     const handleOpen = () => openDatePickerRef.current();
     window.addEventListener("open-date-picker", handleOpen);
 
     return () => {
-      window.removeEventListener("resize", check);
+      window.removeEventListener("resize", checkSize);
+      portraitMql.removeEventListener("change", checkOrientation);
       window.removeEventListener("open-date-picker", handleOpen);
     };
   }, []);
@@ -1037,14 +1061,50 @@ export default function GoogleAdsPage() {
     return selRev / totalRev;
   }, [selectedRows, realCampaignRows]);
 
+  const chartSeries = useMemo(() => {
+    if (chartGroupBy === "Campaign") {
+      return campaignAvgs.map(({ name, color }) => ({ name, color }));
+    }
+    return TYPES.map((name) => ({ name, color: TYPE_COLORS_MAP[name] }));
+  }, [chartGroupBy, campaignAvgs]);
+
+  const chartBarData = useMemo(() => {
+    return barData.map((row, i) => {
+      const perf = adPerfData[i] || { convValue: (row.total as number) || 0, cost: 0, clicks: 0 };
+      const totalRev = (row.total as number) || 1;
+      const metricTotal =
+        chartMetric === "Cost" ? perf.cost :
+        chartMetric === "Clicks" ? perf.clicks :
+        perf.convValue;
+      const scale = metricTotal / totalRev;
+
+      if (chartGroupBy === "Campaign") {
+        const obj: Record<string, string | number> = { date: row.date as string };
+        CAMPAIGNS.forEach((c) => { obj[c] = Math.round(((row[c] as number) || 0) * scale); });
+        obj.total = Math.round(metricTotal);
+        return obj;
+      } else {
+        const typeVals: Record<string, number> = {};
+        CAMPAIGNS.forEach((c) => {
+          const t = CAMPAIGN_TYPE_MAP[c];
+          typeVals[t] = (typeVals[t] || 0) + Math.round(((row[c] as number) || 0) * scale);
+        });
+        const obj: Record<string, string | number> = { date: row.date as string };
+        TYPES.forEach((t) => { obj[t] = typeVals[t] || 0; });
+        obj.total = Math.round(metricTotal);
+        return obj;
+      }
+    });
+  }, [barData, adPerfData, chartMetric, chartGroupBy]);
+
   const displayBarData = useMemo(() =>
-    barData.map((row) => ({
+    chartBarData.map((row) => ({
       ...row,
-      visibleTotal: campaignAvgs
-        .filter(({ name }) => !hiddenSeries.has(name) && (rowTypeFilter === null || rowTypeFilter.has(name)))
-        .reduce((s, { name }) => s + (row[name] as number), 0),
+      visibleTotal: chartSeries
+        .filter(({ name }) => !hiddenSeries.has(name) && (chartGroupBy === "Type" || rowTypeFilter === null || rowTypeFilter.has(name)))
+        .reduce((s, { name }) => s + ((row[name] as number) || 0), 0),
     })),
-    [barData, campaignAvgs, hiddenSeries, rowTypeFilter]
+    [chartBarData, chartSeries, hiddenSeries, rowTypeFilter, chartGroupBy]
   );
 
   const aggregatedBarData = useMemo(() => {
@@ -1057,19 +1117,20 @@ export default function GoogleAdsPage() {
       displayBarData.forEach((r) => { const m = (r as any).date.split(" ")[0]; (byMon[m] ??= []).push(r); });
       Object.values(byMon).forEach((g) => chunks.push(g));
     }
+    const seriesKeys = chartGroupBy === "Campaign" ? CAMPAIGNS : TYPES;
     return chunks.map((chunk) => {
       const agg: Record<string, number | string> = {
         date: granularity === "weeks"
           ? `${(chunk[0] as any).date}–${(chunk[chunk.length - 1] as any).date}`
           : (chunk[0] as any).date.split(" ")[0],
       };
-      CAMPAIGNS.forEach((n) => { (agg as any)[n] = chunk.reduce((s, r) => s + ((r as any)[n] as number || 0), 0); });
-      (agg as any).visibleTotal = campaignAvgs
-        .filter(({ name }) => !hiddenSeries.has(name) && (rowTypeFilter === null || rowTypeFilter.has(name)))
-        .reduce((s, { name }) => s + ((agg as any)[name] as number), 0);
+      seriesKeys.forEach((n) => { (agg as any)[n] = chunk.reduce((s, r) => s + ((r as any)[n] as number || 0), 0); });
+      (agg as any).visibleTotal = chartSeries
+        .filter(({ name }) => !hiddenSeries.has(name) && (chartGroupBy === "Type" || rowTypeFilter === null || rowTypeFilter.has(name)))
+        .reduce((s, { name }) => s + ((agg as any)[name] as number || 0), 0);
       return agg as typeof displayBarData[0];
     });
-  }, [displayBarData, granularity, campaignAvgs, hiddenSeries, rowTypeFilter]);
+  }, [displayBarData, granularity, chartSeries, chartGroupBy, hiddenSeries, rowTypeFilter]);
 
   const aggregatedAdPerfData = useMemo(() => {
     const data = adPerfData.map(d => ({
@@ -1133,6 +1194,7 @@ export default function GoogleAdsPage() {
 
   const renderConvLabel = useMemo(() => makeRenderConvLabel(aggregatedAdPerfData, hiddenAdPerf.has("conv")), [aggregatedAdPerfData, hiddenAdPerf]);
   const renderLossTopLabel = useMemo(() => makeRenderLossTopLabel(aggregatedAdPerfData, hiddenAdPerf.has("conv")), [aggregatedAdPerfData, hiddenAdPerf]);
+  const renderTotalLabelChart = useMemo(() => makeRenderTotalLabel(chartMetric), [chartMetric]);
 
   const dynKpis = useMemo(() => {
     if (selectedRows.length === 0) return null;
@@ -1474,14 +1536,54 @@ export default function GoogleAdsPage() {
         <div className="flex items-center justify-between gap-2 mb-4 text-[14px]">
           {activeTab === 0 && (
             <div className="flex items-center gap-2 min-w-0">
-              <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 font-medium whitespace-nowrap">
-                Revenue
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+              {/* Metric dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => { setChartMetricOpen(!chartMetricOpen); setChartGroupByOpen(false); }}
+                  className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 font-medium whitespace-nowrap"
+                >
+                  {chartMetric}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${chartMetricOpen ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                {chartMetricOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setChartMetricOpen(false)} />
+                    <div className="absolute left-0 top-full mt-1.5 w-[130px] bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+                      {CHART_METRICS.map((m) => (
+                        <button key={m} onClick={() => { setChartMetric(m); setChartMetricOpen(false); setHiddenSeries(new Set()); }}
+                          className={`w-full text-left px-3.5 py-2 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${chartMetric === m ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
+                          {m}
+                          {chartMetric === m && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
               <span className="text-gray-400 text-[13px] shrink-0">by</span>
-              <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 font-medium whitespace-nowrap">
-                Campaign
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+              {/* GroupBy dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => { setChartGroupByOpen(!chartGroupByOpen); setChartMetricOpen(false); }}
+                  className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 sm:px-3 py-1.5 cursor-pointer hover:bg-gray-100 font-medium whitespace-nowrap"
+                >
+                  {chartGroupBy}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${chartGroupByOpen ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                {chartGroupByOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setChartGroupByOpen(false)} />
+                    <div className="absolute left-0 top-full mt-1.5 w-[120px] bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+                      {CHART_GROUPBY.map((g) => (
+                        <button key={g} onClick={() => { setChartGroupBy(g); setChartGroupByOpen(false); setHiddenSeries(new Set()); }}
+                          className={`w-full text-left px-3.5 py-2 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${chartGroupBy === g ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
+                          {g}
+                          {chartGroupBy === g && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -1536,14 +1638,15 @@ export default function GoogleAdsPage() {
                   <BarChart data={aggregatedBarData} barCategoryGap="18%" margin={{ top: 28, right: 10, left: -10, bottom: isMobile ? 0 : 4 }}>
                     <CartesianGrid vertical={false} strokeDasharray="4 3" stroke="#F3F4F6" />
                     <XAxis dataKey="date" tick={isMobile && aggregatedBarData.length > 8 ? false : <BarXTick />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={isMobile && aggregatedBarData.length > 8 ? 4 : 30} />
-                    <YAxis tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} />
-                    <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(99, 102, 241, 0.05)" }} />
-                    {campaignAvgs.map(({ name, color }) => {
-                      const visibleLast = campaignAvgs.filter(({ name: n }) => !hiddenSeries.has(n) && (rowTypeFilter === null || rowTypeFilter.has(n)));
+                    <YAxis tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => chartMetric === "Clicks" ? `${(v / 1000).toFixed(0)}K` : `$${v / 1000}K`} />
+                    <Tooltip content={(p: any) => <ChartTooltip {...p} metric={chartMetric} />} cursor={{ fill: "rgba(99, 102, 241, 0.05)" }} />
+                    {chartSeries.map(({ name, color }) => {
+                      const visibleLast = chartSeries.filter(({ name: n }) => !hiddenSeries.has(n) && (chartGroupBy === "Type" || rowTypeFilter === null || rowTypeFilter.has(n)));
                       const isVisibleTop = visibleLast.length > 0 && visibleLast[visibleLast.length - 1].name === name;
+                      const isHidden = hiddenSeries.has(name) || (chartGroupBy === "Campaign" && rowTypeFilter !== null && !rowTypeFilter.has(name));
                       return (
-                        <Bar key={name} dataKey={name} stackId="a" fill={color} hide={hiddenSeries.has(name) || (rowTypeFilter !== null && !rowTypeFilter.has(name))} radius={isVisibleTop ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
-                          {isVisibleTop && <LabelList dataKey="visibleTotal" content={renderTotalLabel} />}
+                        <Bar key={name} dataKey={name} stackId="a" fill={color} hide={isHidden} radius={isVisibleTop ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
+                          {isVisibleTop && <LabelList dataKey="visibleTotal" content={renderTotalLabelChart} />}
                         </Bar>
                       );
                     })}
@@ -1551,7 +1654,7 @@ export default function GoogleAdsPage() {
                 </ResponsiveContainer>
               </div>
             </div>
-            {rowTypeFilter !== null && (
+            {chartGroupBy === "Campaign" && rowTypeFilter !== null && (
               <div className="flex items-center gap-1.5 mt-2 mb-1 justify-center">
                 <span className="text-[11px] text-blue-600 bg-blue-50 border border-blue-200 rounded-full px-2.5 py-0.5 font-medium flex items-center gap-1">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
@@ -1562,7 +1665,7 @@ export default function GoogleAdsPage() {
               </div>
             )}
             <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 justify-center">
-              {campaignAvgs.map(({ name, color }) => {
+              {chartSeries.map(({ name, color }) => {
                 const hidden = hiddenSeries.has(name);
                 return (
                   <button
@@ -1766,13 +1869,13 @@ export default function GoogleAdsPage() {
           </div>
 
           {/* Timeline grid */}
-          {timelineOpen && isMobile && isPortrait && (
+          {timelineOpen && isPortrait && (
             <div className="mt-2 flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-[12px] text-blue-700">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5 text-blue-500"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
               <p><span className="font-semibold">Events Timeline</span> is available on wider screens. Rotate to landscape mode or open on a larger screen to view the full timeline.</p>
             </div>
           )}
-          {timelineOpen && (!isMobile || !isPortrait) && (
+          {timelineOpen && !isPortrait && (
             <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
               <div className="min-w-[600px]">
                 {/* Date row */}
