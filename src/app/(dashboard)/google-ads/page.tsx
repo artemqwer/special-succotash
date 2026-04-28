@@ -1986,13 +1986,14 @@ export default function GoogleAdsPage() {
                     style={col === "name" ? { maxWidth: namesCollapsed ? 0 : 160, width: namesCollapsed ? 0 : undefined, padding: namesCollapsed ? 0 : undefined } : undefined}
                     className={`py-2.5 text-${align} text-gray-500 font-medium whitespace-nowrap cursor-pointer hover:text-gray-700 select-none text-[12px]${col === "name" ? ` sticky left-10 sm:left-24 z-20 bg-gray-50 after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-gray-200 overflow-hidden${namesCollapsed ? " !p-0 !w-0 !max-w-0" : " px-2.5"}` : " px-2.5"}${col === "type" ? " hidden sm:table-cell" : ""}`}>
                     {col === "name" && !namesCollapsed ? (
-                      <span className="flex items-center gap-1">
-                        {label}
+                      <span className="flex items-center justify-between w-full">
+                        <span className="flex items-center gap-0.5">
+                          {label}<SortIcon dir={sortCol === col ? sortDir : null} />
+                        </span>
                         <button onClick={(e) => { e.stopPropagation(); setNamesCollapsed(true); }}
-                          className="flex items-center justify-center w-5 h-5 rounded bg-gray-100 text-gray-500 hover:bg-gray-200 transition ml-0.5 shrink-0">
+                          className="flex items-center justify-center w-5 h-5 rounded bg-gray-100 text-gray-500 hover:bg-gray-200 transition shrink-0 mr-1">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                         </button>
-                        <SortIcon dir={sortCol === col ? sortDir : null} />
                       </span>
                     ) : col !== "name" ? (
                       <>{label}<SortIcon dir={sortCol === col ? sortDir : null} /></>
