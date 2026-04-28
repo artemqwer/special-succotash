@@ -929,6 +929,24 @@ export default function GoogleAdsPage() {
     if (aiScrollRef.current) aiScrollRef.current.scrollTop = aiScrollRef.current.scrollHeight;
   }, [aiMsgs, aiLoading]);
 
+  // iOS body scroll lock for modals
+  useEffect(() => {
+    const isOpen = addEventOpen || aiOpen;
+    if (!isOpen) return;
+    const scrollY = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    document.body.style.overflowY = "scroll";
+    return () => {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      document.body.style.overflowY = "";
+      window.scrollTo(0, scrollY);
+    };
+  }, [addEventOpen, aiOpen]);
+
   const toggleSeries = (name: string) => {
     setHiddenSeries((prev) => {
       const next = new Set(prev);
@@ -2135,9 +2153,9 @@ export default function GoogleAdsPage() {
 
       {/* ── Add Custom Event Modal ── */}
       {addEventOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 touch-none">
           <div className="absolute inset-0 bg-black/40" onClick={() => setAddEventOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[480px] max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[480px] max-h-[90vh] overflow-y-auto overscroll-contain touch-auto" style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
             {/* Header */}
             <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-gray-100">
               <div className="flex items-center gap-2.5">
