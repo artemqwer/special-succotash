@@ -2068,7 +2068,7 @@ export default function GoogleAdsPage() {
             <colgroup>
               <col className="w-10" />
               <col className="w-14 hidden sm:table-column" />
-              <col />
+              <col style={{ width: namesCollapsed ? 0 : 160 }} />
               <col className="w-[90px] hidden sm:table-column" />
               <col /><col /><col /><col /><col /><col /><col /><col /><col /><col />
               <col className="w-[108px]" />
@@ -2107,7 +2107,7 @@ export default function GoogleAdsPage() {
                         width: namesCollapsed ? 0 : 160,
                         overflow: "hidden",
                         paddingLeft: namesCollapsed ? 0 : 10,
-                        paddingRight: namesCollapsed ? 0 : 10,
+                        paddingRight: namesCollapsed ? 0 : 4,
                         paddingTop: 10,
                         paddingBottom: 10,
                         opacity: namesCollapsed ? 0 : 1,
@@ -2119,7 +2119,7 @@ export default function GoogleAdsPage() {
                             {label}<SortIcon dir={sortCol === col ? sortDir : null} />
                           </span>
                           <button onClick={(e) => { e.stopPropagation(); setNamesCollapsed(true); }}
-                            className="flex items-center justify-center w-5 h-5 rounded bg-gray-100 text-gray-500 hover:bg-gray-200 transition shrink-0 mr-1">
+                            className="flex items-center justify-center w-5 h-5 rounded bg-gray-100 text-gray-500 hover:bg-gray-200 transition shrink-0">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                           </button>
                         </span>
