@@ -1415,9 +1415,9 @@ export default function GoogleAdsPage() {
       {/* Chart card — fills viewport so table is below the fold */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 sm:p-5 mb-5 min-w-0">
         {/* Tabs */}
-        <div className="flex items-center justify-between gap-3 mb-5 min-w-0 border-b border-gray-100">
+        <div className="flex items-center justify-between gap-3 mb-5 min-w-0 border-b border-gray-100 pb-2 sm:pb-0">
           {/* Mobile: dropdown */}
-          <div className="sm:hidden relative flex-1 min-w-0 pb-2">
+          <div className="sm:hidden relative flex-1 min-w-0">
             <select
               value={activeTab}
               onChange={(e) => setActiveTab(Number(e.target.value))}
