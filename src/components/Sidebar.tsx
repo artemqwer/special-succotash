@@ -195,7 +195,7 @@ export default function Sidebar({ mobileOpen, onMobileClose, session, onLogout }
   return (
     <>
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex h-screen shrink-0 sticky top-0">{content}</div>
+      <div className="hidden lg:flex h-full shrink-0 sticky top-0">{content}</div>
 
       {/* Mobile drawer — always rendered, animated via transform */}
       <div
