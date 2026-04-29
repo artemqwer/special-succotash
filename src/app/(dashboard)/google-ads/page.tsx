@@ -1251,7 +1251,7 @@ export default function GoogleAdsPage() {
   });
 
   return (
-    <div className={`px-4 sm:px-6 py-6 bg-[#f4f6fb] min-h-screen transition-[padding] duration-300 ease-out ${aiOpen ? "lg:pr-[456px]" : ""}`}>
+    <div className={`px-4 sm:px-6 py-6 bg-[#f4f6fb] min-h-screen transition-[padding] duration-300 ease-out ${aiOpen ? "lg:pr-[456px] 2xl:pr-6" : ""}`}>
       {/* Header */}
       <div className="hidden sm:flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -1965,20 +1965,21 @@ export default function GoogleAdsPage() {
             <h2 className="text-[15px] sm:text-[17px] font-bold text-gray-900">Campaign Performance</h2>
             <p className="text-[13px] text-gray-400 mt-0.5 hidden sm:block">Detailed analytics for {currentRows.length} campaigns • {fmtMs(rangeStart)} – {fmtMs(rangeEnd)}</p>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap w-full sm:w-auto">
-            <span className="text-[13px] text-gray-500 hidden sm:inline">Filters:</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none w-full sm:w-auto">
+            <span className="text-[13px] text-gray-500 hidden sm:inline shrink-0">Filters:</span>
 
             {/* Campaign Name multi-select dropdown */}
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setCampaignDropdownOpen(!campaignDropdownOpen)}
-                className={`flex items-center gap-1.5 text-[13px] border rounded-lg px-2.5 py-1.5 transition whitespace-nowrap ${
+                className={`flex items-center gap-1.5 text-[12px] sm:text-[13px] border rounded-lg px-2 sm:px-2.5 py-1 sm:py-1.5 transition whitespace-nowrap ${
                   selectedCampaigns.size > 0
                     ? "border-blue-400 bg-blue-50 text-blue-700"
                     : "border-gray-200 text-gray-600 hover:bg-gray-50"
                 }`}
               >
-                Campaign Name
+                <span className="sm:hidden">Campaign</span>
+                <span className="hidden sm:inline">Campaign Name</span>
                 {selectedCampaigns.size > 0 && (
                   <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{selectedCampaigns.size}</span>
                 )}
@@ -2046,18 +2047,18 @@ export default function GoogleAdsPage() {
             </div>
 
             <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setCheckedRows(new Set()); setClickedRow(null); }}
-              className="text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 bg-white">
+              className="text-[12px] sm:text-[13px] border border-gray-200 rounded-lg px-2 sm:px-2.5 py-1 sm:py-1.5 outline-none focus:border-blue-400 bg-white shrink-0">
               {types.map((t) => <option key={t}>{t}</option>)}
             </select>
-            <select className="text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 bg-white">
+            <select className="text-[12px] sm:text-[13px] border border-gray-200 rounded-lg px-2 sm:px-2.5 py-1 sm:py-1.5 outline-none focus:border-blue-400 bg-white shrink-0">
               <option>Status</option><option>Active</option><option>Paused</option>
             </select>
             {(selectedCampaigns.size > 0 || typeFilter !== "All") && (
               <button
                 onClick={() => { setSelectedCampaigns(new Set()); setTypeFilter("All"); setCheckedRows(new Set()); setClickedRow(null); }}
-                className="text-[13px] text-blue-600 hover:text-blue-800 transition whitespace-nowrap"
+                className="text-[12px] sm:text-[13px] text-blue-600 hover:text-blue-800 transition whitespace-nowrap shrink-0"
               >
-                Clear all filters
+                Clear all
               </button>
             )}
           </div>
