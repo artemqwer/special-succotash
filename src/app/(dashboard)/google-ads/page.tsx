@@ -1517,7 +1517,7 @@ export default function GoogleAdsPage() {
               </button>
             ))}
           </div>
-          <div className="p-[2px] rounded-xl shrink-0 mb-1" style={{ background: "linear-gradient(135deg, #3b82f6, #a78bfa, #f472b6)" }}>
+          <div className="p-[2px] rounded-xl shrink-0" style={{ background: "linear-gradient(135deg, #3b82f6, #a78bfa, #f472b6)" }}>
             <button onClick={openAi} className="flex items-center gap-1.5 text-[13px] sm:text-[14px] font-bold text-gray-800 bg-white hover:bg-gray-50/80 px-2.5 sm:px-4 py-[6px] rounded-[10px] transition whitespace-nowrap">
               <svg width="16" height="16" viewBox="0 0 24 24">
                 <defs><linearGradient id="ai-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#8b5cf6"/><stop offset="100%" stopColor="#ec4899"/></linearGradient></defs>
