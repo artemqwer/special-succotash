@@ -2143,6 +2143,7 @@ export default function GoogleAdsPage() {
                         <input type="checkbox"
                           checked={selectedCampaigns.size === currentRows.length && currentRows.length > 0}
                           onChange={() => {
+                            setCheckedRows(new Set()); setClickedRow(null);
                             if (selectedCampaigns.size === currentRows.length) setSelectedCampaigns(new Set());
                             else setSelectedCampaigns(new Set(currentRows.map((r) => r.name)));
                           }}
@@ -2153,7 +2154,7 @@ export default function GoogleAdsPage() {
                         </span>
                       </label>
                       {selectedCampaigns.size > 0 && (
-                        <button onClick={() => setSelectedCampaigns(new Set())} className="text-[11px] text-gray-400 hover:text-gray-700 transition">× Clear</button>
+                        <button onClick={() => { setSelectedCampaigns(new Set()); setCheckedRows(new Set()); setClickedRow(null); }} className="text-[11px] text-gray-400 hover:text-gray-700 transition">× Clear</button>
                       )}
                     </div>
                     <div className="max-h-[200px] overflow-y-auto py-1">
@@ -2164,6 +2165,7 @@ export default function GoogleAdsPage() {
                             <input type="checkbox"
                               checked={selectedCampaigns.has(r.name)}
                               onChange={() => {
+                                setCheckedRows(new Set()); setClickedRow(null);
                                 const next = new Set(selectedCampaigns);
                                 next.has(r.name) ? next.delete(r.name) : next.add(r.name);
                                 setSelectedCampaigns(next);
