@@ -114,7 +114,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           )}
         </header>
 
-        <main className="flex-1">
+        <main className="flex-1 pb-safe">
           {children}
         </main>
       </div>

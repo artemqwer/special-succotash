@@ -30,3 +30,13 @@ body {
 *:focus {
   outline: none;
 }
+
+/* iOS momentum scrolling */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area bottom padding for iPhones with home indicator */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

@@ -1356,7 +1356,7 @@ export default function GoogleAdsPage() {
   });
 
   return (
-    <div className={`max-w-[1600px] px-4 sm:px-6 py-6 bg-[#f4f6fb] min-h-screen transition-[padding] duration-300 ease-out ${aiOpen ? "lg:pr-[456px] min-[1700px]:pr-6" : ""}`}>
+    <div className={`max-w-[1600px] px-4 sm:px-6 py-6 bg-[#f4f6fb] transition-[padding] duration-300 ease-out ${aiOpen ? "lg:pr-[456px] min-[1700px]:pr-6" : ""}`}>
       {/* Header */}
       <div className="hidden sm:flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
