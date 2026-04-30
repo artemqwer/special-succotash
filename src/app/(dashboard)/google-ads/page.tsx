@@ -2317,11 +2317,16 @@ export default function GoogleAdsPage() {
                   <td className="px-2.5 py-2.5 hidden sm:table-cell">
                     <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-medium">{row.type}</span>
                   </td>
-                  <td className="px-2.5 py-2.5 text-right tabular-nums"
-                    style={{ backgroundColor: row.roasColor === "green" ? "#DCFCE7" : row.roasColor === "red" ? "#FEE2E2" : row.roasColor === "orange" ? "#FFEDD5" : "transparent" }}>
-                    <span className="font-medium" style={{ color: row.roasColor === "green" ? "#15803D" : row.roasColor === "red" ? "#DC2626" : row.roasColor === "orange" ? "#EA580C" : "#9CA3AF" }}>
-                      {row.roas !== "null" ? row.roas : "—"}
-                    </span>
+                  <td className="px-2.5 py-2.5 text-right tabular-nums">
+                    {row.roas !== "null" ? (
+                      <span className="inline-block px-2 py-0.5 rounded text-[12px] font-semibold"
+                        style={{
+                          backgroundColor: row.roasColor === "green" ? "#DCFCE7" : row.roasColor === "red" ? "#FEE2E2" : row.roasColor === "orange" ? "#FFEDD5" : "#F3F4F6",
+                          color: row.roasColor === "green" ? "#15803D" : row.roasColor === "red" ? "#DC2626" : row.roasColor === "orange" ? "#EA580C" : "#9CA3AF",
+                        }}>
+                        {row.roas}
+                      </span>
+                    ) : <span className="text-gray-400 text-[12px]">—</span>}
                   </td>
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("impr", row.impr, "blue")}>{fmtNum(row.impr)}</td>
                   <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("clicks", row.clicks, "blue")}>{fmtNum(row.clicks)}</td>
