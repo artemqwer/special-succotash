@@ -1344,7 +1344,9 @@ export default function GoogleAdsPage() {
     const avgCtr      = totImpr > 0 ? (totClicks / totImpr) * 100 : 0;
     const avgConvRate = totClicks > 0 ? (totConv / totClicks) * 100 : 0;
     const avgCpa      = totConv > 0 ? totCost / totConv : 0;
-    return { totImpr, totClicks, totConv, totCost, totRev, totProfit, avgCpc, avgCtr, avgConvRate, avgCpa };
+    const totRoasVal  = totCost > 0 ? (totRev / totCost) * 100 : 0;
+    const totRoasColor = totRoasVal >= 150 ? "green" : totRoasVal >= 100 ? "orange" : "red";
+    return { totImpr, totClicks, totConv, totCost, totRev, totProfit, avgCpc, avgCtr, avgConvRate, avgCpa, totRoasVal, totRoasColor };
   }, [filtered]);
 
   const cellStyle = (col: keyof typeof heatCols, value: number, color: "blue" | "green" | "red") => ({
@@ -2365,7 +2367,15 @@ export default function GoogleAdsPage() {
                   </div>
                 </td>
                 <td className="px-2.5 py-3 hidden sm:table-cell" />
-                <td className="px-2.5 py-3" />
+                <td className="px-2.5 py-3 text-right tabular-nums">
+                  <span className="inline-block px-2 py-0.5 rounded text-[12px] font-semibold"
+                    style={{
+                      backgroundColor: tableTotals.totRoasColor === "green" ? "#DCFCE7" : tableTotals.totRoasColor === "red" ? "#FEE2E2" : "#FFEDD5",
+                      color: tableTotals.totRoasColor === "green" ? "#15803D" : tableTotals.totRoasColor === "red" ? "#DC2626" : "#EA580C",
+                    }}>
+                    {tableTotals.totRoasVal.toFixed(2)}%
+                  </span>
+                </td>
                 <td className="px-2.5 py-3 text-right tabular-nums">{fmtNum(tableTotals.totImpr)}</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">{fmtNum(tableTotals.totClicks)}</td>
                 <td className="px-2.5 py-3 text-right tabular-nums">{fmtCurrency(tableTotals.avgCpc)}</td>
