@@ -731,6 +731,8 @@ export default function GoogleAdsPage() {
   const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set());
   const [campaignDropdownOpen, setCampaignDropdownOpen] = useState(false);
   const [campaignSearch, setCampaignSearch] = useState("");
+  const campaignBtnRef = useRef<HTMLButtonElement>(null);
+  const [campaignDropdownPos, setCampaignDropdownPos] = useState({ top: 0, left: 0 });
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [expandedNameIdx, setExpandedNameIdx] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -2102,9 +2104,16 @@ export default function GoogleAdsPage() {
             <span className="text-[13px] text-gray-500 hidden sm:inline shrink-0">Filters:</span>
 
             {/* Campaign Name multi-select dropdown */}
-            <div className="relative shrink-0">
+            <div className="shrink-0">
               <button
-                onClick={() => setCampaignDropdownOpen(!campaignDropdownOpen)}
+                ref={campaignBtnRef}
+                onClick={() => {
+                  if (!campaignDropdownOpen && campaignBtnRef.current) {
+                    const r = campaignBtnRef.current.getBoundingClientRect();
+                    setCampaignDropdownPos({ top: r.bottom + 6, left: r.left });
+                  }
+                  setCampaignDropdownOpen(!campaignDropdownOpen);
+                }}
                 className={`flex items-center gap-1.5 text-[12px] sm:text-[13px] border rounded-lg px-2 sm:px-2.5 py-1 sm:py-1.5 transition whitespace-nowrap ${
                   selectedCampaigns.size > 0
                     ? "border-blue-400 bg-blue-50 text-blue-700"
@@ -2124,18 +2133,24 @@ export default function GoogleAdsPage() {
 
               {campaignDropdownOpen && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setCampaignDropdownOpen(false)} />
-                  <div className="absolute top-full left-0 mt-1 w-[240px] bg-white border border-gray-200 rounded-xl shadow-lg z-50">
+                  <div className="fixed inset-0 z-40" onClick={() => { setCampaignDropdownOpen(false); setCampaignSearch(""); }} />
+                  <div className="fixed w-[260px] bg-white border border-gray-200 rounded-xl shadow-xl z-50"
+                    style={{ top: campaignDropdownPos.top, left: campaignDropdownPos.left }}>
                     <div className="p-2 border-b border-gray-100">
-                      <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5">
+                      <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50/50">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                         <input
                           autoFocus
                           value={campaignSearch}
                           onChange={(e) => setCampaignSearch(e.target.value)}
-                          placeholder="Type to search"
+                          placeholder="Search campaigns..."
                           className="text-[12px] outline-none w-full bg-transparent"
                         />
+                        {campaignSearch && (
+                          <button onClick={() => setCampaignSearch("")} className="text-gray-400 hover:text-gray-600 transition shrink-0">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
@@ -2150,18 +2165,18 @@ export default function GoogleAdsPage() {
                           className="rounded"
                         />
                         <span className="text-[11px] text-gray-500">
-                          {selectedCampaigns.size === 0 ? "Select All" : `${selectedCampaigns.size} of ${currentRows.length} selected`}
+                          {selectedCampaigns.size === 0 ? "Select all" : `${selectedCampaigns.size} of ${currentRows.length} selected`}
                         </span>
                       </label>
                       {selectedCampaigns.size > 0 && (
                         <button onClick={() => { setSelectedCampaigns(new Set()); setCheckedRows(new Set()); setClickedRow(null); }} className="text-[11px] text-gray-400 hover:text-gray-700 transition">× Clear</button>
                       )}
                     </div>
-                    <div className="max-h-[200px] overflow-y-auto py-1">
+                    <div className="max-h-[220px] overflow-y-auto py-1">
                       {currentRows
                         .filter((r) => r.name.toLowerCase().includes(campaignSearch.toLowerCase()))
                         .map((r) => (
-                          <label key={r.name} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer">
+                          <label key={r.name} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
                             <input type="checkbox"
                               checked={selectedCampaigns.has(r.name)}
                               onChange={() => {
@@ -2172,7 +2187,7 @@ export default function GoogleAdsPage() {
                               }}
                               className="rounded"
                             />
-                            <span className="text-[12px] text-gray-700">{r.name}</span>
+                            <span className="text-[12px] text-gray-700 truncate">{r.name}</span>
                           </label>
                         ))}
                     </div>
