@@ -2114,7 +2114,7 @@ export default function GoogleAdsPage() {
                   }
                   setCampaignDropdownOpen(!campaignDropdownOpen);
                 }}
-                className={`flex items-center gap-1.5 text-[12px] sm:text-[13px] border rounded-lg px-2 sm:px-2.5 py-1 sm:py-1.5 transition whitespace-nowrap ${
+                className={`flex items-center gap-1.5 text-[13px] border rounded-lg px-2.5 py-1.5 transition whitespace-nowrap ${
                   selectedCampaigns.size > 0
                     ? "border-blue-400 bg-blue-50 text-blue-700"
                     : "border-gray-200 text-gray-600 hover:bg-gray-50"
@@ -2197,16 +2197,16 @@ export default function GoogleAdsPage() {
             </div>
 
             <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setCheckedRows(new Set()); setClickedRow(null); }}
-              className="text-[12px] sm:text-[13px] border border-gray-200 rounded-lg px-2 sm:px-2.5 py-1 sm:py-1.5 outline-none focus:border-blue-400 bg-white shrink-0">
+              className="text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 bg-white shrink-0">
               {types.map((t) => <option key={t}>{t}</option>)}
             </select>
-            <select className="text-[12px] sm:text-[13px] border border-gray-200 rounded-lg px-2 sm:px-2.5 py-1 sm:py-1.5 outline-none focus:border-blue-400 bg-white shrink-0">
+            <select className="text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 bg-white shrink-0">
               <option>Status</option><option>Active</option><option>Paused</option>
             </select>
             {(selectedCampaigns.size > 0 || typeFilter !== "All") && (
               <button
                 onClick={() => { setSelectedCampaigns(new Set()); setTypeFilter("All"); setCheckedRows(new Set()); setClickedRow(null); }}
-                className="text-[12px] sm:text-[13px] text-blue-600 hover:text-blue-800 transition whitespace-nowrap shrink-0"
+                className="text-[13px] text-blue-600 hover:text-blue-800 transition whitespace-nowrap shrink-0"
               >
                 Clear all
               </button>
