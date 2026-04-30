@@ -1162,14 +1162,11 @@ export default function GoogleAdsPage() {
       visibleTotal: chartSeries
         .filter(({ name }) => {
           const isHidden = hiddenSeries.has(name);
-          if (chartGroupBy === "Campaign") {
-            return !isHidden && (selectedNames.size === 0 || selectedNames.has(name));
-          }
           return !isHidden && (rowTypeFilter === null || rowTypeFilter.has(name));
         })
         .reduce((s, { name }) => s + ((row[name] as number) || 0), 0),
     })),
-    [chartBarData, chartSeries, hiddenSeries, rowTypeFilter, chartGroupBy, selectedNames]
+    [chartBarData, chartSeries, hiddenSeries, rowTypeFilter, chartGroupBy]
   );
 
   const aggregatedBarData = useMemo(() => {
@@ -1193,15 +1190,12 @@ export default function GoogleAdsPage() {
       (agg as any).visibleTotal = chartSeries
         .filter(({ name }) => {
           const isHidden = hiddenSeries.has(name);
-          if (chartGroupBy === "Campaign") {
-            return !isHidden && (selectedNames.size === 0 || selectedNames.has(name));
-          }
           return !isHidden && (rowTypeFilter === null || rowTypeFilter.has(name));
         })
         .reduce((s, r) => s + ((agg as any)[r.name] as number || 0), 0);
       return agg as typeof displayBarData[0];
     });
-  }, [displayBarData, granularity, chartSeries, chartGroupBy, hiddenSeries, rowTypeFilter, selectedNames]);
+  }, [displayBarData, granularity, chartSeries, chartGroupBy, hiddenSeries, rowTypeFilter]);
 
   const aggregatedAdPerfData = useMemo(() => {
     const data = adPerfData.map((d, di) => {
@@ -1774,13 +1768,10 @@ export default function GoogleAdsPage() {
                     {chartSeries.map(({ name, color }) => {
                       const visibleLast = chartSeries.filter(({ name: n }) => {
                         const isHidden = hiddenSeries.has(n);
-                        if (chartGroupBy === "Campaign") {
-                          return !isHidden && (selectedNames.size === 0 || selectedNames.has(n));
-                        }
                         return !isHidden && (rowTypeFilter === null || rowTypeFilter.has(n));
                       });
                       const isVisibleTop = visibleLast.length > 0 && visibleLast[visibleLast.length - 1].name === name;
-                      const isHidden = hiddenSeries.has(name) || (chartGroupBy === "Campaign" && selectedNames.size > 0 && !selectedNames.has(name)) || (chartGroupBy === "Type" && rowTypeFilter !== null && !rowTypeFilter.has(name));
+                      const isHidden = hiddenSeries.has(name) || (rowTypeFilter !== null && !rowTypeFilter.has(name));
                       return (
                         <Bar key={name} dataKey={name} stackId="a" fill={color} hide={isHidden} radius={isVisibleTop ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
                           {isVisibleTop && <LabelList dataKey="visibleTotal" content={renderTotalLabelChart} />}
