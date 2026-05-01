@@ -97,8 +97,8 @@ export default function CampaignTable({
     const getPos = (btn: HTMLButtonElement | null, width: number) => {
       if (!btn) return { top: 0, left: 0 };
       const r = btn.getBoundingClientRect();
-      const left = Math.max(8, Math.min(r.left - headerRect.left, headerWidth - width - 8));
-      return { top: r.bottom - headerRect.top + 6, left };
+      const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+      return { top: r.bottom + 6, left };
     };
 
     if (campaignDropdownOpen) setCampaignDropdownPos(getPos(campaignBtnRef.current, 260));
@@ -112,15 +112,20 @@ export default function CampaignTable({
 
   useEffect(() => {
     const f = filtersRef.current;
-    if (f) {
-      f.addEventListener("scroll", updatePositions);
-      window.addEventListener("resize", updatePositions);
-    }
-    return () => {
-      f?.removeEventListener("scroll", updatePositions);
-      window.removeEventListener("resize", updatePositions);
+    const update = () => {
+      if (campaignDropdownOpen || typeDropdownOpen || statusDropdownOpen) {
+        updatePositions();
+      }
     };
-  }, [updatePositions]);
+    if (f) f.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      f?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [updatePositions, campaignDropdownOpen, typeDropdownOpen, statusDropdownOpen]);
 
   const cellStyle = (col: keyof typeof heatCols, value: number, color: "blue" | "green" | "red") => ({
     backgroundColor: heatmapBg(value, heatCols[col].min, heatCols[col].max, color),
@@ -167,7 +172,7 @@ export default function CampaignTable({
             {campaignDropdownOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => { onCampaignDropdownOpen(false); onCampaignSearchChange(""); }} />
-                <div className="absolute w-[260px] bg-white border border-gray-200 rounded-xl shadow-xl z-50 flex flex-col"
+                <div className="fixed w-[260px] bg-white border border-gray-200 rounded-xl shadow-xl z-50 flex flex-col"
                   style={{ top: campaignDropdownPos.top, left: campaignDropdownPos.left }}>
                   <div className="p-2 border-b border-gray-100 shrink-0">
                     <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50/50">
@@ -253,7 +258,7 @@ export default function CampaignTable({
             {typeDropdownOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setTypeDropdownOpen(false)} />
-                <div className="absolute w-[140px] bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-50 overflow-hidden"
+                <div className="fixed w-[140px] bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-1"
                   style={{ top: typeDropdownPos.top, left: typeDropdownPos.left }}>
                   {types.map((t) => (
                     <button key={t} onClick={() => { onTypeFilter(t); setTypeDropdownOpen(false); onCheckedRowsChange(new Set()); onClickedRowChange(null); }}
@@ -291,7 +296,7 @@ export default function CampaignTable({
             {statusDropdownOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setStatusDropdownOpen(false)} />
-                <div className="absolute w-[120px] bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-50 overflow-hidden"
+                <div className="fixed w-[120px] bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-1"
                   style={{ top: statusDropdownPos.top, left: statusDropdownPos.left }}>
                   {["Status", "Active", "Paused"].map((s) => (
                     <button key={s} onClick={() => { onStatusFilter(s); setStatusDropdownOpen(false); }}
