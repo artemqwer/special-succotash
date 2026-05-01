@@ -407,6 +407,8 @@ export default function GoogleAdsPage() {
     checkedRows.forEach((i) => { if (filtered[i]) selTypes.add(filtered[i].type); });
     if (selTypes.size === 0) return null;
     const groups = new Set<string>();
+    if (clickedRow !== null && filtered[clickedRow]) groups.add(filtered[clickedRow].name);
+    checkedRows.forEach((i) => { if (filtered[i]) groups.add(filtered[i].name); });
     selTypes.forEach((t) => (TYPE_TO_GROUPS[t] ?? []).forEach((g) => groups.add(g)));
     return groups;
   }, [checkedRows, clickedRow, filtered]);
@@ -503,7 +505,7 @@ export default function GoogleAdsPage() {
       (agg as any).visibleTotal = chartSeries
         .filter(({ name }) => {
           const isHidden = hiddenSeries.has(name);
-          return !isHidden && (rowTypeFilter === null || rowTypeFilter.has(name));
+          return !isHidden && (rowTypeFilter === null || rowTypeFilter.has(name) || (CAMPAIGN_TYPE_MAP[name] && rowTypeFilter.has(CAMPAIGN_TYPE_MAP[name])));
         })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .reduce((s, r) => s + ((agg as any)[r.name] as number || 0), 0);
