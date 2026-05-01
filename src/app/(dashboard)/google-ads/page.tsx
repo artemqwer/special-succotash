@@ -669,7 +669,7 @@ export default function GoogleAdsPage() {
     <div className={`w-full px-4 sm:px-6 py-6 bg-[#f4f6fb] transition-[padding] duration-300 ease-out ${aiOpen ? "lg:pr-[456px]" : ""}`}>
       <div className="max-w-[1600px]">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+      <div className="hidden sm:flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
