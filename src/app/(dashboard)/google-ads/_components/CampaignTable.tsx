@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { SortIcon } from "./ChartPrimitives";
 import { SortKey, SortDir, fmtNum, fmtK, fmtPct, fmtCurrency, heatmapBg } from "../_data/constants";
 
@@ -57,11 +57,9 @@ interface CampaignTableProps {
   onExpandedNameIdxChange: (v: number | null) => void;
   onSelectedCampaignsChange: (v: Set<string>) => void;
   campaignDropdownOpen: boolean;
-  campaignDropdownPos: { top: number; left: number };
   campaignSearch: string;
   onCampaignDropdownOpen: (open: boolean) => void;
   onCampaignSearchChange: (v: string) => void;
-  onCampaignDropdownBtnClick: () => void;
 }
 
 export default function CampaignTable({
@@ -73,10 +71,11 @@ export default function CampaignTable({
   onSort, onTypeFilter, onPageChange, onRowsPerPageChange,
   onCheckedRowsChange, onClickedRowChange,
   onNamesCollapsedChange, onExpandedNameIdxChange, onSelectedCampaignsChange,
-  campaignDropdownOpen, campaignDropdownPos, campaignSearch,
-  onCampaignDropdownOpen, onCampaignSearchChange, onCampaignDropdownBtnClick,
+  campaignDropdownOpen, campaignSearch,
+  onCampaignDropdownOpen, onCampaignSearchChange,
 }: CampaignTableProps) {
   const campaignBtnRef = useRef<HTMLButtonElement>(null);
+  const [campaignDropdownPos, setCampaignDropdownPos] = useState({ top: 0, left: 0 });
 
   const cellStyle = (col: keyof typeof heatCols, value: number, color: "blue" | "green" | "red") => ({
     backgroundColor: heatmapBg(value, heatCols[col].min, heatCols[col].max, color),
@@ -96,7 +95,13 @@ export default function CampaignTable({
           <div className="shrink-0">
             <button
               ref={campaignBtnRef}
-              onClick={onCampaignDropdownBtnClick}
+              onClick={() => {
+                if (!campaignDropdownOpen && campaignBtnRef.current) {
+                  const r = campaignBtnRef.current.getBoundingClientRect();
+                  setCampaignDropdownPos({ top: r.bottom + 6, left: r.left });
+                }
+                onCampaignDropdownOpen(!campaignDropdownOpen);
+              }}
               className={`flex items-center gap-1.5 text-[13px] border rounded-lg px-2.5 py-1.5 transition whitespace-nowrap ${
                 selectedCampaigns.size > 0
                   ? "border-blue-400 bg-blue-50 text-blue-700"

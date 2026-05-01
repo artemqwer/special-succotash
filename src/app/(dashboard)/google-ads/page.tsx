@@ -34,8 +34,6 @@ export default function GoogleAdsPage() {
   const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set());
   const [campaignDropdownOpen, setCampaignDropdownOpen] = useState(false);
   const [campaignSearch, setCampaignSearch] = useState("");
-  const campaignBtnRef = useRef<HTMLButtonElement>(null);
-  const [campaignDropdownPos, setCampaignDropdownPos] = useState({ top: 0, left: 0 });
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [expandedNameIdx, setExpandedNameIdx] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -880,17 +878,9 @@ export default function GoogleAdsPage() {
         onExpandedNameIdxChange={setExpandedNameIdx}
         onSelectedCampaignsChange={setSelectedCampaigns}
         campaignDropdownOpen={campaignDropdownOpen}
-        campaignDropdownPos={campaignDropdownPos}
         campaignSearch={campaignSearch}
         onCampaignDropdownOpen={setCampaignDropdownOpen}
         onCampaignSearchChange={setCampaignSearch}
-        onCampaignDropdownBtnClick={() => {
-          if (!campaignDropdownOpen && campaignBtnRef.current) {
-            const r = campaignBtnRef.current.getBoundingClientRect();
-            setCampaignDropdownPos({ top: r.bottom + 6, left: r.left });
-          }
-          setCampaignDropdownOpen(!campaignDropdownOpen);
-        }}
       />
 
       {/* ── Add Custom Event Modal ── */}
