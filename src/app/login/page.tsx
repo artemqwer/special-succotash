@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DataRocksLogo from "@/components/DataRocksLogo";
-import { setSession, getSession } from "@/lib/auth";
-import { useEffect } from "react";
+import { setSession, getSession, loginUser } from "@/lib/auth";
 
 function isValidEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -20,6 +19,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
 
   useEffect(() => {
     if (getSession()) router.replace("/google-ads");
@@ -30,7 +31,6 @@ export default function LoginPage() {
     if (!fields.email.trim()) e.email = "Email is required";
     else if (!isValidEmail(fields.email)) e.email = "Enter a valid email address";
     if (!fields.password) e.password = "Password is required";
-    else if (fields.password.length < 6) e.password = "Password must be at least 6 characters";
     return e;
   };
 
@@ -39,16 +39,25 @@ export default function LoginPage() {
     setErrors(validate());
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ email: true, password: true });
     const errs = validate();
     setErrors(errs);
-    if (Object.keys(errs).length === 0) {
-      const name = email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-      setSession({ email, name });
-      router.replace("/google-ads");
+    if (Object.keys(errs).length > 0) return;
+
+    setLoading(true);
+    setServerError("");
+    const result = await loginUser(email.trim(), password);
+    setLoading(false);
+
+    if (!result.success || !result.session) {
+      setServerError(result.error ?? "Login failed");
+      return;
     }
+
+    setSession(result.session);
+    router.replace("/google-ads");
   };
 
   const fieldClass = (field: keyof Errors, extra = "") =>
@@ -66,6 +75,13 @@ export default function LoginPage() {
       <p className="text-[14px] text-gray-500 mb-6">Sign in to your account to continue</p>
 
       <form onSubmit={handleSubmit} noValidate className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-8 w-full max-w-[400px]">
+        {serverError && (
+          <div className="mb-4 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg text-[13px] text-red-600 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {serverError}
+          </div>
+        )}
+
         {/* Email */}
         <div className="mb-4">
           <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Email address</label>
@@ -79,7 +95,7 @@ export default function LoginPage() {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); if (serverError) setServerError(""); }}
               onBlur={() => handleBlur("email")}
               placeholder="john@company.com"
               className={fieldClass("email", "pl-9 pr-4")}
@@ -106,7 +122,7 @@ export default function LoginPage() {
             <input
               type={showPassword ? "text" : "password"}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); if (serverError) setServerError(""); }}
               onBlur={() => handleBlur("password")}
               placeholder="Enter your password"
               className={fieldClass("password", "pl-9 pr-10")}
@@ -155,12 +171,18 @@ export default function LoginPage() {
           </a>
         </div>
 
-        <button type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium text-[15px] py-2.5 rounded-lg flex items-center justify-center gap-2 transition mb-5">
-          Sign in
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14M12 5l7 7-7 7" />
-          </svg>
+        <button type="submit" disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-blue-400 text-white font-medium text-[15px] py-2.5 rounded-lg flex items-center justify-center gap-2 transition mb-5">
+          {loading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <>
+              Sign in
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </>
+          )}
         </button>
 
         <div className="flex items-center gap-3 mb-4">
