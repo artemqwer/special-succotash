@@ -40,7 +40,7 @@ export function generatePeriodData(startMs: number, endMs: number) {
       const cRev = isLast ? Math.max(0, total - usedRev) : Math.round(total * share);
       const cCost = isLast ? Math.max(0, perf.cost - usedCost) : Math.round(perf.cost * share);
       const cClicks = isLast ? Math.max(0, perf.clicks - usedClicks) : Math.round(perf.clicks * share);
-      const cConv = isLast ? Math.max(0, ((perf as any).conv || 0) - usedConv) : Math.round(((perf as any).conv || 0) * share);
+      const cConv = isLast ? Math.max(0, perf.convValue - usedConv) : Math.round(perf.convValue * share);
 
       obj[c] = cRev;
       obj[`_cost_${c}`] = cCost;
