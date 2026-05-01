@@ -242,7 +242,7 @@ export default function TabContent({
                   <XAxis dataKey="date" tick={isMobile && aggregatedAdPerfData.length > 8 ? false : (p) => <AdXTick {...p} data={aggregatedAdPerfData} />} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} height={isMobile && aggregatedAdPerfData.length > 8 ? 4 : 48} />
                   <YAxis yAxisId="left" domain={[0, "auto"]} tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `$${v / 1000}K`} label={isMobile ? undefined : { value: "Conv. Value / Profit / Cost", angle: -90, position: "insideLeft", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                   <YAxis yAxisId="right" orientation="right" hide domain={[0, 6]} />
-                  <YAxis yAxisId="clicks" orientation="right" hide={isMobile} tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} domain={[0, 8000]} label={isMobile ? undefined : { value: "Clicks", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
+                  <YAxis yAxisId="clicks" orientation="right" hide={isMobile} tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={{ stroke: "#E5E7EB", strokeWidth: 1 }} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} domain={[0, "auto"]} label={isMobile ? undefined : { value: "Clicks", angle: 90, position: "insideRight", offset: 10, style: { textAnchor: "middle", fill: "#9CA3AF", fontSize: 11 } }} />
                   <ReferenceLine yAxisId="left" y={0} stroke="#E5E7EB" strokeWidth={1} />
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <Tooltip content={(p: any) => <AdTooltip {...p} data={aggregatedAdPerfData} />} cursor={{ fill: "rgba(99,102,241,0.04)" }} />
@@ -258,8 +258,6 @@ export default function TabContent({
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     <LabelList dataKey="profitBar" content={renderConvLabel as any} />
                   </Bar>
-                  <Line yAxisId="left" type="monotone" dataKey="convValue" stroke="#3B82F6" strokeWidth={2.5} dot={{ r: 3.5, fill: "#3B82F6", strokeWidth: 0 }} hide={hiddenAdPerf.has("conv")} isAnimationActive={false} />
-                  <Line yAxisId="right" type="stepAfter" dataKey="roas" stroke="#8B5CF6" strokeWidth={2} dot={false} hide={hiddenAdPerf.has("roas")} isAnimationActive={false} />
                   <Line yAxisId="clicks" type="monotone" dataKey="clicks" stroke="#1F2937" strokeWidth={1.5} strokeDasharray="4 3" dot={false} activeDot={{ r: 4, fill: "#1F2937" }} hide={hiddenAdPerf.has("clicks")} isAnimationActive={false} />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -267,11 +265,9 @@ export default function TabContent({
           </div>
           <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 justify-center">
             {([
-              { key: "conv", label: "Conv. Value", color: "#0EA5E9" },
               { key: "profit", label: "Profit", color: "#4ADE80" },
               { key: "cost", label: "Cost", color: "#F87171" },
               { key: "clicks", label: "Clicks", color: "#1F2937", line: true },
-              { key: "roas", label: "ROAS", color: "#8B5CF6", dot: true },
             ] as { key: string; label: string; color: string; line?: boolean; dot?: boolean }[]).map(({ key, label, color, line, dot }) => {
               const hidden = hiddenAdPerf.has(key);
               return (
