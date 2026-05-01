@@ -169,69 +169,6 @@ export default function CampaignTable({
               </svg>
             </button>
 
-            {campaignDropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => { onCampaignDropdownOpen(false); onCampaignSearchChange(""); }} />
-                <div className="fixed w-[260px] bg-white border border-gray-200 rounded-xl shadow-xl z-50 flex flex-col"
-                  style={{ top: campaignDropdownPos.top, left: campaignDropdownPos.left }}>
-                  <div className="p-2 border-b border-gray-100 shrink-0">
-                    <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50/50">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                      <input
-                        autoFocus
-                        value={campaignSearch}
-                        onChange={(e) => onCampaignSearchChange(e.target.value)}
-                        placeholder="Search campaigns..."
-                        className="text-[12px] outline-none w-full bg-transparent"
-                      />
-                      {campaignSearch && (
-                        <button onClick={() => onCampaignSearchChange("")} className="text-gray-400 hover:text-gray-600 transition shrink-0">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 shrink-0">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox"
-                        checked={selectedCampaigns.size === currentRows.length && currentRows.length > 0}
-                        onChange={() => {
-                          onCheckedRowsChange(new Set()); onClickedRowChange(null);
-                          if (selectedCampaigns.size === currentRows.length) onSelectedCampaignsChange(new Set());
-                          else onSelectedCampaignsChange(new Set(currentRows.map((r) => r.name)));
-                        }}
-                        className="rounded"
-                      />
-                      <span className="text-[11px] text-gray-500">
-                        {selectedCampaigns.size === 0 ? "Select all" : `${selectedCampaigns.size} of ${currentRows.length} selected`}
-                      </span>
-                    </label>
-                    {selectedCampaigns.size > 0 && (
-                      <button onClick={() => { onSelectedCampaignsChange(new Set()); onCheckedRowsChange(new Set()); onClickedRowChange(null); }} className="text-[11px] text-gray-400 hover:text-gray-700 transition">× Clear</button>
-                    )}
-                  </div>
-                  <div className="max-h-[220px] overflow-y-auto py-1">
-                    {currentRows
-                      .filter((r) => r.name.toLowerCase().includes(campaignSearch.toLowerCase()))
-                      .map((r) => (
-                        <label key={r.name} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
-                          <input type="checkbox"
-                            checked={selectedCampaigns.has(r.name)}
-                            onChange={() => {
-                              onCheckedRowsChange(new Set()); onClickedRowChange(null);
-                              const next = new Set(selectedCampaigns);
-                              next.has(r.name) ? next.delete(r.name) : next.add(r.name);
-                              onSelectedCampaignsChange(next);
-                            }}
-                            className="rounded"
-                          />
-                          <span className="text-[12px] text-gray-700 truncate">{r.name}</span>
-                        </label>
-                      ))}
-                  </div>
-                </div>
-              </>
-            )}
           </div>
 
           {/* Type Dropdown */}
@@ -255,21 +192,6 @@ export default function CampaignTable({
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
             </button>
-            {typeDropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setTypeDropdownOpen(false)} />
-                <div className="fixed w-[140px] bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-1"
-                  style={{ top: typeDropdownPos.top, left: typeDropdownPos.left }}>
-                  {types.map((t) => (
-                    <button key={t} onClick={() => { onTypeFilter(t); setTypeDropdownOpen(false); onCheckedRowsChange(new Set()); onClickedRowChange(null); }}
-                      className={`w-full text-left px-3.5 py-2 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${typeFilter === t ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
-                      {t}
-                      {typeFilter === t && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
           </div>
 
           {/* Status Dropdown */}
@@ -293,21 +215,6 @@ export default function CampaignTable({
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
             </button>
-            {statusDropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setStatusDropdownOpen(false)} />
-                <div className="fixed w-[120px] bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-1"
-                  style={{ top: statusDropdownPos.top, left: statusDropdownPos.left }}>
-                  {["Status", "Active", "Paused"].map((s) => (
-                    <button key={s} onClick={() => { onStatusFilter(s); setStatusDropdownOpen(false); }}
-                      className={`w-full text-left px-3.5 py-2 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${statusFilter === s ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
-                      {s}
-                      {statusFilter === s && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
           </div>
           {(selectedCampaigns.size > 0 || typeFilter !== "All" || statusFilter !== "Status") && (
             <button
@@ -552,6 +459,75 @@ export default function CampaignTable({
           </button>
         </div>
       </div>
+      </div>
+
+      {/* Dropdowns rendered at the end to avoid z-index/clipping issues on iOS */}
+      {campaignDropdownOpen && (
+        <>
+          <div className="fixed inset-0 z-[90]" onClick={() => { onCampaignDropdownOpen(false); onCampaignSearchChange(""); }} />
+          <div className="fixed w-[260px] bg-white border border-gray-200 rounded-xl shadow-xl z-[100] flex flex-col"
+            style={{ top: campaignDropdownPos.top, left: campaignDropdownPos.left }}>
+            <div className="p-2 border-b border-gray-100 shrink-0">
+              <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50/50">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input autoFocus value={campaignSearch} onChange={(e) => onCampaignSearchChange(e.target.value)} placeholder="Search campaigns..." className="text-[12px] outline-none w-full bg-transparent" />
+                {campaignSearch && (
+                  <button onClick={() => onCampaignSearchChange("")} className="text-gray-400 hover:text-gray-600 transition shrink-0">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 shrink-0">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={selectedCampaigns.size === currentRows.length && currentRows.length > 0} onChange={() => { onCheckedRowsChange(new Set()); onClickedRowChange(null); if (selectedCampaigns.size === currentRows.length) onSelectedCampaignsChange(new Set()); else onSelectedCampaignsChange(new Set(currentRows.map((r) => r.name))); }} className="rounded" />
+                <span className="text-[11px] text-gray-500">{selectedCampaigns.size === 0 ? "Select all" : `${selectedCampaigns.size} of ${currentRows.length} selected`}</span>
+              </label>
+              {selectedCampaigns.size > 0 && ( <button onClick={() => { onSelectedCampaignsChange(new Set()); onCheckedRowsChange(new Set()); onClickedRowChange(null); }} className="text-[11px] text-gray-400 hover:text-gray-700 transition">× Clear</button> )}
+            </div>
+            <div className="max-h-[220px] overflow-y-auto py-1">
+              {currentRows.filter((r) => r.name.toLowerCase().includes(campaignSearch.toLowerCase())).map((r) => (
+                <label key={r.name} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                  <input type="checkbox" checked={selectedCampaigns.has(r.name)} onChange={() => { onCheckedRowsChange(new Set()); onClickedRowChange(null); const next = new Set(selectedCampaigns); next.has(r.name) ? next.delete(r.name) : next.add(r.name); onSelectedCampaignsChange(next); }} className="rounded" />
+                  <span className="text-[12px] text-gray-700 truncate">{r.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {typeDropdownOpen && (
+        <>
+          <div className="fixed inset-0 z-[90]" onClick={() => setTypeDropdownOpen(false)} />
+          <div className="fixed w-[140px] bg-white border border-gray-200 rounded-xl shadow-xl z-[100] py-1"
+            style={{ top: typeDropdownPos.top, left: typeDropdownPos.left }}>
+            {types.map((t) => (
+              <button key={t} onClick={() => { onTypeFilter(t); setTypeDropdownOpen(false); onCheckedRowsChange(new Set()); onClickedRowChange(null); }}
+                className={`w-full text-left px-3.5 py-2.5 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${typeFilter === t ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
+                {t}
+                {typeFilter === t && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {statusDropdownOpen && (
+        <>
+          <div className="fixed inset-0 z-[90]" onClick={() => setStatusDropdownOpen(false)} />
+          <div className="fixed w-[120px] bg-white border border-gray-200 rounded-xl shadow-xl z-[100] py-1"
+            style={{ top: statusDropdownPos.top, left: statusDropdownPos.left }}>
+            {["Status", "Active", "Paused"].map((s) => (
+              <button key={s} onClick={() => { onStatusFilter(s); setStatusDropdownOpen(false); }}
+                className={`w-full text-left px-3.5 py-2.5 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${statusFilter === s ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
+                {s}
+                {statusFilter === s && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
