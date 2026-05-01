@@ -32,9 +32,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-hidden`}
+      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
-      <body className="flex flex-col overflow-x-hidden overscroll-none" style={{ WebkitOverflowScrolling: "touch" }}>{children}</body>
+      <body className="flex flex-col bg-[#f4f6fb]">{children}</body>
     </html>
   );
 }
