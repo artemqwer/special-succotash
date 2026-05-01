@@ -320,11 +320,9 @@ export default function GoogleAdsPage() {
     const isOpen = addEventOpen || aiOpen;
     if (!isOpen) return;
     const scrollY = window.scrollY;
-    document.documentElement.style.overflow = "hidden";
-    document.documentElement.style.height = "100%";
+    document.body.style.overflow = "hidden";
     return () => {
-      document.documentElement.style.overflow = "";
-      document.documentElement.style.height = "";
+      document.body.style.overflow = "";
       window.scrollTo(0, scrollY);
     };
   }, [addEventOpen, aiOpen]);
@@ -672,7 +670,7 @@ export default function GoogleAdsPage() {
       className={`w-full px-4 sm:px-6 pt-6 bg-[#f4f6fb] ${isMobile ? "" : "transition-[padding] duration-300 ease-out"} ${aiOpen ? "lg:pr-[456px]" : ""}`}
       style={{ 
         paddingBottom: "calc(env(safe-area-inset-bottom) + 120px)",
-        minHeight: "100.1dvh", // Subtle force for iOS scroll
+        minHeight: "100vh",
         overscrollBehaviorY: "auto"
       }}
     >
