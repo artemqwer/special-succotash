@@ -667,9 +667,9 @@ export default function GoogleAdsPage() {
 
   return (
     <div 
-      className={`w-full px-4 sm:px-6 pt-6 bg-[#f4f6fb] ${isMobile ? "" : "transition-[padding] duration-300 ease-out"} ${aiOpen ? "lg:pr-[456px]" : ""}`}
+      className={`w-full px-4 sm:px-6 pt-6 pb-12 bg-[#f4f6fb] ${isMobile ? "" : "transition-[padding] duration-300 ease-out"} ${aiOpen ? "lg:pr-[456px]" : ""}`}
       style={{ 
-        paddingBottom: "calc(env(safe-area-inset-bottom) + 120px)",
+        paddingBottom: "calc(env(safe-area-inset-bottom) + 3rem)",
         minHeight: "100vh",
         overscrollBehaviorY: "auto"
       }}
