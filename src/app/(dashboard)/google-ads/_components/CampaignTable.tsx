@@ -108,7 +108,7 @@ export default function CampaignTable({
 
   useEffect(() => {
     updatePositions();
-  }, [campaignDropdownOpen, typeDropdownOpen, statusDropdownOpen, updatePositions]);
+  }, [updatePositions]);
 
   useEffect(() => {
     const f = filtersRef.current;
@@ -125,7 +125,7 @@ export default function CampaignTable({
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
-  }, [updatePositions, campaignDropdownOpen, typeDropdownOpen, statusDropdownOpen]);
+  }, [updatePositions]);
 
   const cellStyle = (col: keyof typeof heatCols, value: number, color: "blue" | "green" | "red") => ({
     backgroundColor: heatmapBg(value, heatCols[col].min, heatCols[col].max, color),
