@@ -34,6 +34,7 @@ export default function GoogleAdsPage() {
   const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set());
   const [campaignDropdownOpen, setCampaignDropdownOpen] = useState(false);
   const [campaignSearch, setCampaignSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Status");
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [expandedNameIdx, setExpandedNameIdx] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -381,6 +382,10 @@ export default function GoogleAdsPage() {
   const filtered = useMemo(() => {
     const base = realCampaignRows || campaignRows;
     let rows = typeFilter === "All" ? base : base.filter((r) => r.type === typeFilter);
+    if (statusFilter !== "Status") {
+      const target = statusFilter === "Active" ? "green" : "gray";
+      rows = rows.filter((r) => r.status === target);
+    }
     if (selectedCampaigns.size > 0) rows = rows.filter((r) => selectedCampaigns.has(r.name));
     if (sortCol && sortDir) {
       rows = [...rows].sort((a, b) => {
@@ -659,7 +664,8 @@ export default function GoogleAdsPage() {
   }, [filtered]);
 
   return (
-    <div className={`max-w-[1600px] px-4 sm:px-6 py-6 bg-[#f4f6fb] transition-[padding] duration-300 ease-out ${aiOpen ? "lg:pr-[456px] min-[1700px]:pr-6" : ""}`}>
+    <div className={`w-full px-4 sm:px-6 py-6 bg-[#f4f6fb] transition-[padding] duration-300 ease-out ${aiOpen ? "lg:pr-[456px]" : ""}`}>
+      <div className="max-w-[1600px]">
       {/* Header */}
       <div className="hidden sm:flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -881,7 +887,10 @@ export default function GoogleAdsPage() {
         campaignSearch={campaignSearch}
         onCampaignDropdownOpen={setCampaignDropdownOpen}
         onCampaignSearchChange={setCampaignSearch}
+        statusFilter={statusFilter}
+        onStatusFilter={setStatusFilter}
       />
+      </div>
 
       {/* ── Add Custom Event Modal ── */}
       {addEventOpen && (

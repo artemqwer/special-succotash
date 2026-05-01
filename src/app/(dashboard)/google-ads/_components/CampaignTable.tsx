@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import { SortIcon } from "./ChartPrimitives";
 import { SortKey, SortDir, fmtNum, fmtK, fmtPct, fmtCurrency, heatmapBg } from "../_data/constants";
 
@@ -60,6 +60,8 @@ interface CampaignTableProps {
   campaignSearch: string;
   onCampaignDropdownOpen: (open: boolean) => void;
   onCampaignSearchChange: (v: string) => void;
+  statusFilter: string;
+  onStatusFilter: (v: string) => void;
 }
 
 export default function CampaignTable({
@@ -73,22 +75,65 @@ export default function CampaignTable({
   onNamesCollapsedChange, onExpandedNameIdxChange, onSelectedCampaignsChange,
   campaignDropdownOpen, campaignSearch,
   onCampaignDropdownOpen, onCampaignSearchChange,
+  statusFilter, onStatusFilter,
 }: CampaignTableProps) {
+  const headerRef = useRef<HTMLDivElement>(null);
+  const filtersRef = useRef<HTMLDivElement>(null);
   const campaignBtnRef = useRef<HTMLButtonElement>(null);
+  const typeBtnRef = useRef<HTMLButtonElement>(null);
+  const statusBtnRef = useRef<HTMLButtonElement>(null);
+
   const [campaignDropdownPos, setCampaignDropdownPos] = useState({ top: 0, left: 0 });
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+  const [typeDropdownPos, setTypeDropdownPos] = useState({ top: 0, left: 0 });
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [statusDropdownPos, setStatusDropdownPos] = useState({ top: 0, left: 0 });
+
+  const updatePositions = useCallback(() => {
+    if (!headerRef.current) return;
+    const headerRect = headerRef.current.getBoundingClientRect();
+    const headerWidth = headerRef.current.offsetWidth;
+
+    const getPos = (btn: HTMLButtonElement | null, width: number) => {
+      if (!btn) return { top: 0, left: 0 };
+      const r = btn.getBoundingClientRect();
+      const left = Math.max(8, Math.min(r.left - headerRect.left, headerWidth - width - 8));
+      return { top: r.bottom - headerRect.top + 6, left };
+    };
+
+    if (campaignDropdownOpen) setCampaignDropdownPos(getPos(campaignBtnRef.current, 260));
+    if (typeDropdownOpen) setTypeDropdownPos(getPos(typeBtnRef.current, 140));
+    if (statusDropdownOpen) setStatusDropdownPos(getPos(statusBtnRef.current, 120));
+  }, [campaignDropdownOpen, typeDropdownOpen, statusDropdownOpen]);
+
+  useEffect(() => {
+    updatePositions();
+  }, [campaignDropdownOpen, typeDropdownOpen, statusDropdownOpen, updatePositions]);
+
+  useEffect(() => {
+    const f = filtersRef.current;
+    if (f) {
+      f.addEventListener("scroll", updatePositions);
+      window.addEventListener("resize", updatePositions);
+    }
+    return () => {
+      f?.removeEventListener("scroll", updatePositions);
+      window.removeEventListener("resize", updatePositions);
+    };
+  }, [updatePositions]);
 
   const cellStyle = (col: keyof typeof heatCols, value: number, color: "blue" | "green" | "red") => ({
     backgroundColor: heatmapBg(value, heatCols[col].min, heatCols[col].max, color),
   });
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="px-4 sm:px-5 py-4 flex items-start justify-between flex-wrap gap-2 sm:gap-3 border-b border-gray-100">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm relative">
+      <div ref={headerRef} className="px-4 sm:px-5 py-4 flex items-start justify-between flex-wrap gap-2 sm:gap-3 border-b border-gray-100 relative">
         <div className="min-w-0">
           <h2 className="text-[15px] sm:text-[17px] font-bold text-gray-900">Campaign Performance</h2>
           <p className="text-[13px] text-gray-400 mt-0.5 hidden sm:block">Detailed analytics for {currentRows.length} campaigns • {fmtMs(rangeStart)} – {fmtMs(rangeEnd)}</p>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none w-full sm:w-auto">
+        <div ref={filtersRef} className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none w-full sm:w-auto">
           <span className="text-[13px] text-gray-500 hidden sm:inline shrink-0">Filters:</span>
 
           {/* Campaign Name multi-select dropdown */}
@@ -122,9 +167,9 @@ export default function CampaignTable({
             {campaignDropdownOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => { onCampaignDropdownOpen(false); onCampaignSearchChange(""); }} />
-                <div className="fixed w-[260px] bg-white border border-gray-200 rounded-xl shadow-xl z-50"
+                <div className="absolute w-[260px] bg-white border border-gray-200 rounded-xl shadow-xl z-50 flex flex-col"
                   style={{ top: campaignDropdownPos.top, left: campaignDropdownPos.left }}>
-                  <div className="p-2 border-b border-gray-100">
+                  <div className="p-2 border-b border-gray-100 shrink-0">
                     <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50/50">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                       <input
@@ -141,7 +186,7 @@ export default function CampaignTable({
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 shrink-0">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox"
                         checked={selectedCampaigns.size === currentRows.length && currentRows.length > 0}
@@ -184,16 +229,84 @@ export default function CampaignTable({
             )}
           </div>
 
-          <select value={typeFilter} onChange={(e) => { onTypeFilter(e.target.value); onCheckedRowsChange(new Set()); onClickedRowChange(null); }}
-            className="text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 bg-white shrink-0">
-            {types.map((t) => <option key={t}>{t}</option>)}
-          </select>
-          <select className="text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-blue-400 bg-white shrink-0">
-            <option>Status</option><option>Active</option><option>Paused</option>
-          </select>
-          {(selectedCampaigns.size > 0 || typeFilter !== "All") && (
+          {/* Type Dropdown */}
+          <div className="shrink-0">
             <button
-              onClick={() => { onSelectedCampaignsChange(new Set()); onTypeFilter("All"); onCheckedRowsChange(new Set()); onClickedRowChange(null); }}
+              ref={typeBtnRef}
+              onClick={() => {
+                setTypeDropdownOpen(!typeDropdownOpen);
+                setStatusDropdownOpen(false);
+                onCampaignDropdownOpen(false);
+              }}
+              className={`flex items-center gap-1.5 text-[13px] border rounded-lg px-2.5 py-1.5 transition whitespace-nowrap ${
+                typeFilter !== "All"
+                  ? "border-blue-400 bg-blue-50 text-blue-700 font-medium"
+                  : "border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {typeFilter === "All" ? "Type" : typeFilter}
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                className={`transition-transform ${typeDropdownOpen ? "rotate-180" : ""}`}>
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            {typeDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setTypeDropdownOpen(false)} />
+                <div className="absolute w-[140px] bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-50 overflow-hidden"
+                  style={{ top: typeDropdownPos.top, left: typeDropdownPos.left }}>
+                  {types.map((t) => (
+                    <button key={t} onClick={() => { onTypeFilter(t); setTypeDropdownOpen(false); onCheckedRowsChange(new Set()); onClickedRowChange(null); }}
+                      className={`w-full text-left px-3.5 py-2 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${typeFilter === t ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
+                      {t}
+                      {typeFilter === t && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Status Dropdown */}
+          <div className="shrink-0">
+            <button
+              ref={statusBtnRef}
+              onClick={() => {
+                setStatusDropdownOpen(!statusDropdownOpen);
+                setTypeDropdownOpen(false);
+                onCampaignDropdownOpen(false);
+              }}
+              className={`flex items-center gap-1.5 text-[13px] border rounded-lg px-2.5 py-1.5 transition whitespace-nowrap ${
+                statusFilter !== "Status"
+                  ? "border-blue-400 bg-blue-50 text-blue-700 font-medium"
+                  : "border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {statusFilter}
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                className={`transition-transform ${statusDropdownOpen ? "rotate-180" : ""}`}>
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            {statusDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setStatusDropdownOpen(false)} />
+                <div className="absolute w-[120px] bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-50 overflow-hidden"
+                  style={{ top: statusDropdownPos.top, left: statusDropdownPos.left }}>
+                  {["Status", "Active", "Paused"].map((s) => (
+                    <button key={s} onClick={() => { onStatusFilter(s); setStatusDropdownOpen(false); }}
+                      className={`w-full text-left px-3.5 py-2 text-[13px] hover:bg-gray-50 flex items-center justify-between transition ${statusFilter === s ? "text-blue-600 font-semibold bg-blue-50/60" : "text-gray-700"}`}>
+                      {s}
+                      {statusFilter === s && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          {(selectedCampaigns.size > 0 || typeFilter !== "All" || statusFilter !== "Status") && (
+            <button
+              onClick={() => { onSelectedCampaignsChange(new Set()); onTypeFilter("All"); onStatusFilter("Status"); onCheckedRowsChange(new Set()); onClickedRowChange(null); }}
               className="text-[13px] text-blue-600 hover:text-blue-800 transition whitespace-nowrap shrink-0"
             >
               Clear all
@@ -202,7 +315,7 @@ export default function CampaignTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-hidden rounded-b-2xl">
         <table className="w-full text-[13px] border-collapse min-w-[1280px]">
           <colgroup>
             <col className="w-10" />
