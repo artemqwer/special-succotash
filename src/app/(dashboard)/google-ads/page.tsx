@@ -551,13 +551,13 @@ export default function GoogleAdsPage() {
       const cost = chunk.reduce((s, r) => s + r.cost, 0);
       const profit = chunk.reduce((s, r) => s + r.profit, 0);
       const clicks = chunk.reduce((s, r) => s + r.clicks, 0);
-      const roas = parseFloat((convValue / cost).toFixed(2));
+      const roas = cost > 0 ? parseFloat((convValue / cost).toFixed(2)) : 0;
       const date = granularity === "weeks"
         ? `${chunk[0].date}–${chunk[chunk.length - 1].date}`
         : chunk[0].date.split(" ")[0];
       return { date, convValue, cost, profit, clicks, roas, costBar: cost, profitBar: Math.max(0, profit) };
     });
-  }, [adPerfData, granularity, selectionScale]);
+  }, [adPerfData, granularity, selectionScale, selectedNames, barData]);
 
   const aggregatedPlData = useMemo(() => {
     const data = plData.map(d => ({

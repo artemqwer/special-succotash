@@ -192,7 +192,7 @@ export default function TabContent({
                     const isVisibleTop = visibleLast.length > 0 && visibleLast[visibleLast.length - 1].name === name;
                     const isHidden = hiddenSeries.has(name) || (rowTypeFilter !== null && !rowTypeFilter.has(name));
                     return (
-                      <Bar key={name} dataKey={name} stackId="a" fill={color} hide={isHidden} radius={isVisibleTop ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
+                      <Bar key={name} dataKey={name} stackId="a" fill={color} hide={isHidden} radius={isVisibleTop ? [4, 4, 0, 0] : [0, 0, 0, 0]} isAnimationActive={false}>
                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         {isVisibleTop && <LabelList dataKey="visibleTotal" content={renderTotalLabelChart as any} />}
                       </Bar>
@@ -258,7 +258,9 @@ export default function TabContent({
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     <LabelList dataKey="profitBar" content={renderConvLabel as any} />
                   </Bar>
-                  <Line yAxisId="clicks" type="monotone" dataKey="clicks" stroke="#1F2937" strokeWidth={1.5} strokeDasharray="4 3" dot={false} activeDot={{ r: 4, fill: "#1F2937" }} hide={hiddenAdPerf.has("clicks")} />
+                  <Line yAxisId="left" type="monotone" dataKey="convValue" stroke="#3B82F6" strokeWidth={2.5} dot={{ r: 3.5, fill: "#3B82F6", strokeWidth: 0 }} hide={hiddenAdPerf.has("conv")} isAnimationActive={false} />
+                  <Line yAxisId="right" type="stepAfter" dataKey="roas" stroke="#8B5CF6" strokeWidth={2} dot={false} hide={hiddenAdPerf.has("roas")} isAnimationActive={false} />
+                  <Line yAxisId="clicks" type="monotone" dataKey="clicks" stroke="#1F2937" strokeWidth={1.5} strokeDasharray="4 3" dot={false} activeDot={{ r: 4, fill: "#1F2937" }} hide={hiddenAdPerf.has("clicks")} isAnimationActive={false} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -313,7 +315,7 @@ export default function TabContent({
                   <Bar yAxisId="left" dataKey="cumulative" fill="#4ADE80" radius={[3, 3, 0, 0]} hide={hiddenPL.has("cumulative")} isAnimationActive={false}>
                     <LabelList dataKey="cumulative" content={renderPlLabel} />
                   </Bar>
-                  <Line yAxisId="right" type="monotone" dataKey="dailyProfit" stroke="#1F2937" strokeWidth={1.5} strokeDasharray="4 3" hide={hiddenPL.has("daily")}
+                  <Line yAxisId="right" type="monotone" dataKey="dailyProfit" stroke="#1F2937" strokeWidth={1.5} strokeDasharray="4 3" hide={hiddenPL.has("daily")} isAnimationActive={false}
                     dot={(dotProps: unknown) => {
                       const p = dotProps as { cx: number; cy: number; index: number; key?: string };
                       const item = aggregatedPlData[p.index];

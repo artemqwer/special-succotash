@@ -18,12 +18,27 @@ export function generatePeriodData(startMs: number, endMs: number) {
   const genBarData = genDates.map((date, di) => {
     const obj: Record<string, string | number> = { date };
     const total = genTotals[di];
+    const perf = genAdPerfData[di];
     const sm = shareMatrix[di % shareMatrix.length];
-    let used = 0;
+
+    let usedRev = 0, usedCost = 0, usedClicks = 0, usedConv = 0;
     CAMPAIGNS.forEach((c, i) => {
-      const share = i === CAMPAIGNS.length - 1 ? Math.max(0, total - used) : Math.round(total * sm[i]);
-      obj[c] = share; used += share;
+      const share = sm[i];
+      const isLast = i === CAMPAIGNS.length - 1;
+
+      const cRev = isLast ? Math.max(0, total - usedRev) : Math.round(total * share);
+      const cCost = isLast ? Math.max(0, perf.cost - usedCost) : Math.round(perf.cost * share);
+      const cClicks = isLast ? Math.max(0, perf.clicks - usedClicks) : Math.round(perf.clicks * share);
+      const cConv = isLast ? Math.max(0, (perf as any).conv || 0 - usedConv) : Math.round(((perf as any).conv || 0) * share);
+
+      obj[c] = cRev;
+      obj[`_cost_${c}`] = cCost;
+      obj[`_clicks_${c}`] = cClicks;
+      obj[`_conv_${c}`] = cConv;
+
+      usedRev += cRev; usedCost += cCost; usedClicks += cClicks; usedConv += cConv;
     });
+
     obj.total = total;
     return obj;
   });

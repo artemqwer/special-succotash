@@ -6,8 +6,11 @@ import { AdPerfItem, PlItem, ChartMetric } from "../_data/constants";
 export const MONTH_IDX: Record<string, number> = { Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11 };
 
 export function isWeekend(dateStr: string) {
-  const [m, d] = dateStr.split(" ");
-  const day = new Date(2026, MONTH_IDX[m], parseInt(d)).getDay();
+  if (dateStr.includes("–")) return false;
+  const parts = dateStr.split(" ");
+  if (parts.length < 2) return false;
+  const [m, d] = parts;
+  const day = new Date(2026, MONTH_IDX[m] ?? 0, parseInt(d)).getDay();
   return day === 0 || day === 6;
 }
 
