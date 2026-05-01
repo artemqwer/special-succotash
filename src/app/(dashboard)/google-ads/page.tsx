@@ -672,7 +672,8 @@ export default function GoogleAdsPage() {
       className={`w-full px-4 sm:px-6 pt-6 bg-[#f4f6fb] ${isMobile ? "" : "transition-[padding] duration-300 ease-out"} ${aiOpen ? "lg:pr-[456px]" : ""}`}
       style={{ 
         paddingBottom: "calc(env(safe-area-inset-bottom) + 120px)",
-        minHeight: "101dvh" // Nuclear fix to force scrollability on iOS
+        minHeight: "100.1dvh", // Subtle force for iOS scroll
+        overscrollBehaviorY: "auto"
       }}
     >
       <div className="max-w-[1600px]">
