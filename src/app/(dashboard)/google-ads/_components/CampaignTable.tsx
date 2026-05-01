@@ -458,11 +458,10 @@ export default function CampaignTable({
             className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
-        </div>
       </div>
-      </div>
+    </div>
 
-      {/* Dropdowns rendered at the end to avoid z-index/clipping issues on iOS */}
+    {/* Dropdowns rendered at the end to avoid z-index/clipping issues on iOS */}
       {campaignDropdownOpen && (
         <>
           <div className="fixed inset-0 z-[90]" onClick={() => { onCampaignDropdownOpen(false); onCampaignSearchChange(""); }} />
