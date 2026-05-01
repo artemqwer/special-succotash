@@ -47,6 +47,7 @@ export default function RegisterPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const validate = (fields = { name, email, password, agreed }): Errors => {
     const e: Errors = {};
@@ -81,8 +82,10 @@ export default function RegisterPage() {
       return;
     }
 
+    // Supabase may require email confirmation — show success message
+    setSuccess(true);
     setSession({ email: email.trim(), name: name.trim() });
-    router.replace("/google-ads");
+    setTimeout(() => router.replace("/google-ads"), 1500);
   };
 
   const fieldClass = (field: keyof Errors, extra = "") =>
@@ -101,6 +104,23 @@ export default function RegisterPage() {
         {errors[field]}
       </p>
     ) : null;
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#e8ecf5] px-4">
+        <DataRocksLogo />
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-[400px] text-center">
+          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <h2 className="text-[18px] font-semibold text-gray-900 mb-2">Account created!</h2>
+          <p className="text-[14px] text-gray-500">Redirecting you to the dashboard…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#e8ecf5] px-4 py-10">

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
-import { getSession, clearSession, type Session } from "@/lib/auth";
+import { getSupabaseSession, logoutUser, type Session } from "@/lib/auth";
 
 const PLATFORM_META: Record<string, { icon: React.ReactNode; name: string; defaultDate: string }> = {
   "/google-ads": {
@@ -29,13 +29,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
 
   useEffect(() => {
-    const s = getSession();
-    if (!s) {
-      router.replace("/login");
-    } else {
-      setSession(s);
-      setChecking(false);
-    }
+    getSupabaseSession().then((s) => {
+      if (!s) {
+        router.replace("/login");
+      } else {
+        setSession(s);
+        setChecking(false);
+      }
+    });
   }, [router]);
 
   useEffect(() => {
@@ -47,8 +48,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => window.removeEventListener("date-range-changed", handler);
   }, []);
 
-  const handleLogout = () => {
-    clearSession();
+  const handleLogout = async () => {
+    await logoutUser();
     router.replace("/login");
   };
 

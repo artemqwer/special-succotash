@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DataRocksLogo from "@/components/DataRocksLogo";
-import { setSession, getSession, loginUser } from "@/lib/auth";
+import { getSupabaseSession, loginUser, setSession } from "@/lib/auth";
 
 function isValidEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -23,7 +23,9 @@ export default function LoginPage() {
   const [serverError, setServerError] = useState("");
 
   useEffect(() => {
-    if (getSession()) router.replace("/google-ads");
+    getSupabaseSession().then((s) => {
+      if (s) router.replace("/google-ads");
+    });
   }, [router]);
 
   const validate = (fields = { email, password }): Errors => {
