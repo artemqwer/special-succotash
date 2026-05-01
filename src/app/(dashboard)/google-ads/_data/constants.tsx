@@ -69,12 +69,19 @@ export const kpis = [
     hoverFmt: (v: number) => `$${(v * 1.9 + 413).toFixed(0)}K` },
 ];
 
-export const CAMPAIGNS = ["Brand", "Shopping", "DSA", "Remarketing", "PMax", "Search"];
-export const COLORS = ["#F472B6", "#FB923C", "#FACC15", "#4ADE80", "#A78BFA", "#60A5FA"];
+export const CAMPAIGNS = [
+  "Search - Men T-Shirts", "Search - Men Shirts", "PMax - Women Clothing",
+  "Search - Men Jeans", "Display - Retargeting", "PMax - Summer Collection",
+  "PMax - Men Pants", "Search - Men Jackets", "Search - Men Sneakers",
+  "Shopping - Winter Clearance"
+];
+export const COLORS = ["#F472B6", "#FB923C", "#FACC15", "#4ADE80", "#A78BFA", "#60A5FA", "#3b82f6", "#10b981", "#f59e0b", "#6366f1"];
 
 export const CAMPAIGN_TYPE_MAP: Record<string, string> = {
-  Brand: "Search", Shopping: "Shopping", DSA: "Search",
-  Remarketing: "Display", PMax: "PMax", Search: "Search",
+  "Search - Men T-Shirts": "Search", "Search - Men Shirts": "Search", "PMax - Women Clothing": "PMax",
+  "Search - Men Jeans": "Search", "Display - Retargeting": "Display", "PMax - Summer Collection": "PMax",
+  "PMax - Men Pants": "PMax", "Search - Men Jackets": "Search", "Search - Men Sneakers": "Search",
+  "Shopping - Winter Clearance": "Shopping"
 };
 export const TYPES = ["Search", "Shopping", "PMax", "Display"];
 export const TYPE_COLORS_MAP: Record<string, string> = {
@@ -86,20 +93,20 @@ export const CHART_GROUPBY: ChartGroupBy[] = ["Campaign", "Type"];
 
 // Per-day share distribution (cycling for any period length)
 export const shareMatrix: number[][] = [
-  [0.08, 0.22, 0.07, 0.12, 0.18, 0.33],
-  [0.09, 0.20, 0.08, 0.11, 0.19, 0.33],
-  [0.08, 0.24, 0.07, 0.13, 0.17, 0.31],
-  [0.07, 0.23, 0.09, 0.12, 0.20, 0.29],
-  [0.08, 0.21, 0.08, 0.14, 0.17, 0.32],
-  [0.09, 0.22, 0.07, 0.13, 0.18, 0.31],
-  [0.07, 0.25, 0.08, 0.12, 0.16, 0.32],
-  [0.08, 0.23, 0.07, 0.13, 0.19, 0.30],
-  [0.09, 0.21, 0.08, 0.11, 0.18, 0.33],
-  [0.08, 0.24, 0.07, 0.12, 0.17, 0.32],
-  [0.07, 0.22, 0.09, 0.13, 0.20, 0.29],
-  [0.08, 0.23, 0.08, 0.12, 0.18, 0.31],
-  [0.09, 0.21, 0.07, 0.14, 0.19, 0.30],
-  [0.08, 0.22, 0.08, 0.13, 0.18, 0.31],
+  [0.08, 0.12, 0.07, 0.12, 0.08, 0.13, 0.10, 0.08, 0.10, 0.12],
+  [0.09, 0.11, 0.08, 0.11, 0.09, 0.12, 0.11, 0.07, 0.11, 0.11],
+  [0.08, 0.13, 0.07, 0.13, 0.07, 0.11, 0.12, 0.09, 0.09, 0.11],
+  [0.07, 0.12, 0.09, 0.12, 0.10, 0.10, 0.11, 0.10, 0.10, 0.09],
+  [0.08, 0.11, 0.08, 0.14, 0.08, 0.12, 0.09, 0.11, 0.10, 0.09],
+  [0.09, 0.12, 0.07, 0.13, 0.08, 0.11, 0.10, 0.12, 0.09, 0.09],
+  [0.07, 0.15, 0.08, 0.12, 0.06, 0.12, 0.08, 0.13, 0.08, 0.11],
+  [0.08, 0.13, 0.07, 0.13, 0.09, 0.10, 0.11, 0.10, 0.10, 0.09],
+  [0.09, 0.11, 0.08, 0.11, 0.08, 0.13, 0.10, 0.12, 0.08, 0.10],
+  [0.08, 0.14, 0.07, 0.12, 0.07, 0.12, 0.09, 0.13, 0.09, 0.09],
+  [0.07, 0.12, 0.09, 0.13, 0.10, 0.09, 0.11, 0.12, 0.08, 0.09],
+  [0.08, 0.13, 0.08, 0.12, 0.08, 0.11, 0.10, 0.12, 0.09, 0.09],
+  [0.09, 0.11, 0.07, 0.14, 0.09, 0.10, 0.11, 0.13, 0.08, 0.08],
+  [0.08, 0.12, 0.08, 0.13, 0.08, 0.11, 0.10, 0.12, 0.09, 0.09],
 ];
 
 // ─── Period presets & data generation ────────────────────────────────────────
