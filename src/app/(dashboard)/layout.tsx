@@ -65,8 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const displayDate = headerDate ?? platform?.defaultDate ?? "";
 
   return (
-    <div className="bg-[#f4f6fb] h-screen h-[100dvh] overflow-hidden">
-    <div className="flex w-full h-full overflow-hidden">
+    <div className="flex w-full min-h-screen bg-[#f4f6fb]">
       <Sidebar
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
@@ -74,7 +73,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         onLogout={handleLogout}
       />
 
-      <div className="w-full h-full flex flex-col min-w-0 min-h-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile top bar */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-3">
@@ -119,7 +118,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
-    </div>
     </div>
   );
 }
