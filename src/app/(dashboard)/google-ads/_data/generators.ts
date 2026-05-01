@@ -15,6 +15,17 @@ export function generatePeriodData(startMs: number, endMs: number) {
     return Math.round(base + Math.sin(i * 0.5 + 1.3) * 7000 + Math.cos(i * 0.9 + 0.6) * 4000);
   });
 
+  const genAdPerfData: AdPerfItem[] = genDates.map((date, i) => {
+    const wd = new Date(startMs + i * DAY_MS).getDay();
+    const base = (wd === 0 || wd === 6) ? 72000 : 87000;
+    const convValue = Math.round(base + Math.sin(i * 0.5 + 1.3) * 7000 + Math.cos(i * 0.9 + 0.6) * 4000);
+    const cost = Math.round(convValue * (0.27 + Math.sin(i * 0.4 + 0.8) * 0.04));
+    const profit = convValue - cost;
+    const clicks = Math.round(3200 + Math.sin(i * 0.6 + 2) * 900 + (wd === 0 || wd === 6 ? -600 : 0));
+    const roas = parseFloat((convValue / cost).toFixed(2));
+    return { date, convValue, cost, profit, clicks, roas, costBar: cost, profitBar: Math.max(0, profit) };
+  });
+
   const genBarData = genDates.map((date, di) => {
     const obj: Record<string, string | number> = { date };
     const total = genTotals[di];
@@ -29,7 +40,7 @@ export function generatePeriodData(startMs: number, endMs: number) {
       const cRev = isLast ? Math.max(0, total - usedRev) : Math.round(total * share);
       const cCost = isLast ? Math.max(0, perf.cost - usedCost) : Math.round(perf.cost * share);
       const cClicks = isLast ? Math.max(0, perf.clicks - usedClicks) : Math.round(perf.clicks * share);
-      const cConv = isLast ? Math.max(0, (perf as any).conv || 0 - usedConv) : Math.round(((perf as any).conv || 0) * share);
+      const cConv = isLast ? Math.max(0, ((perf as any).conv || 0) - usedConv) : Math.round(((perf as any).conv || 0) * share);
 
       obj[c] = cRev;
       obj[`_cost_${c}`] = cCost;
@@ -47,17 +58,6 @@ export function generatePeriodData(startMs: number, endMs: number) {
     name, color: COLORS[i],
     avg: genBarData.reduce((s, d) => s + (d[name] as number), 0) / genBarData.length,
   })).sort((a, b) => b.avg - a.avg);
-
-  const genAdPerfData: AdPerfItem[] = genDates.map((date, i) => {
-    const wd = new Date(startMs + i * DAY_MS).getDay();
-    const base = (wd === 0 || wd === 6) ? 72000 : 87000;
-    const convValue = Math.round(base + Math.sin(i * 0.5 + 1.3) * 7000 + Math.cos(i * 0.9 + 0.6) * 4000);
-    const cost = Math.round(convValue * (0.27 + Math.sin(i * 0.4 + 0.8) * 0.04));
-    const profit = convValue - cost;
-    const clicks = Math.round(3200 + Math.sin(i * 0.6 + 2) * 900 + (wd === 0 || wd === 6 ? -600 : 0));
-    const roas = parseFloat((convValue / cost).toFixed(2));
-    return { date, convValue, cost, profit, clicks, roas, costBar: cost, profitBar: Math.max(0, profit) };
-  });
 
   let cum = 0;
   const genPlData: PlItem[] = genDates.map((date, i) => {
