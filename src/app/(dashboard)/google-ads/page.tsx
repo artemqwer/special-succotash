@@ -666,13 +666,7 @@ export default function GoogleAdsPage() {
   }, [filtered]);
 
   return (
-    <div 
-      className={`w-full px-4 sm:px-6 pt-6 pb-8 bg-[#f4f6fb] ${isMobile ? "" : "transition-[padding] duration-300 ease-out"} ${aiOpen ? "lg:pr-[456px]" : ""}`}
-      style={{ 
-        minHeight: "100vh",
-        overscrollBehaviorY: "auto"
-      }}
-    >
+    <div className={`w-full px-4 sm:px-6 py-6 bg-[#f4f6fb] ${isMobile ? "" : "transition-[padding] duration-300 ease-out"} ${aiOpen ? "lg:pr-[456px]" : ""}`}>
       <div className="max-w-[1600px]">
       {/* Header */}
       <div className="hidden sm:flex items-center justify-between mb-5 flex-wrap gap-3">

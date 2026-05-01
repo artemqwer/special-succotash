@@ -34,7 +34,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-hidden`}
     >
-      <body className="flex flex-col overflow-x-hidden" style={{ WebkitOverflowScrolling: "touch" }}>{children}</body>
+      <body className="flex flex-col overflow-x-hidden overscroll-none" style={{ WebkitOverflowScrolling: "touch" }}>{children}</body>
     </html>
   );
 }
