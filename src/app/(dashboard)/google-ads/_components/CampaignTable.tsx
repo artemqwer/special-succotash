@@ -132,6 +132,7 @@ export default function CampaignTable({
   });
 
   return (
+    <>
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm relative">
       <div ref={headerRef} className="px-4 sm:px-5 py-4 flex items-start justify-between flex-wrap gap-2 sm:gap-3 border-b border-gray-100 relative">
         <div className="min-w-0">
@@ -529,5 +530,6 @@ export default function CampaignTable({
         </>
       )}
     </div>
+    </>
   );
 }
