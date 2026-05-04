@@ -237,7 +237,7 @@ export default function GoogleAdsPage() {
   const { dates, barData, campaignAvgs, adPerfData, plData } = useMemo(
     () => {
       const mock = generatePeriodData(rangeStart, rangeEnd);
-      if (realBarData) {
+      if (realBarData && realBarData.length > 0) {
         const names = Array.from(new Set(realBarData.flatMap((d: Record<string, unknown>) => Object.keys(d).filter(k => k !== 'date' && k !== 'total' && !k.startsWith('_')))));
 
         const derivedAdPerfData: AdPerfItem[] = realBarData.map((d: Record<string, unknown>) => {
@@ -364,11 +364,11 @@ export default function GoogleAdsPage() {
     }
   };
 
-  const currentRows = realCampaignRows || campaignRows;
+  const currentRows = (realCampaignRows && realCampaignRows.length > 0 ? realCampaignRows : null) ?? campaignRows;
   const types = ["All", ...Array.from(new Set(currentRows.map((r) => r.type)))];
 
   const filtered = useMemo(() => {
-    const base = realCampaignRows || campaignRows;
+    const base = (realCampaignRows && realCampaignRows.length > 0 ? realCampaignRows : null) ?? campaignRows;
     let rows = typeFilter === "All" ? base : base.filter((r) => r.type === typeFilter);
     if (statusFilter !== "Status") {
       const target = statusFilter === "Active" ? "green" : "gray";
@@ -412,7 +412,7 @@ export default function GoogleAdsPage() {
 
   const selectionScale = useMemo(() => {
     if (selectedRows.length === 0) return 1;
-    const base = realCampaignRows || campaignRows;
+    const base = (realCampaignRows && realCampaignRows.length > 0 ? realCampaignRows : null) ?? campaignRows;
     const totalRev = base.reduce((s: number, r: { revenue: number }) => s + r.revenue, 0);
     const selRev = selectedRows.reduce((s: number, r: { revenue: number }) => s + r.revenue, 0);
     return selRev / totalRev;
