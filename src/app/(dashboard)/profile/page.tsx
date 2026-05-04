@@ -16,6 +16,10 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [createdAt, setCreatedAt] = useState("");
+  const [windsorApiKey, setWindsorApiKey] = useState("");
+  const [windsorSaving, setWindsorSaving] = useState(false);
+  const [windsorMsg, setWindsorMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showWindsorKey, setShowWindsorKey] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -51,6 +55,7 @@ export default function ProfilePage() {
         setPhone(meta.phone ?? "");
         setLocation(meta.location ?? "");
         setAvatarUrl(meta.avatar_url ?? null);
+        setWindsorApiKey(meta.windsor_api_key ?? "");
         if (data.user.created_at) {
           setCreatedAt(new Date(data.user.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }));
         }
@@ -155,6 +160,21 @@ export default function ProfilePage() {
       setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
       setPasswordMsg({ type: "success", text: "Password changed successfully" });
       setTimeout(() => setPasswordMsg(null), 3000);
+    }
+  };
+
+  const handleSaveWindsorKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWindsorSaving(true);
+    setWindsorMsg(null);
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ data: { windsor_api_key: windsorApiKey.trim() } });
+    setWindsorSaving(false);
+    if (error) {
+      setWindsorMsg({ type: "error", text: error.message });
+    } else {
+      setWindsorMsg({ type: "success", text: windsorApiKey.trim() ? "API key saved" : "API key removed" });
+      setTimeout(() => setWindsorMsg(null), 3000);
     }
   };
 
@@ -424,6 +444,67 @@ export default function ProfilePage() {
               </button>
             </div>
           ))}
+
+          {/* Windsor.ai — API key entry */}
+          <div className="pt-1 border-t border-gray-50">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center bg-gray-50 shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <rect width="24" height="24" rx="4" fill="#0F172A"/>
+                  <text x="4" y="17" fontSize="13" fontWeight="bold" fill="white" fontFamily="sans-serif">W</text>
+                </svg>
+              </div>
+              <div>
+                <p className="text-[13px] font-medium text-gray-800">Windsor.ai</p>
+                <p className={`text-[11px] ${windsorApiKey ? "text-green-600" : "text-gray-400"}`}>
+                  {windsorApiKey ? "Connected — API key saved" : "Enter your API key to connect"}
+                </p>
+              </div>
+            </div>
+            <form onSubmit={handleSaveWindsorKey}>
+              <div className="relative mb-2">
+                <input
+                  type={showWindsorKey ? "text" : "password"}
+                  value={windsorApiKey}
+                  onChange={(e) => setWindsorApiKey(e.target.value)}
+                  placeholder="Paste your Windsor.ai API key"
+                  className="w-full py-2.5 pl-3 pr-10 text-[13px] border border-gray-200 rounded-lg outline-none transition text-gray-700 placeholder-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 font-mono"
+                />
+                <button type="button" onClick={() => setShowWindsorKey(!showWindsorKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition">
+                  {showWindsorKey
+                    ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
+                </button>
+              </div>
+              {windsorMsg && (
+                <p className={`mb-2 text-[12px] ${windsorMsg.type === "success" ? "text-green-600" : "text-red-500"}`}>{windsorMsg.text}</p>
+              )}
+              <div className="flex gap-2">
+                <button type="submit" disabled={windsorSaving}
+                  className="text-[12px] font-medium px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg flex items-center gap-1.5 transition">
+                  {windsorSaving && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                  Save key
+                </button>
+                {windsorApiKey && (
+                  <button type="button"
+                    onClick={async () => {
+                      setWindsorApiKey("");
+                      setWindsorSaving(true);
+                      setWindsorMsg(null);
+                      const supabase = createClient();
+                      await supabase.auth.updateUser({ data: { windsor_api_key: "" } });
+                      setWindsorSaving(false);
+                      setWindsorMsg({ type: "success", text: "API key removed" });
+                      setTimeout(() => setWindsorMsg(null), 3000);
+                    }}
+                    className="text-[12px] font-medium px-4 py-1.5 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg transition">
+                    Remove
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 

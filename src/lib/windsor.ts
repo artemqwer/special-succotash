@@ -1,7 +1,3 @@
-import axios from 'axios';
-
-const BASE_URL = 'https://connectors.windsor.ai/google_ads';
-
 export interface WindsorDataRow {
   date?: string;
   campaign?: string;
@@ -10,28 +6,24 @@ export interface WindsorDataRow {
   spend: number;
   conversions: number;
   conversion_value: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-export const fetchWindsorData = async (apiKey: string, dateFrom: string, dateTo: string, groupBy: 'date' | 'campaign' | 'date,campaign' = 'date') => {
-  try {
-    const fields = ['clicks', 'impressions', 'spend', 'conversions', 'conversion_value'];
-    if (groupBy.includes('date')) fields.push('date');
-    if (groupBy.includes('campaign')) fields.push('campaign');
+export type WindsorGroupBy = "date" | "campaign" | "date,campaign";
 
-    const response = await axios.get(BASE_URL, {
-      params: {
-        api_key: apiKey,
-        date_from: dateFrom,
-        date_to: dateTo,
-        fields: fields.join(','),
-        _renderer: 'json'
-      }
-    });
+export async function fetchWindsorData(
+  dateFrom: string,
+  dateTo: string,
+  groupBy: WindsorGroupBy = "date"
+): Promise<{ data: WindsorDataRow[]; error?: string }> {
+  const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo, group_by: groupBy });
+  const res = await fetch(`/api/windsor?${params}`);
+  const json = await res.json();
 
-    return response.data.data as WindsorDataRow[];
-  } catch (error) {
-    console.error('Error fetching Windsor.ai data:', error);
-    throw error;
+  if (!res.ok) {
+    return { data: [], error: json.error ?? `HTTP ${res.status}` };
   }
-};
+
+  const rows: WindsorDataRow[] = Array.isArray(json?.data) ? json.data : [];
+  return { data: rows };
+}
