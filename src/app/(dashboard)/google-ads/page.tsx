@@ -59,8 +59,8 @@ export default function GoogleAdsPage() {
   const [pickerTempEnd, setPickerTempEnd] = useState<number | null>(null);
   const [pickerHover, setPickerHover] = useState<number | null>(null);
   const [pickerStep, setPickerStep] = useState<0 | 1>(0);
-  const [pickerViewYear, setPickerViewYear] = useState(2026);
-  const [pickerViewMonth, setPickerViewMonth] = useState(2);
+  const [pickerViewYear, setPickerViewYear] = useState(() => new Date().getFullYear());
+  const [pickerViewMonth, setPickerViewMonth] = useState(() => new Date().getMonth());
   const [checkedRows, setCheckedRows] = useState<Set<number>>(new Set());
   const [clickedRow, setClickedRow] = useState<number | null>(null);
   const [namesCollapsed, setNamesCollapsed] = useState(false);
@@ -82,7 +82,7 @@ export default function GoogleAdsPage() {
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [evtCategory, setEvtCategory] = useState<"Events" | "Ads" | "Website">("Events");
   const [evtType, setEvtType] = useState<string | null>(null);
-  const [evtStartDate, setEvtStartDate] = useState("2026-04-14");
+  const [evtStartDate, setEvtStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [evtEndDate, setEvtEndDate] = useState("");
   const [evtTitle, setEvtTitle] = useState("");
   const [evtDesc, setEvtDesc] = useState("");
@@ -116,24 +116,34 @@ export default function GoogleAdsPage() {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mappedRows = campData.map((d: any) => {
-        const roasNum = d.spend > 0 ? (Number(d.conversion_value) / Number(d.spend)) * 100 : 0;
-        const revenue = Number(d.conversion_value) || 0;
-        const cost = Number(d.spend) || 0;
+        const spend    = Number(d.spend) || 0;
+        const convVal  = Number(d.conversion_value) || 0;
+        const clicks   = Number(d.clicks) || 0;
+        const convs    = Number(d.conversions) || 0;
+        const impr     = Number(d.impressions) || 0;
+        const roasNum  = spend > 0 ? (convVal / spend) * 100 : 0;
+        const name     = d.campaign || "Unknown";
+        const nl       = name.toLowerCase();
+        const type     =
+          nl.includes("pmax") || nl.includes("performance max") ? "PMax" :
+          nl.includes("shopping") ? "Shopping" :
+          nl.includes("display") || nl.includes("retarget") ? "Display" : "Search";
         return {
-          status: cost > 0 ? "green" : "gray",
-          name: d.campaign || "Unknown",
-          type: "Search",
-          roas: d.spend > 0 ? `${roasNum.toFixed(0)}%` : "null",
-          roasColor: d.spend === 0 ? "gray" : roasNum >= 150 ? "green" : roasNum >= 100 ? "orange" : "red",
-          impr: Number(d.impressions) || 0,
-          clicks: Number(d.clicks) || 0,
-          cpc: d.clicks > 0 ? cost / Number(d.clicks) : 0,
-          ctr: d.impressions > 0 ? (Number(d.clicks) / Number(d.impressions)) * 100 : 0,
-          convRate: d.clicks > 0 ? (Number(d.conversions) / Number(d.clicks)) * 100 : 0,
-          conv: Number(d.conversions) || 0,
-          cpa: d.conversions > 0 ? cost / Number(d.conversions) : 0,
-          revenue, cost,
-          profit: revenue - cost,
+          status: spend > 0 ? "green" : "gray",
+          name,
+          type,
+          roas: spend > 0 ? `${roasNum.toFixed(0)}%` : "null",
+          roasColor: spend === 0 ? "gray" : roasNum >= 150 ? "green" : roasNum >= 100 ? "orange" : "red",
+          impr,
+          clicks,
+          cpc:     clicks > 0 ? spend / clicks : 0,
+          ctr:     impr   > 0 ? (clicks / impr) * 100 : 0,
+          convRate: clicks > 0 ? (convs / clicks) * 100 : 0,
+          conv: convs,
+          cpa:  convs > 0 ? spend / convs : 0,
+          revenue: convVal / 1000,
+          cost:    spend   / 1000,
+          profit:  (convVal - spend) / 1000,
           roasVal: roasNum,
         };
       });
@@ -164,7 +174,7 @@ export default function GoogleAdsPage() {
         dateMap[dt].profit += rev - cost;
         dateMap[dt].conv += Number(d.conversions) || 0;
       });
-      setRealBarData(Object.values(dateMap));
+      setRealBarData(Object.keys(dateMap).sort().map(k => dateMap[k]));
       setIsWindsorLoading(false);
     };
 
@@ -237,6 +247,9 @@ export default function GoogleAdsPage() {
   const { dates, barData, campaignAvgs, adPerfData, plData } = useMemo(
     () => {
       const mock = generatePeriodData(rangeStart, rangeEnd);
+      if (windsorConnected && (!realBarData || realBarData.length === 0)) {
+        return { ...mock, barData: [], adPerfData: [], plData: [], campaignAvgs: [] };
+      }
       if (realBarData && realBarData.length > 0) {
         const names = Array.from(new Set(realBarData.flatMap((d: Record<string, unknown>) => Object.keys(d).filter(k => k !== 'date' && k !== 'total' && !k.startsWith('_')))));
 
@@ -273,7 +286,7 @@ export default function GoogleAdsPage() {
       }
       return mock;
     },
-    [rangeStart, rangeEnd, realBarData]
+    [rangeStart, rangeEnd, realBarData, windsorConnected]
   );
 
   const openAi = () => {
@@ -364,11 +377,11 @@ export default function GoogleAdsPage() {
     }
   };
 
-  const currentRows = (realCampaignRows && realCampaignRows.length > 0 ? realCampaignRows : null) ?? campaignRows;
+  const currentRows = windsorConnected ? (realCampaignRows ?? []) : campaignRows;
   const types = ["All", ...Array.from(new Set(currentRows.map((r) => r.type)))];
 
   const filtered = useMemo(() => {
-    const base = (realCampaignRows && realCampaignRows.length > 0 ? realCampaignRows : null) ?? campaignRows;
+    const base = windsorConnected ? (realCampaignRows ?? []) : campaignRows;
     let rows = typeFilter === "All" ? base : base.filter((r) => r.type === typeFilter);
     if (statusFilter !== "Status") {
       const target = statusFilter === "Active" ? "green" : "gray";
@@ -383,7 +396,7 @@ export default function GoogleAdsPage() {
       });
     }
     return rows;
-  }, [typeFilter, selectedCampaigns, sortCol, sortDir, realCampaignRows]);
+  }, [typeFilter, selectedCampaigns, sortCol, sortDir, realCampaignRows, windsorConnected]);
 
   const totalPages = Math.ceil(filtered.length / rowsPerPage);
 
@@ -412,11 +425,11 @@ export default function GoogleAdsPage() {
 
   const selectionScale = useMemo(() => {
     if (selectedRows.length === 0) return 1;
-    const base = (realCampaignRows && realCampaignRows.length > 0 ? realCampaignRows : null) ?? campaignRows;
+    const base = windsorConnected ? (realCampaignRows ?? []) : campaignRows;
     const totalRev = base.reduce((s: number, r: { revenue: number }) => s + r.revenue, 0);
     const selRev = selectedRows.reduce((s: number, r: { revenue: number }) => s + r.revenue, 0);
-    return selRev / totalRev;
-  }, [selectedRows, realCampaignRows]);
+    return totalRev > 0 ? selRev / totalRev : 0;
+  }, [selectedRows, realCampaignRows, windsorConnected]);
 
   const chartSeries = useMemo(() => {
     if (chartGroupBy === "Campaign") {
@@ -617,13 +630,19 @@ export default function GoogleAdsPage() {
   }, [selectedRows, currentRows]);
 
   const realKpis = useMemo(() => {
-    if (!realCampaignRows || !realBarData || realBarData.length === 0) return null;
+    if (!windsorConnected) return null;
+    if (!realCampaignRows || !realBarData || realBarData.length === 0) {
+      return kpis.map(k => ({ value: "—", delta: "—", up: true, spark: [] as { v: number; date: string }[], hoverFmt: k.hoverFmt }));
+    }
 
-    const totClicks = realCampaignRows.reduce((s: number, r: { clicks: number }) => s + r.clicks, 0);
-    const totConv   = realCampaignRows.reduce((s: number, r: { conv: number })   => s + r.conv, 0);
-    const totCost   = realCampaignRows.reduce((s: number, r: { cost: number })   => s + r.cost, 0);
-    const totRev    = realCampaignRows.reduce((s: number, r: { revenue: number }) => s + r.revenue, 0);
-    const totProfit = realCampaignRows.reduce((s: number, r: { profit: number }) => s + r.profit, 0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const g = (d: any, key: string): number => (d[key] as number) || 0;
+
+    const totClicks = realBarData.reduce((s: number, d) => s + g(d, "clicks"), 0);
+    const totConv   = realBarData.reduce((s: number, d) => s + g(d, "conv"), 0);
+    const totRev    = realBarData.reduce((s: number, d) => s + g(d, "total"), 0);
+    const totCost   = realBarData.reduce((s: number, d) => s + g(d, "cost"), 0);
+    const totProfit = realBarData.reduce((s: number, d) => s + g(d, "profit"), 0);
     const convRate  = totClicks > 0 ? totConv / totClicks * 100 : 0;
     const cpa       = totConv  > 0 ? totCost / totConv : 0;
     const roas      = totCost  > 0 ? totRev  / totCost : 0;
@@ -634,8 +653,6 @@ export default function GoogleAdsPage() {
       v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(2)}M` : v >= 1000 ? `$${(v / 1000).toFixed(2)}K` : `$${v.toFixed(2)}`;
 
     const half = Math.max(1, Math.floor(realBarData.length / 2));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const g = (d: any, key: string): number => (d[key] as number) || 0;
 
     const trend = (key: string) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -698,18 +715,19 @@ export default function GoogleAdsPage() {
 
     const absProfit = Math.abs(totProfit);
     const profitFmt = totProfit >= 0 ? fmtD(totProfit) : `-$${absProfit >= 1_000_000 ? `${(absProfit/1_000_000).toFixed(2)}M` : absProfit >= 1000 ? `${(absProfit/1000).toFixed(2)}K` : absProfit.toFixed(2)}`;
+    const fmtDv = (v: number) => fmtD(Math.abs(v));
 
     return [
       { value: fmtN(totClicks), ...trend("clicks"), spark: sp(d => g(d, "clicks")), hoverFmt: (v: number) => `${Math.round(v)}` },
       { value: `${convRate.toFixed(2)}%`, ...cvrTrend, spark: sp(d => { const c = g(d, "clicks"); return c > 0 ? g(d, "conv") / c * 100 : 0; }), hoverFmt: (v: number) => `${v.toFixed(2)}%` },
       { value: fmtN(totConv), ...trend("conv"), spark: sp(d => g(d, "conv")), hoverFmt: (v: number) => `${Math.round(v)}` },
       { value: `$${cpa.toFixed(2)}`, ...cpaTrend, spark: sp(d => { const c = g(d, "conv"); return c > 0 ? g(d, "cost") / c : 0; }), hoverFmt: (v: number) => `$${v.toFixed(2)}` },
-      { value: fmtD(totCost), ...trend("cost"), spark: sp(d => g(d, "cost")), hoverFmt: (v: number) => `$${v.toFixed(2)}` },
-      { value: fmtD(totRev), ...trend("total"), spark: sp(d => g(d, "total")), hoverFmt: (v: number) => `$${v.toFixed(2)}` },
+      { value: fmtD(totCost), ...trend("cost"), spark: sp(d => g(d, "cost")), hoverFmt: fmtDv },
+      { value: fmtD(totRev), ...trend("total"), spark: sp(d => g(d, "total")), hoverFmt: fmtDv },
       { value: `${roas.toFixed(2)}x`, ...roasTrend, spark: sp(d => { const c = g(d, "cost"); return c > 0 ? g(d, "total") / c : 0; }), hoverFmt: (v: number) => `${v.toFixed(2)}x` },
-      { value: profitFmt, ...trend("profit"), spark: sp(d => g(d, "profit")), hoverFmt: (v: number) => `$${v.toFixed(2)}` },
+      { value: profitFmt, ...trend("profit"), spark: sp(d => g(d, "profit")), hoverFmt: (v: number) => v >= 0 ? fmtD(v) : `-${fmtD(-v)}` },
     ];
-  }, [realCampaignRows, realBarData]);
+  }, [realCampaignRows, realBarData, windsorConnected]);
 
   const dynSegData = useMemo(() => {
     const rows = selectedRows.length > 0 ? selectedRows : currentRows;
@@ -779,7 +797,6 @@ export default function GoogleAdsPage() {
             <span className="text-[13px] text-gray-500 whitespace-nowrap">Windsor.ai</span>
             {isWindsorLoading && <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />}
             {!isWindsorLoading && windsorConnected && <span className="text-[10px] text-green-500 font-semibold">● Connected</span>}
-            {!isWindsorLoading && !windsorConnected && !windsorError && <span className="text-[10px] text-orange-400 font-semibold">● Demo Mode</span>}
             {!isWindsorLoading && windsorError && <span className="text-[10px] text-red-500 font-semibold">● Error</span>}
           </div>
 
@@ -941,7 +958,7 @@ export default function GoogleAdsPage() {
           timelineOpen={timelineOpen}
           isPortrait={isPortrait}
           onToggle={() => setTimelineOpen(!timelineOpen)}
-          onAddEvent={() => { setAddEventOpen(true); setEvtCategory("Events"); setEvtType(null); setEvtStartDate("2026-04-14"); setEvtEndDate(""); setEvtTitle(""); setEvtDesc(""); }}
+          onAddEvent={() => { setAddEventOpen(true); setEvtCategory("Events"); setEvtType(null); setEvtStartDate(new Date().toISOString().split("T")[0]); setEvtEndDate(""); setEvtTitle(""); setEvtDesc(""); }}
         />
       </div>
 

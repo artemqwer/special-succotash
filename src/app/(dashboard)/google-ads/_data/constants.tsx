@@ -28,8 +28,12 @@ export type PlItem = { date: string; dailyProfit: number; cumulative: number };
 
 // ─── Mock data ───────────────────────────────────────────────────────────────
 
+const _today = new Date();
+_today.setUTCHours(0, 0, 0, 0);
+export const END_MS_NOW = _today.getTime();
+
 export const SPARK_DATES = Array.from({ length: 14 }, (_, i) => {
-  const d = new Date(Date.UTC(2026, 3, 13));
+  const d = new Date(END_MS_NOW);
   d.setUTCDate(d.getUTCDate() - (13 - i));
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 });
@@ -119,7 +123,7 @@ export const PERIOD_PRESETS = [
   { label: "Last 90 days", days: 90 },
 ];
 
-export const END_MS = Date.UTC(2026, 3, 13); // Apr 13, 2026
+export const END_MS = END_MS_NOW;
 export const DAY_MS = 86400000;
 
 export const fmtMs = (ts: number) => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });

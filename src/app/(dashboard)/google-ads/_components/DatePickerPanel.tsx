@@ -130,20 +130,37 @@ export default function DatePickerPanel({
             <div className="flex-1">
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Start date*</label>
               <input
-                type="text"
-                readOnly
-                value={pickerTempStart ? new Date(pickerTempStart).toLocaleDateString() : ""}
-                className="w-full h-9 border border-gray-200 rounded-lg px-3 text-[13px] bg-gray-50/50"
+                type="date"
+                value={pickerTempStart ? new Date(pickerTempStart).toISOString().split("T")[0] : ""}
+                max={pickerTempEnd ? new Date(pickerTempEnd).toISOString().split("T")[0] : undefined}
+                onChange={(e) => {
+                  if (!e.target.value) return;
+                  const [y, m, d] = e.target.value.split("-").map(Number);
+                  const ts = Date.UTC(y, m - 1, d);
+                  setPickerTempStart(ts);
+                  if (pickerTempEnd && ts > pickerTempEnd) setPickerTempEnd(null);
+                  setPickerStep(1);
+                  setPickerViewYear(() => y);
+                  setPickerViewMonth(() => m - 1);
+                }}
+                className="w-full h-9 border border-gray-200 rounded-lg px-3 text-[13px] bg-white outline-none focus:border-blue-400 cursor-text"
               />
             </div>
             <div className="pt-4 text-gray-300">—</div>
             <div className="flex-1">
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">End date*</label>
               <input
-                type="text"
-                readOnly
-                value={pickerTempEnd ? new Date(pickerTempEnd).toLocaleDateString() : ""}
-                className="w-full h-9 border border-gray-200 rounded-lg px-3 text-[13px] bg-gray-50/50"
+                type="date"
+                value={pickerTempEnd ? new Date(pickerTempEnd).toISOString().split("T")[0] : ""}
+                min={pickerTempStart ? new Date(pickerTempStart).toISOString().split("T")[0] : undefined}
+                onChange={(e) => {
+                  if (!e.target.value) return;
+                  const [y, m, d] = e.target.value.split("-").map(Number);
+                  const ts = Date.UTC(y, m - 1, d);
+                  setPickerTempEnd(ts);
+                  setPickerStep(0);
+                }}
+                className="w-full h-9 border border-gray-200 rounded-lg px-3 text-[13px] bg-white outline-none focus:border-blue-400 cursor-text"
               />
             </div>
           </div>
