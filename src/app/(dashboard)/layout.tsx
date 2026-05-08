@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { getSupabaseSession, logoutUser, type Session } from "@/lib/auth";
+import { createClient } from "@/lib/supabase";
 
 const PLATFORM_META: Record<string, { icon: React.ReactNode; name: string; defaultDate: string }> = {
   "/google-ads": {
@@ -37,6 +38,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setChecking(false);
       }
     });
+
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, supabaseSession) => {
+      if (!supabaseSession) return;
+      const user = supabaseSession.user;
+      const name = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "User";
+      const avatar = user.user_metadata?.avatar_url ?? user.user_metadata?.picture;
+      setSession({ email: user.email!, name, avatar });
+    });
+
+    return () => subscription.unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
