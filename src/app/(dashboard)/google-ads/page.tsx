@@ -91,6 +91,7 @@ export default function GoogleAdsPage() {
   const [isWindsorLoading, setIsWindsorLoading] = useState(false);
   const [windsorError, setWindsorError] = useState<string | null>(null);
   const [windsorConnected, setWindsorConnected] = useState(false);
+  const [dataSource, setDataSource] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [realCampaignRows, setRealCampaignRows] = useState<any[] | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,9 +104,10 @@ export default function GoogleAdsPage() {
       const start = new Date(rangeStart).toISOString().split("T")[0];
       const end = new Date(rangeEnd).toISOString().split("T")[0];
 
-      const { data: campData, error: campErr } = await fetchWindsorData(start, end, "campaign");
+      const { data: campData, error: campErr, source: src } = await fetchWindsorData(start, end, "campaign");
       if (campErr) {
         setWindsorConnected(false);
+        setDataSource(null);
         setWindsorError(campErr.includes("not configured") ? null : campErr);
         setRealCampaignRows(null);
         setRealBarData(null);
@@ -113,6 +115,7 @@ export default function GoogleAdsPage() {
         return;
       }
       setWindsorConnected(true);
+      setDataSource(src ?? null);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mappedRows = campData.map((d: any) => {
@@ -791,12 +794,15 @@ export default function GoogleAdsPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {/* Windsor connection status */}
+          {/* Data source status */}
           <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 shrink-0"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3m-3-3l-2.5-2.5"/></svg>
-            <span className="text-[13px] text-gray-500 whitespace-nowrap">Windsor.ai</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 shrink-0"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+            <span className="text-[13px] text-gray-500 whitespace-nowrap">
+              {dataSource === "bigquery" || dataSource === "google-ads-api" ? "Google Ads" : dataSource === "windsor" ? "Windsor.ai" : "No source"}
+            </span>
             {isWindsorLoading && <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />}
             {!isWindsorLoading && windsorConnected && <span className="text-[10px] text-green-500 font-semibold">● Connected</span>}
+            {!isWindsorLoading && !windsorConnected && !windsorError && <span className="text-[10px] text-gray-400 font-semibold">● Not connected</span>}
             {!isWindsorLoading && windsorError && <span className="text-[10px] text-red-500 font-semibold">● Error</span>}
           </div>
 

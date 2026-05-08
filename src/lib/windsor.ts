@@ -15,7 +15,7 @@ export async function fetchWindsorData(
   dateFrom: string,
   dateTo: string,
   groupBy: WindsorGroupBy = "date"
-): Promise<{ data: WindsorDataRow[]; error?: string }> {
+): Promise<{ data: WindsorDataRow[]; error?: string; source?: string }> {
   const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo, group_by: groupBy });
   const res = await fetch(`/api/windsor?${params}`);
   const json = await res.json();
@@ -25,5 +25,5 @@ export async function fetchWindsorData(
   }
 
   const rows: WindsorDataRow[] = Array.isArray(json?.data) ? json.data : [];
-  return { data: rows };
+  return { data: rows, source: json.source };
 }
