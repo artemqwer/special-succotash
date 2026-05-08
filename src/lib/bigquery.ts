@@ -5,7 +5,6 @@ interface ServiceAccount {
   private_key: string;
 }
 
-// Supports both raw JSON string and base64-encoded JSON
 function parseServiceAccount(): ServiceAccount {
   const raw = process.env.BQ_SERVICE_ACCOUNT_JSON;
   if (!raw) throw new Error("BQ_SERVICE_ACCOUNT_JSON not set");
@@ -22,7 +21,7 @@ function buildJWT(sa: ServiceAccount): string {
   const payload = Buffer.from(
     JSON.stringify({
       iss: sa.client_email,
-      scope: "https://www.googleapis.com/auth/bigquery.readonly",
+      scope: "https://www.googleapis.com/auth/bigquery",
       aud: "https://oauth2.googleapis.com/token",
       iat: now,
       exp: now + 3600,
@@ -52,6 +51,16 @@ async function getServiceAccountToken(): Promise<string> {
 
 export interface BQRow {
   [key: string]: string | number | null;
+}
+
+export interface AdsRow {
+  date?: string;
+  campaign?: string;
+  impressions: number;
+  clicks: number;
+  spend: number;
+  conversions: number;
+  conversion_value: number;
 }
 
 function parseBQRows(data: {
@@ -126,73 +135,80 @@ export function isBQConfigured(): boolean {
   );
 }
 
-// ─── Google Ads → BigQuery Transfer schema ────────────────────────────────────
-// Default column names match the standard Google Ads BQ Data Transfer tables:
-// p_ads_CampaignStats_{customer_id}
-//
-// If your schema differs, override via env vars:
-//   BQ_COL_DATE            (default: _DATA_DATE)
-//   BQ_COL_CAMPAIGN        (default: campaign_name)
-//   BQ_COL_CLICKS          (default: clicks)
-//   BQ_COL_IMPRESSIONS     (default: impressions)
-//   BQ_COL_COST            (default: cost_micros)
-//   BQ_COST_DIVISOR        (default: 1000000 — set to 1 if cost is already in $)
-//   BQ_COL_CONVERSIONS     (default: conversions)
-//   BQ_COL_CONV_VALUE      (default: conversions_value)
-//   BQ_DATE_FILTER_COL     (default: _DATA_DATE — column used in WHERE date range)
-// ─────────────────────────────────────────────────────────────────────────────
+export async function writeBQAdsRows(userId: string, rows: AdsRow[]): Promise<void> {
+  if (!rows.length) return;
+  const projectId = process.env.BQ_PROJECT_ID;
+  const datasetId = process.env.BQ_DATASET_ID;
+  const tableId = process.env.BQ_TABLE;
+  if (!projectId || !datasetId || !tableId) throw new Error("BigQuery not configured");
 
-function col(envKey: string, fallback: string): string {
-  return process.env[envKey] ?? fallback;
+  const token = await getServiceAccountToken();
+
+  const insertRows = rows.map((row) => ({
+    insertId: `${userId}-${row.date ?? "nodate"}-${row.campaign ?? "all"}`,
+    json: {
+      user_id: userId,
+      date: row.date ?? null,
+      campaign: row.campaign ?? null,
+      impressions: row.impressions,
+      clicks: row.clicks,
+      spend: row.spend,
+      conversions: row.conversions,
+      conversion_value: row.conversion_value,
+      synced_at: new Date().toISOString(),
+    },
+  }));
+
+  const res = await fetch(
+    `https://bigquery.googleapis.com/bigquery/v2/projects/${projectId}/datasets/${datasetId}/tables/${tableId}/insertAll`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ rows: insertRows, skipInvalidRows: false }),
+    }
+  );
+
+  if (!res.ok) throw new Error(`BQ insert error: ${await res.text()}`);
+  const result = await res.json();
+  if (result.insertErrors?.length) {
+    throw new Error(`BQ insert errors: ${JSON.stringify(result.insertErrors[0])}`);
+  }
 }
 
 export async function fetchBQAdsData(
   dateFrom: string,
   dateTo: string,
-  groupBy: "date" | "campaign" | "date,campaign"
+  groupBy: "date" | "campaign" | "date,campaign",
+  userId: string
 ): Promise<BQRow[]> {
   const project = process.env.BQ_PROJECT_ID;
   const dataset = process.env.BQ_DATASET_ID;
   const table = process.env.BQ_TABLE;
   const fullTable = `\`${project}.${dataset}.${table}\``;
 
-  const dateCol = col("BQ_COL_DATE", "_DATA_DATE");
-  const campaignCol = col("BQ_COL_CAMPAIGN", "campaign_name");
-  const clicksCol = col("BQ_COL_CLICKS", "clicks");
-  const impressionsCol = col("BQ_COL_IMPRESSIONS", "impressions");
-  const costCol = col("BQ_COL_COST", "cost_micros");
-  const costDivisor = col("BQ_COST_DIVISOR", "1000000");
-  const conversionsCol = col("BQ_COL_CONVERSIONS", "conversions");
-  const convValueCol = col("BQ_COL_CONV_VALUE", "conversions_value");
-  const filterCol = col("BQ_DATE_FILTER_COL", "_DATA_DATE");
-
-  const selectDate = `FORMAT_DATE('%Y-%m-%d', ${dateCol}) as date`;
-  const selectCampaign = `${campaignCol} as campaign`;
-  const selectMetrics = `
-    SUM(${impressionsCol}) as impressions,
-    SUM(${clicksCol}) as clicks,
-    SUM(${costCol}) / ${costDivisor} as spend,
-    SUM(${conversionsCol}) as conversions,
-    SUM(${convValueCol}) as conversion_value`;
-
   const selectCols =
     groupBy === "date"
-      ? [selectDate]
+      ? ["date"]
       : groupBy === "campaign"
-      ? [selectCampaign]
-      : [selectDate, selectCampaign];
+      ? ["campaign"]
+      : ["date", "campaign"];
 
   const groupCols = groupBy === "date" ? "1" : groupBy === "campaign" ? "1" : "1, 2";
 
   const query = `
     SELECT
-      ${selectCols.join(",\n      ")},
-      ${selectMetrics}
+      ${selectCols.join(", ")},
+      SUM(impressions) as impressions,
+      SUM(clicks) as clicks,
+      SUM(spend) as spend,
+      SUM(conversions) as conversions,
+      SUM(conversion_value) as conversion_value
     FROM ${fullTable}
-    WHERE ${filterCol} BETWEEN @date_from AND @date_to
+    WHERE date BETWEEN @date_from AND @date_to
+      AND user_id = @user_id
     GROUP BY ${groupCols}
     ORDER BY ${groupCols}
   `;
 
-  return runBQQuery(query, { date_from: dateFrom, date_to: dateTo });
+  return runBQQuery(query, { date_from: dateFrom, date_to: dateTo, user_id: userId });
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { getGoogleAdsCustomerId } from "@/lib/google-ads-api";
 
 export async function GET(request: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://data-rocks.vercel.app";
@@ -30,9 +31,20 @@ export async function GET(request: NextRequest) {
 
   const tokens = await tokenRes.json();
   const refresh_token: string | undefined = tokens.refresh_token;
+  const access_token: string | undefined = tokens.access_token;
 
   if (!refresh_token) {
     return NextResponse.redirect(`${appUrl}/data-sources?error=no_refresh_token`);
+  }
+
+  // Fetch Google Ads customer ID with the fresh access token
+  let customer_id: string | undefined;
+  if (access_token) {
+    try {
+      customer_id = await getGoogleAdsCustomerId(access_token);
+    } catch {
+      // Developer token not yet configured — store refresh_token only, customer_id set on first sync
+    }
   }
 
   const cookieStore = await cookies();
@@ -43,7 +55,10 @@ export async function GET(request: NextRequest) {
   );
 
   const { error: updateError } = await supabase.auth.updateUser({
-    data: { google_ads_refresh_token: refresh_token },
+    data: {
+      google_ads_refresh_token: refresh_token,
+      ...(customer_id ? { google_ads_customer_id: customer_id } : {}),
+    },
   });
 
   if (updateError) {

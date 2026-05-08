@@ -1,9 +1,7 @@
 /**
  * Unit tests for src/lib/bigquery.ts
- * Mocks: fetch (for SA token + BQ query), crypto.createSign (for JWT signing)
  */
 
-// Mock crypto so we don't need a real RSA key
 jest.mock("crypto", () => ({
   createSign: jest.fn(() => ({
     update: jest.fn(),
@@ -14,7 +12,7 @@ jest.mock("crypto", () => ({
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
-import { isBQConfigured, fetchBQAdsData, runBQQuery } from "@/lib/bigquery";
+import { isBQConfigured, fetchBQAdsData, runBQQuery, writeBQAdsRows } from "@/lib/bigquery";
 
 beforeEach(() => {
   mockFetch.mockReset();
@@ -31,7 +29,7 @@ const FULL_ENV = () => {
   });
   process.env.BQ_PROJECT_ID = "my-project";
   process.env.BQ_DATASET_ID = "my-dataset";
-  process.env.BQ_TABLE = "p_ads_CampaignStats_123";
+  process.env.BQ_TABLE = "ads_data";
 };
 
 const mockSAToken = () =>
@@ -122,20 +120,55 @@ describe("runBQQuery", () => {
       conversion_value: 150,
     });
   });
+});
 
-  it("sends parameterized query correctly", async () => {
+// ─── writeBQAdsRows ───────────────────────────────────────────────────────────
+
+describe("writeBQAdsRows", () => {
+  beforeEach(FULL_ENV);
+
+  const ROW = { date: "2024-01-01", campaign: "PMax", impressions: 1000, clicks: 50, spend: 25, conversions: 3, conversion_value: 150 };
+
+  it("does nothing when rows array is empty", async () => {
+    await writeBQAdsRows("user-1", []);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("sends rows to BQ insertAll endpoint", async () => {
     mockSAToken();
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ jobComplete: true, schema: { fields: [] } }),
+      json: async () => ({}),
     });
 
-    await runBQQuery("SELECT * WHERE date = @date_from", { date_from: "2024-01-01" });
+    await writeBQAdsRows("user-1", [ROW]);
+
+    const [url, opts] = mockFetch.mock.calls[1];
+    expect(url).toContain("insertAll");
+    const body = JSON.parse(opts.body);
+    expect(body.rows).toHaveLength(1);
+    expect(body.rows[0].json.user_id).toBe("user-1");
+    expect(body.rows[0].json.campaign).toBe("PMax");
+  });
+
+  it("uses deterministic insertId for deduplication", async () => {
+    mockSAToken();
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+
+    await writeBQAdsRows("user-1", [ROW]);
 
     const body = JSON.parse(mockFetch.mock.calls[1][1].body);
-    expect(body.queryParameters).toEqual([
-      { name: "date_from", parameterType: { type: "STRING" }, parameterValue: { value: "2024-01-01" } },
-    ]);
+    expect(body.rows[0].insertId).toBe("user-1-2024-01-01-PMax");
+  });
+
+  it("throws on BQ insert errors", async () => {
+    mockSAToken();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ insertErrors: [{ index: 0, errors: [{ reason: "invalid" }] }] }),
+    });
+
+    await expect(writeBQAdsRows("user-1", [ROW])).rejects.toThrow("BQ insert errors");
   });
 });
 
@@ -144,7 +177,7 @@ describe("runBQQuery", () => {
 describe("fetchBQAdsData", () => {
   beforeEach(FULL_ENV);
 
-  const mockBQResponse = (rows: { f: { v: string }[] }[] = []) => {
+  const mockBQResponse = () => {
     mockSAToken();
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -156,91 +189,42 @@ describe("fetchBQAdsData", () => {
             { name: "clicks" }, { name: "spend" }, { name: "conversions" }, { name: "conversion_value" },
           ],
         },
-        rows,
+        rows: [],
       }),
     });
   };
 
-  it("returns empty array for no data", async () => {
-    mockBQResponse([]);
-    const result = await fetchBQAdsData("2024-01-01", "2024-01-31", "date,campaign");
-    expect(result).toEqual([]);
-  });
-
-  it("builds query with date group by", async () => {
-    mockSAToken();
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ jobComplete: true, schema: { fields: [] } }),
-    });
-
-    await fetchBQAdsData("2024-01-01", "2024-01-31", "date");
+  it("filters by user_id", async () => {
+    mockBQResponse();
+    await fetchBQAdsData("2024-01-01", "2024-01-31", "date", "user-abc");
 
     const body = JSON.parse(mockFetch.mock.calls[1][1].body);
-    expect(body.query).toContain("FORMAT_DATE");
-    expect(body.query).not.toContain("campaign_name");
+    expect(body.query).toContain("user_id = @user_id");
+    const userParam = body.queryParameters.find((p: { name: string }) => p.name === "user_id");
+    expect(userParam.parameterValue.value).toBe("user-abc");
+  });
+
+  it("selects only date when group_by is date", async () => {
+    mockBQResponse();
+    await fetchBQAdsData("2024-01-01", "2024-01-31", "date", "user-1");
+
+    const body = JSON.parse(mockFetch.mock.calls[1][1].body);
     expect(body.query).toContain("GROUP BY 1");
   });
 
-  it("builds query with campaign group by", async () => {
-    mockSAToken();
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ jobComplete: true, schema: { fields: [] } }),
-    });
-
-    await fetchBQAdsData("2024-01-01", "2024-01-31", "campaign");
+  it("selects date and campaign when group_by is date,campaign", async () => {
+    mockBQResponse();
+    await fetchBQAdsData("2024-01-01", "2024-01-31", "date,campaign", "user-1");
 
     const body = JSON.parse(mockFetch.mock.calls[1][1].body);
-    expect(body.query).toContain("campaign_name");
-    expect(body.query).not.toContain("FORMAT_DATE");
-    expect(body.query).toContain("GROUP BY 1");
-  });
-
-  it("builds query with date,campaign group by", async () => {
-    mockSAToken();
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ jobComplete: true, schema: { fields: [] } }),
-    });
-
-    await fetchBQAdsData("2024-01-01", "2024-01-31", "date,campaign");
-
-    const body = JSON.parse(mockFetch.mock.calls[1][1].body);
-    expect(body.query).toContain("FORMAT_DATE");
-    expect(body.query).toContain("campaign_name");
     expect(body.query).toContain("GROUP BY 1, 2");
   });
 
-  it("uses correct table name from env vars", async () => {
-    mockSAToken();
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ jobComplete: true, schema: { fields: [] } }),
-    });
-
-    await fetchBQAdsData("2024-01-01", "2024-01-31", "date");
+  it("uses correct table from env vars", async () => {
+    mockBQResponse();
+    await fetchBQAdsData("2024-01-01", "2024-01-31", "date", "user-1");
 
     const body = JSON.parse(mockFetch.mock.calls[1][1].body);
-    expect(body.query).toContain("`my-project.my-dataset.p_ads_CampaignStats_123`");
-  });
-
-  it("respects BQ_COL_COST and BQ_COST_DIVISOR overrides", async () => {
-    process.env.BQ_COL_COST = "spend_uah";
-    process.env.BQ_COST_DIVISOR = "1";
-    mockSAToken();
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ jobComplete: true, schema: { fields: [] } }),
-    });
-
-    await fetchBQAdsData("2024-01-01", "2024-01-31", "date");
-
-    const body = JSON.parse(mockFetch.mock.calls[1][1].body);
-    expect(body.query).toContain("spend_uah");
-    expect(body.query).toContain("/ 1 as spend");
-
-    delete process.env.BQ_COL_COST;
-    delete process.env.BQ_COST_DIVISOR;
+    expect(body.query).toContain("`my-project.my-dataset.ads_data`");
   });
 });

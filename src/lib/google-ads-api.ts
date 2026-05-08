@@ -20,22 +20,38 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
 }
 
 export function isGoogleAdsApiConfigured(): boolean {
-  return !!(
-    process.env.GOOGLE_ADS_DEVELOPER_TOKEN &&
-    process.env.GOOGLE_ADS_CUSTOMER_ID
+  return !!process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
+}
+
+export async function getGoogleAdsCustomerId(accessToken: string): Promise<string> {
+  const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
+  if (!devToken) throw new Error("GOOGLE_ADS_DEVELOPER_TOKEN not set");
+
+  const res = await fetch(
+    `https://googleads.googleapis.com/${GADS_API_VERSION}/customers:listAccessibleCustomers`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "developer-token": devToken,
+      },
+    }
   );
+  if (!res.ok) throw new Error(`Failed to list Google Ads customers: ${await res.text()}`);
+  const data = await res.json();
+  const resourceNames: string[] = data.resourceNames ?? [];
+  if (!resourceNames.length) throw new Error("No accessible Google Ads accounts found");
+  return resourceNames[0].replace("customers/", "");
 }
 
 export async function fetchGoogleAdsApiData(
   dateFrom: string,
   dateTo: string,
   groupBy: "date" | "campaign" | "date,campaign",
-  refreshToken: string
+  refreshToken: string,
+  customerId: string
 ): Promise<WindsorDataRow[]> {
   const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN!;
-  // Strip dashes: "123-456-7890" → "1234567890"
-  const customerId = process.env.GOOGLE_ADS_CUSTOMER_ID!.replace(/-/g, "");
-  // Optional: MCC manager account ID (needed if accessing via a manager account)
+  const customerIdClean = customerId.replace(/-/g, "");
   const managerId = process.env.GOOGLE_ADS_MANAGER_ID?.replace(/-/g, "");
 
   const accessToken = await refreshAccessToken(refreshToken);
@@ -73,7 +89,7 @@ export async function fetchGoogleAdsApiData(
     if (pageToken) body.pageToken = pageToken;
 
     const res = await fetch(
-      `https://googleads.googleapis.com/${GADS_API_VERSION}/customers/${customerId}/googleAds:search`,
+      `https://googleads.googleapis.com/${GADS_API_VERSION}/customers/${customerIdClean}/googleAds:search`,
       { method: "POST", headers, body: JSON.stringify(body) }
     );
 
