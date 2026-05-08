@@ -37,7 +37,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setChecking(false);
       }
     });
-  }, [router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handler = (e: Event) => {

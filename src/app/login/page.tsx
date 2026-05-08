@@ -26,7 +26,8 @@ export default function LoginPage() {
     getSupabaseSession().then((s) => {
       if (s) router.replace("/google-ads");
     });
-  }, [router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const validate = (fields = { email, password }): Errors => {
     const e: Errors = {};
