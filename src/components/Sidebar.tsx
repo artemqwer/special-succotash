@@ -144,9 +144,13 @@ export default function Sidebar({ mobileOpen, onMobileClose, session, onLogout }
 
         {/* User */}
         <div className="border-t border-gray-100 p-3 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-[12px] font-bold shrink-0">
-            {session?.name ? session.name.slice(0, 2).toUpperCase() : "U"}
-          </div>
+          {session?.avatar ? (
+            <img src={session.avatar} alt={session.name} className="w-8 h-8 rounded-full shrink-0 object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-[12px] font-bold shrink-0">
+              {session?.name ? session.name.slice(0, 2).toUpperCase() : "U"}
+            </div>
+          )}
           <div className={`overflow-hidden flex-1 min-w-0 ${fadeCls}`}>
             <p className="text-[13px] font-semibold text-gray-800 truncate whitespace-nowrap">{session?.name ?? "User"}</p>
             <p className="text-[11px] text-gray-400 truncate whitespace-nowrap">{session?.email ?? ""}</p>

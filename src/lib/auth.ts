@@ -1,6 +1,6 @@
 import { createClient } from "./supabase";
 
-export type Session = { email: string; name: string };
+export type Session = { email: string; name: string; avatar?: string };
 
 export function getSession(): Session | null {
   // Synchronous check via localStorage token presence (used only for SSR-safe quick guard)
@@ -84,5 +84,6 @@ export async function getSupabaseSession(): Promise<Session | null> {
   if (!data.session?.user) return null;
   const user = data.session.user;
   const name = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "User";
-  return { email: user.email!, name };
+  const avatar = user.user_metadata?.avatar_url ?? user.user_metadata?.picture;
+  return { email: user.email!, name, avatar };
 }
