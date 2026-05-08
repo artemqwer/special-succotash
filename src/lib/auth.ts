@@ -62,6 +62,16 @@ export async function loginUser(
   return { success: true, session: { email: data.user.email!, name } };
 }
 
+export async function loginWithGoogle(): Promise<void> {
+  const supabase = createClient();
+  await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    },
+  });
+}
+
 export async function logoutUser(): Promise<void> {
   const supabase = createClient();
   await supabase.auth.signOut();

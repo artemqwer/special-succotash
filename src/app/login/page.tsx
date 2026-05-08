@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DataRocksLogo from "@/components/DataRocksLogo";
-import { getSupabaseSession, loginUser, setSession } from "@/lib/auth";
+import { getSupabaseSession, loginUser, loginWithGoogle, setSession } from "@/lib/auth";
 
 function isValidEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -193,7 +193,7 @@ export default function LoginPage() {
           <div className="flex-1 h-px bg-gray-200" />
         </div>
 
-        <button type="button"
+        <button type="button" onClick={loginWithGoogle}
           className="w-full border border-gray-200 hover:bg-gray-50 active:bg-gray-100 text-gray-700 font-medium text-[14px] py-2.5 rounded-lg flex items-center justify-center gap-2.5 transition mb-5">
           <svg width="18" height="18" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
