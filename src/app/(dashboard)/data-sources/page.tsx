@@ -81,6 +81,8 @@ export default function DataSourcesPage() {
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [syncFrom, setSyncFrom] = useState("2022-01-01");
   const [syncTo, setSyncTo] = useState(new Date().toISOString().slice(0, 10));
+  const [customerId, setCustomerId] = useState("");
+  const [savingCustomerId, setSavingCustomerId] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const showToast = useCallback((type: "success" | "error", text: string) => {
@@ -92,6 +94,7 @@ export default function DataSourcesPage() {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       setConnected(!!user?.user_metadata?.google_ads_refresh_token);
+      setCustomerId(user?.user_metadata?.google_ads_customer_id?.replace(/-/g, "") ?? "");
       setLoading(false);
     });
   }, []);
@@ -112,6 +115,16 @@ export default function DataSourcesPage() {
       showToast("error", msgs[error] ?? "Connection failed");
     }
   }, [searchParams, showToast]);
+
+  const handleSaveCustomerId = async () => {
+    setSavingCustomerId(true);
+    const supabase = createClient();
+    const id = customerId.replace(/-/g, "");
+    const { error } = await supabase.auth.updateUser({ data: { google_ads_customer_id: id } });
+    setSavingCustomerId(false);
+    if (error) showToast("error", "Failed to save Customer ID");
+    else showToast("success", "Customer ID saved");
+  };
 
   const handleSync = async () => {
     setSyncing(true);
@@ -241,7 +254,29 @@ export default function DataSourcesPage() {
           </div>
 
           {connected && (
-            <div className="mt-5 pt-5 border-t border-gray-50 flex items-center gap-6 text-[12px] text-gray-400">
+            <div className="mt-5 pt-5 border-t border-gray-50">
+              <div className="flex items-center gap-2 mb-4">
+                <label className="text-[12px] font-medium text-gray-500 shrink-0">Google Ads Customer ID</label>
+                <input
+                  type="text"
+                  value={customerId}
+                  onChange={e => setCustomerId(e.target.value)}
+                  placeholder="1234567890"
+                  className="text-[13px] border border-gray-200 rounded-lg px-3 py-1.5 outline-none text-gray-700 focus:border-blue-400 w-40"
+                />
+                <button
+                  onClick={handleSaveCustomerId}
+                  disabled={savingCustomerId || !customerId}
+                  className="text-[12px] font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                >
+                  {savingCustomerId ? "Saving…" : "Save"}
+                </button>
+                <span className="text-[11px] text-gray-400">Find it in Google Ads → Admin → Account details</span>
+              </div>
+            </div>
+          )}
+          {connected && (
+            <div className="pt-2 flex items-center gap-6 text-[12px] text-gray-400">
               <span className="flex items-center gap-1.5">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                 Syncing via Google Ads API
@@ -258,6 +293,7 @@ export default function DataSourcesPage() {
               )}
             </div>
           )}
+
         </div>
       </div>
 
