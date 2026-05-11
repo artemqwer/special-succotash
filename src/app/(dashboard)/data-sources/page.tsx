@@ -79,6 +79,8 @@ export default function DataSourcesPage() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
+  const [syncFrom, setSyncFrom] = useState("2022-01-01");
+  const [syncTo, setSyncTo] = useState(new Date().toISOString().slice(0, 10));
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const showToast = useCallback((type: "success" | "error", text: string) => {
@@ -114,7 +116,11 @@ export default function DataSourcesPage() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const res = await fetch("/api/sync", { method: "POST" });
+      const res = await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date_from: syncFrom, date_to: syncTo, group_by: "date,campaign" }),
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Sync failed");
       setLastSynced(new Date().toLocaleTimeString());
@@ -194,7 +200,12 @@ export default function DataSourcesPage() {
               {loading ? (
                 <div className="w-6 h-6 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
               ) : connected ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  <input type="date" value={syncFrom} onChange={e => setSyncFrom(e.target.value)}
+                    className="text-[12px] border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-600 focus:border-blue-400" />
+                  <span className="text-[12px] text-gray-400">—</span>
+                  <input type="date" value={syncTo} onChange={e => setSyncTo(e.target.value)}
+                    className="text-[12px] border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-600 focus:border-blue-400" />
                   <button
                     onClick={handleSync}
                     disabled={syncing}
