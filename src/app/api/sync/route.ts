@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { fetchGoogleAdsApiData, isGoogleAdsApiConfigured } from "@/lib/google-ads-api";
+import { fetchGoogleAdsApiData, isGoogleAdsApiConfigured, getGoogleAdsCustomerId } from "@/lib/google-ads-api";
 import { writeBQAdsRows, isBQConfigured } from "@/lib/bigquery";
 
 export async function POST(request: NextRequest) {
