@@ -92,6 +92,29 @@ export default function GoogleAdsPage() {
   const [windsorError, setWindsorError] = useState<string | null>(null);
   const [windsorConnected, setWindsorConnected] = useState(false);
   const [dataSource, setDataSource] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const dateFrom = new Date(rangeStart).toISOString().slice(0, 10);
+      const dateTo = new Date(rangeEnd).toISOString().slice(0, 10);
+      const res = await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date_from: dateFrom, date_to: dateTo, group_by: "date,campaign" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Sync failed");
+      setSyncMsg(`Synced ${json.synced} rows`);
+    } catch (err) {
+      setSyncMsg(err instanceof Error ? err.message : "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [realCampaignRows, setRealCampaignRows] = useState<any[] | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -804,6 +827,27 @@ export default function GoogleAdsPage() {
             {!isWindsorLoading && windsorConnected && <span className="text-[10px] text-green-500 font-semibold">● Connected</span>}
             {!isWindsorLoading && !windsorConnected && !windsorError && <span className="text-[10px] text-gray-400 font-semibold">● Not connected</span>}
             {!isWindsorLoading && windsorError && <span className="text-[10px] text-red-500 font-semibold">● Error</span>}
+          </div>
+
+          {/* Sync button */}
+          <div className="flex flex-col items-end gap-0.5">
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="flex items-center gap-1.5 text-[13px] font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-lg px-3 py-1.5 transition"
+            >
+              {syncing ? (
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              )}
+              {syncing ? "Syncing…" : "Sync Data"}
+            </button>
+            {syncMsg && (
+              <span className={`text-[11px] ${syncMsg.startsWith("Synced") ? "text-green-600" : "text-red-500"}`}>
+                {syncMsg}
+              </span>
+            )}
           </div>
 
           <div className="relative">

@@ -77,10 +77,6 @@ export default function DataSourcesPage() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [lastSynced, setLastSynced] = useState<string | null>(null);
-  const [syncFrom, setSyncFrom] = useState("2022-01-01");
-  const [syncTo, setSyncTo] = useState(new Date().toISOString().slice(0, 10));
   const [customerId, setCustomerId] = useState("");
   const [savingCustomerId, setSavingCustomerId] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -124,25 +120,6 @@ export default function DataSourcesPage() {
     setSavingCustomerId(false);
     if (error) showToast("error", "Failed to save Customer ID");
     else showToast("success", "Customer ID saved");
-  };
-
-  const handleSync = async () => {
-    setSyncing(true);
-    try {
-      const res = await fetch("/api/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date_from: syncFrom, date_to: syncTo, group_by: "date,campaign" }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Sync failed");
-      setLastSynced(new Date().toLocaleTimeString());
-      showToast("success", `Synced ${json.synced} rows successfully`);
-    } catch (err) {
-      showToast("error", err instanceof Error ? err.message : "Sync failed");
-    } finally {
-      setSyncing(false);
-    }
   };
 
   const handleDisconnect = async () => {
@@ -213,23 +190,7 @@ export default function DataSourcesPage() {
               {loading ? (
                 <div className="w-6 h-6 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
               ) : connected ? (
-                <div className="flex items-center gap-2 flex-wrap justify-end">
-                  <input type="date" value={syncFrom} onChange={e => setSyncFrom(e.target.value)}
-                    className="text-[12px] border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-600 focus:border-blue-400" />
-                  <span className="text-[12px] text-gray-400">—</span>
-                  <input type="date" value={syncTo} onChange={e => setSyncTo(e.target.value)}
-                    className="text-[12px] border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-600 focus:border-blue-400" />
-                  <button
-                    onClick={handleSync}
-                    disabled={syncing}
-                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold px-4 py-2 rounded-xl transition shadow-sm shadow-blue-100 disabled:opacity-60"
-                  >
-                    {syncing
-                      ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                    }
-                    {syncing ? "Syncing…" : "Sync Data"}
-                  </button>
+                <div className="flex items-center gap-2">
                   <button
                     onClick={handleDisconnect}
                     disabled={disconnecting}
@@ -239,6 +200,7 @@ export default function DataSourcesPage() {
                     Disconnect
                   </button>
                 </div>
+
               ) : (
                 <a
                   href="/api/auth/google-ads"
