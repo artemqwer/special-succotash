@@ -247,12 +247,6 @@ export default function DataSourcesPage() {
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 Secured with OAuth 2.0
               </span>
-              {lastSynced && (
-                <span className="flex items-center gap-1.5 text-green-500">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  Last synced at {lastSynced}
-                </span>
-              )}
             </div>
           )}
 
