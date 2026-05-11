@@ -77,6 +77,8 @@ export default function DataSourcesPage() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const showToast = useCallback((type: "success" | "error", text: string) => {
@@ -108,6 +110,21 @@ export default function DataSourcesPage() {
       showToast("error", msgs[error] ?? "Connection failed");
     }
   }, [searchParams, showToast]);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/sync", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Sync failed");
+      setLastSynced(new Date().toLocaleTimeString());
+      showToast("success", `Synced ${json.synced} rows successfully`);
+    } catch (err) {
+      showToast("error", err instanceof Error ? err.message : "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleDisconnect = async () => {
     setDisconnecting(true);
@@ -177,14 +194,27 @@ export default function DataSourcesPage() {
               {loading ? (
                 <div className="w-6 h-6 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
               ) : connected ? (
-                <button
-                  onClick={handleDisconnect}
-                  disabled={disconnecting}
-                  className="flex items-center gap-1.5 border border-gray-200 hover:bg-gray-50 text-gray-600 text-[13px] font-medium px-4 py-2 rounded-xl transition disabled:opacity-50"
-                >
-                  {disconnecting && <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />}
-                  Disconnect
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSync}
+                    disabled={syncing}
+                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold px-4 py-2 rounded-xl transition shadow-sm shadow-blue-100 disabled:opacity-60"
+                  >
+                    {syncing
+                      ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    }
+                    {syncing ? "Syncing…" : "Sync Data"}
+                  </button>
+                  <button
+                    onClick={handleDisconnect}
+                    disabled={disconnecting}
+                    className="flex items-center gap-1.5 border border-gray-200 hover:bg-gray-50 text-gray-600 text-[13px] font-medium px-4 py-2 rounded-xl transition disabled:opacity-50"
+                  >
+                    {disconnecting && <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />}
+                    Disconnect
+                  </button>
+                </div>
               ) : (
                 <a
                   href="/api/auth/google-ads"
@@ -209,6 +239,12 @@ export default function DataSourcesPage() {
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 Secured with OAuth 2.0
               </span>
+              {lastSynced && (
+                <span className="flex items-center gap-1.5 text-green-500">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Last synced at {lastSynced}
+                </span>
+              )}
             </div>
           )}
         </div>
