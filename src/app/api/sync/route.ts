@@ -15,10 +15,31 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const refreshToken: string | undefined = user.user_metadata?.google_ads_refresh_token;
-  const customerId: string | undefined = user.user_metadata?.google_ads_customer_id;
+  let customerId: string | undefined = user.user_metadata?.google_ads_customer_id;
 
-  if (!refreshToken || !customerId) {
+  if (!refreshToken) {
     return NextResponse.json({ error: "Google Ads not connected" }, { status: 400 });
+  }
+
+  if (!customerId) {
+    try {
+      const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+          client_id: process.env.GOOGLE_CLIENT_ID!,
+          client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        }),
+      });
+      const { access_token } = await tokenRes.json();
+      customerId = await getGoogleAdsCustomerId(access_token);
+      await supabase.auth.updateUser({ data: { google_ads_customer_id: customerId } });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to get Google Ads customer ID";
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
   }
 
   if (!isGoogleAdsApiConfigured()) {
