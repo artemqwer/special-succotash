@@ -36,7 +36,13 @@ export async function getGoogleAdsCustomerId(accessToken: string): Promise<strin
       },
     }
   );
-  if (!res.ok) throw new Error(`Failed to list Google Ads customers: ${await res.text()}`);
+  if (!res.ok) {
+    const body = await res.text();
+    if (body.includes("<!DOCTYPE") || body.includes("<html")) {
+      throw new Error("Google Ads API unavailable: Developer Token has Test Access only and cannot read real accounts. Apply for Basic Access in Google Ads → Tools → API Center.");
+    }
+    throw new Error(`Failed to list Google Ads customers: ${body}`);
+  }
   const data = await res.json();
   const resourceNames: string[] = data.resourceNames ?? [];
   if (!resourceNames.length) throw new Error("No accessible Google Ads accounts found");
