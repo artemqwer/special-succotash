@@ -9,32 +9,41 @@ async function fetchFromWindsor(
   dateTo: string,
   groupBy: "date" | "campaign" | "date,campaign"
 ) {
-  const fields = groupBy === "date"
-    ? "date,clicks,impressions,spend,conversions,conversion_value"
-    : groupBy === "campaign"
-    ? "campaign,clicks,impressions,spend,conversions,conversion_value"
-    : "date,campaign,clicks,impressions,spend,conversions,conversion_value";
+  const fieldsByGroup = {
+    "date": "date,clicks,impressions,spend,conversions,conversion_value",
+    "campaign": "campaign,clicks,impressions,spend,conversions,conversion_value",
+    "date,campaign": "date,campaign,clicks,impressions,spend,conversions,conversion_value",
+  };
 
   const params = new URLSearchParams({
     api_key: apiKey,
     date_from: dateFrom,
     date_to: dateTo,
-    fields,
-    connector: "google_ads",
+    fields: fieldsByGroup[groupBy],
   });
 
   const res = await fetch(`https://connectors.windsor.ai/all?${params}`);
-  if (!res.ok) throw new Error(`Windsor.ai error: ${res.status}`);
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Windsor.ai ${res.status}: ${body.replace(/<[^>]*>/g, "").trim().slice(0, 200)}`);
+  }
+
   const json = await res.json();
-  const rows = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : [];
-  return rows.map((r: Record<string, unknown>) => ({
-    date: r.date ?? null,
-    campaign: r.campaign ?? null,
+  const rows: Record<string, unknown>[] = Array.isArray(json?.data)
+    ? json.data
+    : Array.isArray(json)
+    ? json
+    : [];
+
+  return rows.map((r) => ({
+    date: (r.date ?? r.day ?? null) as string | null,
+    campaign: (r.campaign ?? r.campaign__name ?? r.campaign_name ?? null) as string | null,
     clicks: Number(r.clicks) || 0,
     impressions: Number(r.impressions) || 0,
-    spend: Number(r.spend) || 0,
+    spend: Number(r.spend ?? r.cost ?? 0),
     conversions: Number(r.conversions) || 0,
-    conversion_value: Number(r.conversion_value) || 0,
+    conversion_value: Number(r.conversion_value ?? r.revenue ?? r.conversionValue ?? 0),
   }));
 }
 
