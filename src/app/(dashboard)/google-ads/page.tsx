@@ -21,7 +21,8 @@ import AiSidebar from "./_components/AiSidebar";
 import DatePickerPanel from "./_components/DatePickerPanel";
 import MobileDatePicker from "./_components/MobileDatePicker";
 import AddEventModal from "./_components/AddEventModal";
-import Timeline, { CustomEvent } from "./_components/Timeline";
+import Timeline from "./_components/Timeline";
+import type { CustomEvent } from "./_data/types";
 import TabContent from "./_components/TabContent";
 import { makeRenderConvLabel, makeRenderLossTopLabel, makeRenderTotalLabel } from "./_components/ChartPrimitives";
 

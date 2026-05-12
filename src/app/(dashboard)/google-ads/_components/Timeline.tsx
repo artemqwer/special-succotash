@@ -3,16 +3,7 @@
 import React from "react";
 import { tlEventItems, tlAdItems, tlWebItems } from "../_data/constants";
 import { isWeekend } from "./ChartPrimitives";
-
-export interface CustomEvent {
-  id: string;
-  category: "Events" | "Ads" | "Website";
-  type: string | null;
-  startDate: string;
-  endDate: string;
-  title: string;
-  desc: string;
-}
+import type { CustomEvent } from "../_data/types";
 
 interface TimelineProps {
   dates: string[];
