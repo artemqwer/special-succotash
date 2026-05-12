@@ -369,7 +369,7 @@ export default function GoogleAdsPage() {
 
   // Prevent background scroll when modal is open
   useEffect(() => {
-    const isOpen = addEventOpen || aiOpen;
+    const isOpen = addEventOpen || (aiOpen && isMobile);
     if (!isOpen) return;
     const scrollY = window.scrollY;
     document.body.style.overflow = "hidden";
@@ -377,7 +377,7 @@ export default function GoogleAdsPage() {
       document.body.style.overflow = "";
       window.scrollTo(0, scrollY);
     };
-  }, [addEventOpen, aiOpen]);
+  }, [addEventOpen, aiOpen, isMobile]);
 
   const toggleSeries = (name: string) => {
     setHiddenSeries((prev) => {
