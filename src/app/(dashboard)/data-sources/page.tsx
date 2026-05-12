@@ -77,6 +77,9 @@ export default function DataSourcesPage() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [windsorKey, setWindsorKey] = useState("");
+  const [windsorSaving, setWindsorSaving] = useState(false);
+  const [windsorConnected, setWindsorConnected] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const showToast = useCallback((type: "success" | "error", text: string) => {
@@ -88,6 +91,9 @@ export default function DataSourcesPage() {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       setConnected(!!user?.user_metadata?.google_ads_refresh_token);
+      const key = user?.user_metadata?.windsor_api_key ?? "";
+      setWindsorKey(key);
+      setWindsorConnected(!!key);
       setLoading(false);
     });
   }, []);
@@ -108,6 +114,19 @@ export default function DataSourcesPage() {
       showToast("error", msgs[error] ?? "Connection failed");
     }
   }, [searchParams, showToast]);
+
+  const handleSaveWindsorKey = async () => {
+    setWindsorSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ data: { windsor_api_key: windsorKey.trim() || null } });
+    setWindsorSaving(false);
+    if (error) {
+      showToast("error", "Failed to save Windsor API key");
+    } else {
+      setWindsorConnected(!!windsorKey.trim());
+      showToast("success", windsorKey.trim() ? "Windsor.ai connected" : "Windsor.ai disconnected");
+    }
+  };
 
   const handleDisconnect = async () => {
     setDisconnecting(true);
@@ -215,6 +234,77 @@ export default function DataSourcesPage() {
             </div>
           )}
 
+        </div>
+      </div>
+
+      {/* Windsor.ai */}
+      <div className="mb-8">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-50 shrink-0">
+                <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                  <rect width="40" height="40" rx="10" fill="#7C3AED" opacity=".12"/>
+                  <path d="M20 8L26 20L20 32L14 20L20 8Z" fill="#7C3AED"/>
+                  <path d="M8 20L20 14L32 20L20 26L8 20Z" fill="#A78BFA"/>
+                </svg>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <h3 className="text-[15px] font-semibold text-gray-900">Windsor.ai</h3>
+                  {!loading && windsorConnected && (
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                      Connected
+                    </span>
+                  )}
+                </div>
+                <p className="text-[13px] text-gray-400 leading-snug">
+                  Connect via Windsor.ai API key to pull Google Ads data directly
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 pt-5 border-t border-gray-50">
+            <div className="flex items-center gap-2">
+              <label className="text-[12px] font-medium text-gray-500 shrink-0">API Key</label>
+              <input
+                type="password"
+                value={windsorKey}
+                onChange={e => setWindsorKey(e.target.value)}
+                placeholder="Paste your Windsor.ai API key"
+                className="text-[13px] border border-gray-200 rounded-lg px-3 py-1.5 outline-none text-gray-700 focus:border-purple-400 flex-1 max-w-xs"
+              />
+              <button
+                onClick={handleSaveWindsorKey}
+                disabled={windsorSaving}
+                className="text-[12px] font-medium bg-purple-600 hover:bg-purple-700 text-white px-4 py-1.5 rounded-lg transition disabled:opacity-50"
+              >
+                {windsorSaving ? "Saving…" : windsorConnected ? "Update" : "Connect"}
+              </button>
+              {windsorConnected && (
+                <button
+                  onClick={async () => {
+                    setWindsorSaving(true);
+                    const supabase = createClient();
+                    await supabase.auth.updateUser({ data: { windsor_api_key: null } });
+                    setWindsorSaving(false);
+                    setWindsorKey("");
+                    setWindsorConnected(false);
+                    showToast("success", "Windsor.ai disconnected");
+                  }}
+                  disabled={windsorSaving}
+                  className="text-[12px] font-medium border border-gray-200 hover:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                >
+                  Disconnect
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-gray-400 mt-2 ml-[60px]">
+              Find your API key in Windsor.ai → Settings → API
+            </p>
+          </div>
         </div>
       </div>
 
