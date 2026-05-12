@@ -5,7 +5,7 @@ import { fetchWindsorData } from "@/lib/windsor";
 
 // ─── Data imports ─────────────────────────────────────────────────────────────
 import {
-  kpis, sparkData, campaignRows, tabs,
+  kpis, sparkData, tabs,
   CAMPAIGNS, COLORS, CAMPAIGN_TYPE_MAP, TYPES, TYPE_COLORS_MAP,
   CHART_METRICS, CHART_GROUPBY,
   END_MS, DAY_MS, fmtMs,
@@ -293,45 +293,42 @@ export default function GoogleAdsPage() {
 
   const { dates, barData, campaignAvgs, adPerfData, plData } = useMemo(
     () => {
-      const mock = generatePeriodData(rangeStart, rangeEnd);
-      if (windsorConnected && (!realBarData || realBarData.length === 0)) {
-        return { ...mock, barData: [], adPerfData: [], plData: [], campaignAvgs: [] };
+      const { dates } = generatePeriodData(rangeStart, rangeEnd);
+      if (!windsorConnected || !realBarData || realBarData.length === 0) {
+        return { dates, barData: [], adPerfData: [] as AdPerfItem[], plData: [] as PlItem[], campaignAvgs: [] };
       }
-      if (realBarData && realBarData.length > 0) {
-        const names = Array.from(new Set(realBarData.flatMap((d: Record<string, unknown>) => Object.keys(d).filter(k => k !== 'date' && k !== 'total' && !k.startsWith('_')))));
+      const names = Array.from(new Set(realBarData.flatMap((d: Record<string, unknown>) => Object.keys(d).filter(k => k !== 'date' && k !== 'total' && !k.startsWith('_')))));
 
-        const derivedAdPerfData: AdPerfItem[] = realBarData.map((d: Record<string, unknown>) => {
-          const convValue = d.total as number;
-          const cost = d.cost as number;
-          const profit = d.profit as number;
-          const clicks = d.clicks as number;
-          const roas = cost > 0 ? convValue / cost : 0;
-          return {
-            date: d.date as string,
-            convValue, cost, profit, clicks, roas,
-            costBar: cost, profitBar: Math.max(0, profit)
-          };
-        });
-
-        const derivedPlData: PlItem[] = realBarData.map((d: Record<string, unknown>) => ({
-          date: d.date as string,
-          dailyProfit: d.profit as number,
-          cumulative: 0
-        }));
-
+      const derivedAdPerfData: AdPerfItem[] = realBarData.map((d: Record<string, unknown>) => {
+        const convValue = d.total as number;
+        const cost = d.cost as number;
+        const profit = d.profit as number;
+        const clicks = d.clicks as number;
+        const roas = cost > 0 ? convValue / cost : 0;
         return {
-          ...mock,
-          barData: realBarData,
-          adPerfData: derivedAdPerfData,
-          plData: derivedPlData,
-          campaignAvgs: names.map((name, i) => ({
-            name,
-            color: COLORS[i % COLORS.length],
-            avg: realBarData.reduce((s: number, d: Record<string, unknown>) => s + ((d[name] as number) || 0), 0) / realBarData.length
-          })).sort((a, b) => b.avg - a.avg)
+          date: d.date as string,
+          convValue, cost, profit, clicks, roas,
+          costBar: cost, profitBar: Math.max(0, profit)
         };
-      }
-      return mock;
+      });
+
+      const derivedPlData: PlItem[] = realBarData.map((d: Record<string, unknown>) => ({
+        date: d.date as string,
+        dailyProfit: d.profit as number,
+        cumulative: 0
+      }));
+
+      return {
+        dates,
+        barData: realBarData,
+        adPerfData: derivedAdPerfData,
+        plData: derivedPlData,
+        campaignAvgs: names.map((name, i) => ({
+          name,
+          color: COLORS[i % COLORS.length],
+          avg: realBarData.reduce((s: number, d: Record<string, unknown>) => s + ((d[name] as number) || 0), 0) / realBarData.length
+        })).sort((a, b) => b.avg - a.avg)
+      };
     },
     [rangeStart, rangeEnd, realBarData, windsorConnected]
   );
@@ -424,11 +421,14 @@ export default function GoogleAdsPage() {
     }
   };
 
-  const currentRows = windsorConnected ? (realCampaignRows ?? []) : campaignRows;
+  const currentRows = useMemo(
+    () => windsorConnected ? (realCampaignRows ?? []) : [],
+    [windsorConnected, realCampaignRows]
+  );
   const types = ["All", ...Array.from(new Set(currentRows.map((r) => r.type)))];
 
   const filtered = useMemo(() => {
-    const base = windsorConnected ? (realCampaignRows ?? []) : campaignRows;
+    const base = windsorConnected ? (realCampaignRows ?? []) : [];
     let rows = typeFilter === "All" ? base : base.filter((r) => r.type === typeFilter);
     if (statusFilter !== "Status") {
       const target = statusFilter === "Active" ? "green" : "gray";
@@ -472,7 +472,7 @@ export default function GoogleAdsPage() {
 
   const selectionScale = useMemo(() => {
     if (selectedRows.length === 0) return 1;
-    const base = windsorConnected ? (realCampaignRows ?? []) : campaignRows;
+    const base = windsorConnected ? (realCampaignRows ?? []) : [];
     const totalRev = base.reduce((s: number, r: { revenue: number }) => s + r.revenue, 0);
     const selRev = selectedRows.reduce((s: number, r: { revenue: number }) => s + r.revenue, 0);
     return totalRev > 0 ? selRev / totalRev : 0;
@@ -932,12 +932,12 @@ export default function GoogleAdsPage() {
           const real = realKpis?.[i];
           const src  = dyn ?? real;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const spark = dyn ? sparkData(src?.up ?? k.up, i + selectedRows.length * 3) : (real?.spark ?? sparkData(k.up, i));
+          const spark = dyn ? sparkData(src?.up ?? k.up, i + selectedRows.length * 3) : (real?.spark ?? []);
           return (
             <KpiCard key={k.label} label={k.label} shortLabel={k.shortLabel} icon={k.icon}
-              value={src?.value ?? k.value}
-              delta={src?.delta ?? k.delta}
-              up={src?.up ?? k.up}
+              value={src?.value ?? "—"}
+              delta={src?.delta ?? "—"}
+              up={src?.up ?? true}
               spark={spark}
               desc={k.desc}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
