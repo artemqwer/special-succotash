@@ -12,7 +12,7 @@ import {
   TYPE_TO_GROUPS,
   ChartMetric, ChartGroupBy, SortDir, SortKey, AdPerfItem, PlItem, AiMessage,
 } from "./_data/constants";
-import { generatePeriodData, getMockAiResponse } from "./_data/generators";
+import { generatePeriodData } from "./_data/generators";
 
 // ─── Component imports ────────────────────────────────────────────────────────
 import KpiCard from "./_components/KpiCard";
@@ -346,19 +346,43 @@ export default function GoogleAdsPage() {
     setAiOpen(true);
   };
 
-  const sendAiMsg = (text?: string) => {
+  const sendAiMsg = async (text?: string) => {
     const msg = (text ?? aiInput).trim();
     if (!msg || aiLoading) return;
     setAiInput("");
     const t = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    const snapshot = aiMsgs;
     setAiMsgs(prev => [...prev, { id: Date.now(), role: "user", text: msg, time: t, pinned: false }]);
     setAiLoading(true);
-    setTimeout(() => {
-      const r = getMockAiResponse(msg);
+    try {
+      const dateFrom = new Date(rangeStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      const dateTo   = new Date(rangeEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      const context = {
+        dateRange: `${dateFrom} – ${dateTo}`,
+        connected: windsorConnected,
+        dataSource,
+        kpis: realKpis ? kpis.map((k, i) => ({ label: k.label, value: realKpis[i]?.value ?? "—", trend: realKpis[i]?.delta ?? "—" })) : null,
+        campaigns: realCampaignRows?.slice(0, 20).map(r => ({
+          name: r.name, type: r.type,
+          cost: `$${(r.cost).toFixed(2)}K`, revenue: `$${(r.revenue).toFixed(2)}K`,
+          roas: r.roas, clicks: r.clicks, conversions: r.conv, cpa: `$${r.cpa.toFixed(2)}`,
+        })),
+      };
+      const history = snapshot.slice(-10).map(m => ({ role: m.role, content: m.text }));
+      const res = await fetch("/api/ai-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg, context, history }),
+      });
+      const data = await res.json();
       const t2 = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-      setAiMsgs(prev => [...prev, { id: Date.now() + 1, role: "assistant", text: r.text, time: t2, suggestions: r.suggestions, pinned: false }]);
+      setAiMsgs(prev => [...prev, { id: Date.now() + 1, role: "assistant", text: data.error ? `Error: ${data.error}` : data.text, time: t2, pinned: false }]);
+    } catch {
+      const t2 = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+      setAiMsgs(prev => [...prev, { id: Date.now() + 1, role: "assistant", text: "Couldn't reach AI. Please try again.", time: t2, pinned: false }]);
+    } finally {
       setAiLoading(false);
-    }, 1100);
+    }
   };
 
   const toggleAiPin = (id: number) => setAiMsgs(prev => prev.map(m => m.id === id ? { ...m, pinned: !m.pinned } : m));
