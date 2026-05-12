@@ -148,7 +148,12 @@ export default function GoogleAdsPage() {
       const start = new Date(rangeStart).toISOString().split("T")[0];
       const end = new Date(rangeEnd).toISOString().split("T")[0];
 
-      const { data: campData, error: campErr, source: src } = await fetchWindsorData(start, end, "campaign");
+      const [campResult, dailyResult] = await Promise.all([
+        fetchWindsorData(start, end, "campaign"),
+        fetchWindsorData(start, end, "date,campaign"),
+      ]);
+
+      const { data: campData, error: campErr, source: src } = campResult;
       if (campErr) {
         setWindsorConnected(false);
         setDataSource(null);
@@ -196,7 +201,7 @@ export default function GoogleAdsPage() {
       });
       setRealCampaignRows(mappedRows);
 
-      const { data: dailyData } = await fetchWindsorData(start, end, "date,campaign");
+      const { data: dailyData } = dailyResult;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dateMap: Record<string, any> = {};
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
