@@ -34,10 +34,10 @@ export default function KpiCard({ label, shortLabel, icon, value, delta, up, spa
           </div>
         </div>
       </div>
-      <div className="mb-1.5">
-        <div className="flex flex-col gap-y-0.5">
+      <div className="mb-0.5">
+        <div className="flex flex-col gap-y-0">
           <span className="text-[15px] sm:text-[20px] font-bold text-gray-900 leading-tight truncate">{value}</span>
-          <span className={`text-[10px] sm:text-[12px] font-semibold leading-tight ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
+          <span className={`text-[10px] sm:text-[12px] font-semibold leading-none ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
         </div>
       </div>
       <div className="h-[62px] sm:h-[68px] -mx-2 sm:-mx-4">
