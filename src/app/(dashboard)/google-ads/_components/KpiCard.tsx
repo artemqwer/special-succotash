@@ -35,7 +35,7 @@ export default function KpiCard({ label, shortLabel, icon, value, delta, up, spa
         </div>
       </div>
       <div className="mb-1.5">
-        <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-1.5">
+        <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
           <span className="text-[15px] sm:text-[22px] font-bold text-gray-900 leading-tight">{value}</span>
           <span className={`text-[10px] sm:text-[13px] font-semibold leading-tight ${up ? "text-green-500" : "text-red-500"}`}>{delta}</span>
         </div>
