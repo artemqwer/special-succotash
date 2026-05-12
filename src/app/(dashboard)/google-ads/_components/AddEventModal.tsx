@@ -10,6 +10,7 @@ interface AddEventModalProps {
   evtTitle: string;
   evtDesc: string;
   onClose: () => void;
+  onSubmit: () => void;
   onCategoryChange: (v: "Events" | "Ads" | "Website") => void;
   onTypeChange: (v: string | null) => void;
   onStartDateChange: (v: string) => void;
@@ -20,7 +21,7 @@ interface AddEventModalProps {
 
 export default function AddEventModal({
   evtCategory, evtType, evtStartDate, evtEndDate, evtTitle, evtDesc,
-  onClose, onCategoryChange, onTypeChange, onStartDateChange, onEndDateChange, onTitleChange, onDescChange,
+  onClose, onSubmit, onCategoryChange, onTypeChange, onStartDateChange, onEndDateChange, onTitleChange, onDescChange,
 }: AddEventModalProps) {
   return (
     <div className="fixed inset-0 z-[500] flex items-end sm:items-center sm:p-4">
@@ -134,8 +135,8 @@ export default function AddEventModal({
             Cancel
           </button>
           <button
-            disabled={!evtTitle.trim()}
-            onClick={onClose}
+            disabled={!evtTitle.trim() || !evtStartDate}
+            onClick={onSubmit}
             className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold transition bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
           >
             Add Event

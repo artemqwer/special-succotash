@@ -21,7 +21,7 @@ import AiSidebar from "./_components/AiSidebar";
 import DatePickerPanel from "./_components/DatePickerPanel";
 import MobileDatePicker from "./_components/MobileDatePicker";
 import AddEventModal from "./_components/AddEventModal";
-import Timeline from "./_components/Timeline";
+import Timeline, { CustomEvent } from "./_components/Timeline";
 import TabContent from "./_components/TabContent";
 import { makeRenderConvLabel, makeRenderLossTopLabel, makeRenderTotalLabel } from "./_components/ChartPrimitives";
 
@@ -94,6 +94,26 @@ export default function GoogleAdsPage() {
   const [dataSource, setDataSource] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [customEvents, setCustomEvents] = useState<CustomEvent[]>(() => {
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(localStorage.getItem("custom_events") ?? "[]"); } catch { return []; }
+  });
+
+  const handleAddEvent = () => {
+    const newEvent: CustomEvent = {
+      id: Date.now().toString(),
+      category: evtCategory,
+      type: evtType,
+      startDate: evtStartDate,
+      endDate: evtEndDate,
+      title: evtTitle,
+      desc: evtDesc,
+    };
+    const updated = [...customEvents, newEvent];
+    setCustomEvents(updated);
+    try { localStorage.setItem("custom_events", JSON.stringify(updated)); } catch { /* ignore */ }
+    setAddEventOpen(false);
+  };
 
   const handleSync = async () => {
     setSyncing(true);
@@ -1007,6 +1027,7 @@ export default function GoogleAdsPage() {
           dates={dates}
           timelineOpen={timelineOpen}
           isPortrait={isPortrait}
+          customEvents={customEvents}
           onToggle={() => setTimelineOpen(!timelineOpen)}
           onAddEvent={() => { setAddEventOpen(true); setEvtCategory("Events"); setEvtType(null); setEvtStartDate(new Date().toISOString().split("T")[0]); setEvtEndDate(""); setEvtTitle(""); setEvtDesc(""); }}
         />
@@ -1062,6 +1083,7 @@ export default function GoogleAdsPage() {
           evtTitle={evtTitle}
           evtDesc={evtDesc}
           onClose={() => setAddEventOpen(false)}
+          onSubmit={handleAddEvent}
           onCategoryChange={setEvtCategory}
           onTypeChange={setEvtType}
           onStartDateChange={setEvtStartDate}

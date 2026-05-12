@@ -4,15 +4,71 @@ import React from "react";
 import { tlEventItems, tlAdItems, tlWebItems } from "../_data/constants";
 import { isWeekend } from "./ChartPrimitives";
 
+export interface CustomEvent {
+  id: string;
+  category: "Events" | "Ads" | "Website";
+  type: string | null;
+  startDate: string;
+  endDate: string;
+  title: string;
+  desc: string;
+}
+
 interface TimelineProps {
   dates: string[];
   timelineOpen: boolean;
   isPortrait: boolean;
+  customEvents: CustomEvent[];
   onToggle: () => void;
   onAddEvent: () => void;
 }
 
-export default function Timeline({ dates, timelineOpen, isPortrait, onToggle, onAddEvent }: TimelineProps) {
+function isoToDisplay(iso: string): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function isDateInRange(display: string, startISO: string, endISO: string): boolean {
+  const start = isoToDisplay(startISO);
+  if (!endISO) return display === start;
+  const end = isoToDisplay(endISO);
+  // Compare using date string order isn't reliable; use timestamps
+  const [sy, sm, sd] = startISO.split("-").map(Number);
+  const [ey, em, ed] = endISO.split("-").map(Number);
+  const startTs = new Date(sy, sm - 1, sd).getTime();
+  const endTs   = new Date(ey, em - 1, ed).getTime();
+  // Find the date matching display in range
+  for (let ts = startTs; ts <= endTs; ts += 86400000) {
+    const d = new Date(ts);
+    const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    if (label === display) return true;
+  }
+  return false;
+}
+
+const CATEGORY_ICONS: Record<string, string> = {
+  Holiday: "🎉",
+  "Special Event": "⭐",
+  Seasonal: "🌿",
+  "Sale/Promotion": "%",
+  "Flash Sale": "⚡",
+  Clearance: "🏷️",
+};
+
+const CATEGORY_BG: Record<CustomEvent["category"], string> = {
+  Events: "bg-blue-100",
+  Ads: "bg-orange-100",
+  Website: "bg-pink-100",
+};
+
+export default function Timeline({ dates, timelineOpen, isPortrait, customEvents, onToggle, onAddEvent }: TimelineProps) {
+  const staticTotal = tlEventItems.length + tlAdItems.length + tlWebItems.length;
+  const totalEvents = staticTotal + customEvents.length;
+
+  const getCustomForDate = (date: string, category: CustomEvent["category"]) =>
+    customEvents.filter(e => e.category === category && isDateInRange(date, e.startDate, e.endDate));
+
   return (
     <div className="mt-5 pt-4 border-t border-gray-100">
       {/* Header */}
@@ -27,7 +83,7 @@ export default function Timeline({ dates, timelineOpen, isPortrait, onToggle, on
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-semibold text-gray-800">Event Timeline</span>
-              <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-semibold">109</span>
+              <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-semibold">{totalEvents}</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             </div>
             <p className="text-[11px] text-gray-400 mt-0.5 hidden sm:block">Campaign changes, business updates, holidays, and performance anomalies</p>
@@ -91,12 +147,20 @@ export default function Timeline({ dates, timelineOpen, isPortrait, onToggle, on
               <div className="flex-1 flex relative">
                 <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-gray-100" />
                 {dates.map((date) => {
-                  const item = tlEventItems.find((e) => e.date === date);
+                  const staticItem = tlEventItems.find((e) => e.date === date);
+                  const customs = getCustomForDate(date, "Events");
+                  const custom = customs[0];
                   return (
                     <div key={date} className="flex-1 flex justify-center relative z-10">
-                      {item
-                        ? <span className={`w-[22px] h-[22px] rounded-full flex items-center justify-center text-[11px] ${item.bg} shadow-sm ring-1 ring-white`}>{item.icon}</span>
-                        : <span className="w-[4px] h-[4px] rounded-full bg-gray-200 self-center" />}
+                      {staticItem ? (
+                        <span className={`w-[22px] h-[22px] rounded-full flex items-center justify-center text-[11px] ${staticItem.bg} shadow-sm ring-1 ring-white`} title={staticItem.date}>{staticItem.icon}</span>
+                      ) : custom ? (
+                        <span className={`w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] ${CATEGORY_BG.Events} shadow-sm ring-1 ring-white`} title={custom.title}>
+                          {custom.type ? (CATEGORY_ICONS[custom.type] ?? "📌") : "📌"}
+                        </span>
+                      ) : (
+                        <span className="w-[4px] h-[4px] rounded-full bg-gray-200 self-center" />
+                      )}
                     </div>
                   );
                 })}
@@ -112,14 +176,20 @@ export default function Timeline({ dates, timelineOpen, isPortrait, onToggle, on
               <div className="flex-1 flex relative">
                 <div className="absolute top-1/3 left-0 right-0 border-t border-dashed border-gray-100" />
                 {dates.map((date) => {
-                  const item = tlAdItems.find((e) => e.date === date);
+                  const staticItem = tlAdItems.find((e) => e.date === date);
+                  const customs = getCustomForDate(date, "Ads");
+                  const custom = customs[0];
                   return (
                     <div key={date} className="flex-1 flex flex-col items-center relative z-10">
-                      {item ? (
+                      {staticItem ? (
                         <>
-                          <span className={`w-[22px] h-[22px] rounded-md flex items-center justify-center text-[10px] ${item.bg} shadow-sm ring-1 ring-white font-bold`}>⚡</span>
-                          <span className="text-[8px] text-orange-400 font-semibold leading-tight mt-0.5">+{item.count}</span>
+                          <span className={`w-[22px] h-[22px] rounded-md flex items-center justify-center text-[10px] ${staticItem.bg} shadow-sm ring-1 ring-white font-bold`}>⚡</span>
+                          <span className="text-[8px] text-orange-400 font-semibold leading-tight mt-0.5">+{staticItem.count}</span>
                         </>
+                      ) : custom ? (
+                        <span className={`w-[22px] h-[22px] rounded-md flex items-center justify-center text-[10px] ${CATEGORY_BG.Ads} shadow-sm ring-1 ring-white`} title={custom.title}>
+                          {custom.type ? (CATEGORY_ICONS[custom.type] ?? "⚡") : "⚡"}
+                        </span>
                       ) : (
                         <span className="w-[4px] h-[4px] rounded-full bg-gray-200 mt-[9px]" />
                       )}
@@ -138,12 +208,20 @@ export default function Timeline({ dates, timelineOpen, isPortrait, onToggle, on
               <div className="flex-1 flex relative">
                 <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-gray-100" />
                 {dates.map((date) => {
-                  const item = tlWebItems.find((e) => e.date === date);
+                  const staticItem = tlWebItems.find((e) => e.date === date);
+                  const customs = getCustomForDate(date, "Website");
+                  const custom = customs[0];
                   return (
                     <div key={date} className="flex-1 flex justify-center relative z-10">
-                      {item
-                        ? <span className={`w-[22px] h-[22px] rounded-full flex items-center justify-center text-[11px] ${item.bg} shadow-sm ring-1 ring-white`}>{item.icon}</span>
-                        : <span className="w-[4px] h-[4px] rounded-full bg-gray-200 self-center" />}
+                      {staticItem ? (
+                        <span className={`w-[22px] h-[22px] rounded-full flex items-center justify-center text-[11px] ${staticItem.bg} shadow-sm ring-1 ring-white`} title={staticItem.date}>{staticItem.icon}</span>
+                      ) : custom ? (
+                        <span className={`w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] ${CATEGORY_BG.Website} shadow-sm ring-1 ring-white`} title={custom.title}>
+                          {custom.type ? (CATEGORY_ICONS[custom.type] ?? "🌐") : "🌐"}
+                        </span>
+                      ) : (
+                        <span className="w-[4px] h-[4px] rounded-full bg-gray-200 self-center" />
+                      )}
                     </div>
                   );
                 })}
