@@ -931,7 +931,8 @@ export default function GoogleAdsPage() {
           <button onClick={() => { setCheckedRows(new Set()); setClickedRow(null); }} className="ml-1 text-gray-400 hover:text-gray-700 transition">× Clear</button>
         </div>
       )}
-      <div className="grid grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 mb-5">
+      <div className="overflow-x-auto scrollbar-none -mx-1 px-1 mb-5">
+      <div className="grid grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 xl:min-w-[900px]">
         {kpis.map((k, i) => {
           const dyn  = dynKpis?.[i];
           const real = realKpis?.[i];
@@ -949,6 +950,7 @@ export default function GoogleAdsPage() {
               hoverFmt={(real as any)?.hoverFmt ?? k.hoverFmt} />
           );
         })}
+      </div>
       </div>
 
       {/* Chart card */}
