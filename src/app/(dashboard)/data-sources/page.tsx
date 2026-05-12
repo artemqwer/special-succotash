@@ -169,7 +169,7 @@ export default function DataSourcesPage() {
       <div className="mb-8">
         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Available</p>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-50 shrink-0">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -192,25 +192,22 @@ export default function DataSourcesPage() {
               </div>
             </div>
 
-            <div className="shrink-0 ml-4">
+            <div className="shrink-0 sm:ml-4">
               {loading ? (
                 <div className="w-6 h-6 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
               ) : connected ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleDisconnect}
-                    disabled={disconnecting}
-                    className="flex items-center gap-1.5 border border-gray-200 hover:bg-gray-50 text-gray-600 text-[13px] font-medium px-4 py-2 rounded-xl transition disabled:opacity-50"
-                  >
-                    {disconnecting && <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />}
-                    Disconnect
-                  </button>
-                </div>
-
+                <button
+                  onClick={handleDisconnect}
+                  disabled={disconnecting}
+                  className="flex items-center gap-1.5 border border-gray-200 hover:bg-gray-50 text-gray-600 text-[13px] font-medium px-4 py-2 rounded-xl transition disabled:opacity-50"
+                >
+                  {disconnecting && <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />}
+                  Disconnect
+                </button>
               ) : (
                 <a
                   href="/api/auth/google-ads"
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold px-5 py-2 rounded-xl transition shadow-sm shadow-blue-100"
+                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold px-5 py-2 rounded-xl transition shadow-sm shadow-blue-100"
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
@@ -222,7 +219,7 @@ export default function DataSourcesPage() {
           </div>
 
           {connected && (
-            <div className="pt-2 flex items-center gap-6 text-[12px] text-gray-400">
+            <div className="pt-2 flex flex-wrap items-center gap-x-6 gap-y-1.5 text-[12px] text-gray-400">
               <span className="flex items-center gap-1.5">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                 Syncing via Google Ads API
@@ -240,68 +237,68 @@ export default function DataSourcesPage() {
       {/* Windsor.ai */}
       <div className="mb-8">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-50 shrink-0">
-                <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
-                  <rect width="40" height="40" rx="10" fill="#7C3AED" opacity=".12"/>
-                  <path d="M20 8L26 20L20 32L14 20L20 8Z" fill="#7C3AED"/>
-                  <path d="M8 20L20 14L32 20L20 26L8 20Z" fill="#A78BFA"/>
-                </svg>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-50 shrink-0">
+              <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+                <rect width="40" height="40" rx="10" fill="#7C3AED" opacity=".12"/>
+                <path d="M20 8L26 20L20 32L14 20L20 8Z" fill="#7C3AED"/>
+                <path d="M8 20L20 14L32 20L20 26L8 20Z" fill="#A78BFA"/>
+              </svg>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <h3 className="text-[15px] font-semibold text-gray-900">Windsor.ai</h3>
+                {!loading && windsorConnected && (
+                  <span className="flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                    Connected
+                  </span>
+                )}
               </div>
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <h3 className="text-[15px] font-semibold text-gray-900">Windsor.ai</h3>
-                  {!loading && windsorConnected && (
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-                      Connected
-                    </span>
-                  )}
-                </div>
-                <p className="text-[13px] text-gray-400 leading-snug">
-                  Connect via Windsor.ai API key to pull Google Ads data directly
-                </p>
-              </div>
+              <p className="text-[13px] text-gray-400 leading-snug">
+                Connect via Windsor.ai API key to pull Google Ads data directly
+              </p>
             </div>
           </div>
 
           <div className="mt-5 pt-5 border-t border-gray-50">
-            <div className="flex items-center gap-2">
-              <label className="text-[12px] font-medium text-gray-500 shrink-0">API Key</label>
+            <label className="text-[12px] font-medium text-gray-500 block mb-1.5">API Key</label>
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="password"
                 value={windsorKey}
                 onChange={e => setWindsorKey(e.target.value)}
                 placeholder="Paste your Windsor.ai API key"
-                className="text-[13px] border border-gray-200 rounded-lg px-3 py-1.5 outline-none text-gray-700 focus:border-purple-400 flex-1 max-w-xs"
+                className="text-[13px] border border-gray-200 rounded-lg px-3 py-2 outline-none text-gray-700 focus:border-purple-400 flex-1"
               />
-              <button
-                onClick={handleSaveWindsorKey}
-                disabled={windsorSaving}
-                className="text-[12px] font-medium bg-purple-600 hover:bg-purple-700 text-white px-4 py-1.5 rounded-lg transition disabled:opacity-50"
-              >
-                {windsorSaving ? "Saving…" : windsorConnected ? "Update" : "Connect"}
-              </button>
-              {windsorConnected && (
+              <div className="flex gap-2">
                 <button
-                  onClick={async () => {
-                    setWindsorSaving(true);
-                    const supabase = createClient();
-                    await supabase.auth.updateUser({ data: { windsor_api_key: null } });
-                    setWindsorSaving(false);
-                    setWindsorKey("");
-                    setWindsorConnected(false);
-                    showToast("success", "Windsor.ai disconnected");
-                  }}
+                  onClick={handleSaveWindsorKey}
                   disabled={windsorSaving}
-                  className="text-[12px] font-medium border border-gray-200 hover:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                  className="flex-1 sm:flex-none text-[12px] font-medium bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition disabled:opacity-50"
                 >
-                  Disconnect
+                  {windsorSaving ? "Saving…" : windsorConnected ? "Update" : "Connect"}
                 </button>
-              )}
+                {windsorConnected && (
+                  <button
+                    onClick={async () => {
+                      setWindsorSaving(true);
+                      const supabase = createClient();
+                      await supabase.auth.updateUser({ data: { windsor_api_key: null } });
+                      setWindsorSaving(false);
+                      setWindsorKey("");
+                      setWindsorConnected(false);
+                      showToast("success", "Windsor.ai disconnected");
+                    }}
+                    disabled={windsorSaving}
+                    className="flex-1 sm:flex-none text-[12px] font-medium border border-gray-200 hover:bg-gray-50 text-gray-600 px-3 py-2 rounded-lg transition disabled:opacity-50"
+                  >
+                    Disconnect
+                  </button>
+                )}
+              </div>
             </div>
-            <p className="text-[11px] text-gray-400 mt-2 ml-[60px]">
+            <p className="text-[11px] text-gray-400 mt-2">
               Find your API key in Windsor.ai → Settings → API
             </p>
           </div>
