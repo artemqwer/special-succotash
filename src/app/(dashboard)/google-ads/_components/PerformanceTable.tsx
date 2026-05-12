@@ -121,12 +121,18 @@ export default function PerformanceTable({
     };
   }, [sorted]);
 
-  const COLS: [string, SortCol, "left" | "right"][] = [
-    ["Impr.", "impr", "right"], ["Clicks", "clicks", "right"],
-    ["CPC", "cpc", "right"], ["CTR", "ctr", "right"],
-    ["Conv. rate", "convRate", "right"], ["Conv.", "conv", "right"],
-    ["CPA", "cpa", "right"], ["Revenue", "revenue", "right"],
-    ["Cost", "cost", "right"], ["Profit (ads)", "profit", "right"],
+  // [label, key, align, hideOnMobile]
+  const COLS: [string, SortCol, "left" | "right", boolean][] = [
+    ["Impr.",       "impr",     "right", true ],
+    ["Clicks",      "clicks",   "right", false],
+    ["CPC",         "cpc",      "right", true ],
+    ["CTR",         "ctr",      "right", true ],
+    ["Conv. rate",  "convRate", "right", true ],
+    ["Conv.",       "conv",     "right", true ],
+    ["CPA",         "cpa",      "right", true ],
+    ["Revenue",     "revenue",  "right", false],
+    ["Cost",        "cost",     "right", false],
+    ["Profit (ads)","profit",   "right", true ],
   ];
 
   return (
@@ -179,18 +185,19 @@ export default function PerformanceTable({
       {!loading && !error && data.length > 0 && (
         <>
           <div className="overflow-x-auto overflow-y-hidden rounded-b-2xl">
-            <table className="w-full text-[13px] border-collapse min-w-[1100px]">
+            <table className="w-full text-[13px] border-collapse sm:min-w-[1100px]">
               <thead>
                 <tr className="bg-gray-50/80">
-                  <th className="px-3 py-2.5 text-left text-gray-500 font-medium text-[12px] sticky left-0 z-20 bg-gray-50 min-w-[160px] max-w-[220px]">
+                  <th className="px-3 py-2.5 text-left text-gray-500 font-medium text-[12px] sticky left-0 z-20 bg-gray-50 min-w-[120px] sm:min-w-[160px] max-w-[160px] sm:max-w-[220px]">
                     {dimensionLabel}
                   </th>
                   <th className="px-2.5 py-2.5 text-right text-gray-500 font-medium text-[12px] whitespace-nowrap cursor-pointer hover:text-gray-700 select-none"
                     onClick={() => handleSort("roasVal")}>
                     ROAS <SortIcon dir={sortCol === "roasVal" ? sortDir : null} />
                   </th>
-                  {COLS.map(([label, col]) => (
-                    <th key={col} className="px-2.5 py-2.5 text-right text-gray-500 font-medium text-[12px] whitespace-nowrap cursor-pointer hover:text-gray-700 select-none"
+                  {COLS.map(([label, col,, hide]) => (
+                    <th key={col}
+                      className={`px-2.5 py-2.5 text-right text-gray-500 font-medium text-[12px] whitespace-nowrap cursor-pointer hover:text-gray-700 select-none${hide ? " hidden sm:table-cell" : ""}`}
                       onClick={() => handleSort(col)}>
                       {label} <SortIcon dir={sortCol === col ? sortDir : null} />
                     </th>
@@ -210,7 +217,7 @@ export default function PerformanceTable({
                       <td className={`px-3 py-2.5 sticky left-0 z-10 isolate ${isSelected ? "bg-blue-50" : "bg-white group-hover:bg-blue-50/40"}`}>
                         <div className="flex items-center gap-2">
                           {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
-                          <span className="font-medium text-gray-800 text-[12px] truncate max-w-[200px]" title={row.dimension}>{row.dimension}</span>
+                          <span className="font-medium text-gray-800 text-[12px] truncate max-w-[130px] sm:max-w-[200px]" title={row.dimension}>{row.dimension}</span>
                         </div>
                       </td>
                       <td className="px-2.5 py-2.5 text-right tabular-nums">
@@ -221,16 +228,16 @@ export default function PerformanceTable({
                           </span>
                         ) : <span className="text-gray-400 text-[12px]">—</span>}
                       </td>
-                      <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.impr, heat.impr.min, heat.impr.max, "blue") }}>{fmtNum(row.impr)}</td>
+                      <td className="hidden sm:table-cell px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.impr, heat.impr.min, heat.impr.max, "blue") }}>{fmtNum(row.impr)}</td>
                       <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.clicks, heat.clicks.min, heat.clicks.max, "blue") }}>{fmtNum(row.clicks)}</td>
-                      <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.cpc, heat.cpc.min, heat.cpc.max, "blue") }}>{fmtCurrency(row.cpc)}</td>
-                      <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.ctr, heat.ctr.min, heat.ctr.max, "blue") }}>{fmtPct(row.ctr)}</td>
-                      <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.convRate, heat.convRate.min, heat.convRate.max, "blue") }}>{fmtPct(row.convRate)}</td>
-                      <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.conv, heat.conv.min, heat.conv.max, "blue") }}>{fmtNum(row.conv)}</td>
-                      <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.cpa, heat.cpa.min, heat.cpa.max, "green") }}>{fmtCurrency(row.cpa)}</td>
+                      <td className="hidden sm:table-cell px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.cpc, heat.cpc.min, heat.cpc.max, "blue") }}>{fmtCurrency(row.cpc)}</td>
+                      <td className="hidden sm:table-cell px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.ctr, heat.ctr.min, heat.ctr.max, "blue") }}>{fmtPct(row.ctr)}</td>
+                      <td className="hidden sm:table-cell px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.convRate, heat.convRate.min, heat.convRate.max, "blue") }}>{fmtPct(row.convRate)}</td>
+                      <td className="hidden sm:table-cell px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.conv, heat.conv.min, heat.conv.max, "blue") }}>{fmtNum(row.conv)}</td>
+                      <td className="hidden sm:table-cell px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.cpa, heat.cpa.min, heat.cpa.max, "green") }}>{fmtCurrency(row.cpa)}</td>
                       <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums font-medium" style={{ backgroundColor: heatmapBg(row.revenue, heat.revenue.min, heat.revenue.max, "green") }}>${fmtK(row.revenue)}</td>
                       <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={{ backgroundColor: heatmapBg(row.cost, heat.cost.min, heat.cost.max, "green") }}>${fmtK(row.cost)}</td>
-                      <td className={`px-2.5 py-2.5 text-right tabular-nums ${row.profit < 0 ? "text-red-600" : "text-green-700"}`}>
+                      <td className={`hidden sm:table-cell px-2.5 py-2.5 text-right tabular-nums ${row.profit < 0 ? "text-red-600" : "text-green-700"}`}>
                         {row.profit < 0 ? "-$" : "$"}{Math.abs(row.profit).toFixed(2)}K
                       </td>
                     </tr>
@@ -248,16 +255,16 @@ export default function PerformanceTable({
                       {totals.roasVal.toFixed(2)}x
                     </span>
                   </td>
-                  <td className="px-2.5 py-3 text-right tabular-nums">{fmtNum(totals.totImpr)}</td>
+                  <td className="hidden sm:table-cell px-2.5 py-3 text-right tabular-nums">{fmtNum(totals.totImpr)}</td>
                   <td className="px-2.5 py-3 text-right tabular-nums">{fmtNum(totals.totClicks)}</td>
-                  <td className="px-2.5 py-3 text-right tabular-nums">{fmtCurrency(totals.avgCpc)}</td>
-                  <td className="px-2.5 py-3 text-right tabular-nums">{fmtPct(totals.avgCtr)}</td>
-                  <td className="px-2.5 py-3 text-right tabular-nums">{fmtPct(totals.avgConvRate)}</td>
-                  <td className="px-2.5 py-3 text-right tabular-nums">{fmtNum(totals.totConv)}</td>
-                  <td className="px-2.5 py-3 text-right tabular-nums">{fmtCurrency(totals.avgCpa)}</td>
+                  <td className="hidden sm:table-cell px-2.5 py-3 text-right tabular-nums">{fmtCurrency(totals.avgCpc)}</td>
+                  <td className="hidden sm:table-cell px-2.5 py-3 text-right tabular-nums">{fmtPct(totals.avgCtr)}</td>
+                  <td className="hidden sm:table-cell px-2.5 py-3 text-right tabular-nums">{fmtPct(totals.avgConvRate)}</td>
+                  <td className="hidden sm:table-cell px-2.5 py-3 text-right tabular-nums">{fmtNum(totals.totConv)}</td>
+                  <td className="hidden sm:table-cell px-2.5 py-3 text-right tabular-nums">{fmtCurrency(totals.avgCpa)}</td>
                   <td className="px-2.5 py-3 text-right tabular-nums font-medium">${fmtK(totals.totRev)}</td>
                   <td className="px-2.5 py-3 text-right tabular-nums">${fmtK(totals.totCost)}</td>
-                  <td className={`px-2.5 py-3 text-right tabular-nums ${totals.totProfit < 0 ? "text-red-600" : "text-green-700"}`}>
+                  <td className={`hidden sm:table-cell px-2.5 py-3 text-right tabular-nums ${totals.totProfit < 0 ? "text-red-600" : "text-green-700"}`}>
                     {totals.totProfit < 0 ? "-$" : "$"}{Math.abs(totals.totProfit).toFixed(2)}K
                   </td>
                 </tr>
