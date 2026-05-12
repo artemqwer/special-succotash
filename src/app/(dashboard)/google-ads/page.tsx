@@ -25,6 +25,7 @@ import Timeline from "./_components/Timeline";
 import type { CustomEvent } from "./_data/types";
 import TabContent from "./_components/TabContent";
 import { makeRenderConvLabel, makeRenderLossTopLabel, makeRenderTotalLabel } from "./_components/ChartPrimitives";
+import ExtendedAnalytics from "./_components/ExtendedAnalytics";
 
 export default function GoogleAdsPage() {
   const [activeTab, setActiveTab] = useState(0);
@@ -1102,6 +1103,13 @@ export default function GoogleAdsPage() {
         onCampaignSearchChange={setCampaignSearch}
         statusFilter={statusFilter}
         onStatusFilter={setStatusFilter}
+      />
+
+      {/* Extended Analytics — 10 dimension tables */}
+      <ExtendedAnalytics
+        dateFrom={new Date(rangeStart).toISOString().slice(0, 10)}
+        dateTo={new Date(rangeEnd).toISOString().slice(0, 10)}
+        rangeLabel={`${fmtMs(rangeStart)} – ${fmtMs(rangeEnd)}`}
       />
       </div>
 
