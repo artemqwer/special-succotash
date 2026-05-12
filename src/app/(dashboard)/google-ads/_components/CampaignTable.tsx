@@ -369,7 +369,7 @@ export default function CampaignTable({
                 <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("ctr", row.ctr, "blue")}>{fmtPct(row.ctr)}</td>
                 <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("convRate", row.convRate, "blue")}>{fmtPct(row.convRate)}</td>
                 <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("conv", row.conv, "blue")}>{fmtNum(row.conv)}</td>
-                <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("cpa", row.cpa, "green")}>{row.cpa.toFixed(1)}</td>
+                <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("cpa", row.cpa, "green")}>${row.cpa.toFixed(2)}</td>
                 <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums font-medium" style={cellStyle("revenue", row.revenue, "green")}>${fmtK(row.revenue)}</td>
                 <td className="px-2.5 py-2.5 text-gray-700 text-right tabular-nums" style={cellStyle("cost", row.cost, "green")}>${fmtK(row.cost)}</td>
                 <td className={`px-2.5 py-2.5 text-right tabular-nums ${row.profit < 0 ? "text-red-600" : "text-green-700"}`}
@@ -406,7 +406,7 @@ export default function CampaignTable({
                     backgroundColor: tableTotals.totRoasColor === "green" ? "#DCFCE7" : tableTotals.totRoasColor === "red" ? "#FEE2E2" : "#FFEDD5",
                     color: tableTotals.totRoasColor === "green" ? "#15803D" : tableTotals.totRoasColor === "red" ? "#DC2626" : "#EA580C",
                   }}>
-                  {tableTotals.totRoasVal.toFixed(2)}%
+                  {tableTotals.totRoasVal.toFixed(2)}x
                 </span>
               </td>
               <td className="px-2.5 py-3 text-right tabular-nums">{fmtNum(tableTotals.totImpr)}</td>
@@ -415,7 +415,7 @@ export default function CampaignTable({
               <td className="px-2.5 py-3 text-right tabular-nums">{fmtPct(tableTotals.avgCtr)}</td>
               <td className="px-2.5 py-3 text-right tabular-nums">{fmtPct(tableTotals.avgConvRate)}</td>
               <td className="px-2.5 py-3 text-right tabular-nums">{fmtNum(tableTotals.totConv)}</td>
-              <td className="px-2.5 py-3 text-right tabular-nums">{tableTotals.avgCpa.toFixed(1)}</td>
+              <td className="px-2.5 py-3 text-right tabular-nums">${tableTotals.avgCpa.toFixed(2)}</td>
               <td className="px-2.5 py-3 text-right tabular-nums">${fmtK(tableTotals.totRev)}</td>
               <td className="px-2.5 py-3 text-right tabular-nums">${fmtK(tableTotals.totCost)}</td>
               <td className={`px-2.5 py-3 text-right tabular-nums ${tableTotals.totProfit < 0 ? "text-red-600" : "text-green-700"}`}>

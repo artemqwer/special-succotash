@@ -147,7 +147,7 @@ export default function GoogleAdsPage() {
         const clicks   = Number(d.clicks) || 0;
         const convs    = Number(d.conversions) || 0;
         const impr     = Number(d.impressions) || 0;
-        const roasNum  = spend > 0 ? (convVal / spend) * 100 : 0;
+        const roasNum  = spend > 0 ? convVal / spend : 0;
         const name     = d.campaign || "Unknown";
         const nl       = name.toLowerCase();
         const type     =
@@ -158,8 +158,8 @@ export default function GoogleAdsPage() {
           status: spend > 0 ? "green" : "gray",
           name,
           type,
-          roas: spend > 0 ? `${roasNum.toFixed(0)}%` : "null",
-          roasColor: spend === 0 ? "gray" : roasNum >= 150 ? "green" : roasNum >= 100 ? "orange" : "red",
+          roas: spend > 0 ? `${roasNum.toFixed(2)}x` : "null",
+          roasColor: spend === 0 ? "gray" : roasNum >= 1.5 ? "green" : roasNum >= 1.0 ? "orange" : "red",
           impr,
           clicks,
           cpc:     clicks > 0 ? spend / clicks : 0,
@@ -795,8 +795,8 @@ export default function GoogleAdsPage() {
     const avgCtr      = totImpr > 0 ? (totClicks / totImpr) * 100 : 0;
     const avgConvRate = totClicks > 0 ? (totConv / totClicks) * 100 : 0;
     const avgCpa      = totConv > 0 ? totCost / totConv : 0;
-    const totRoasVal  = totCost > 0 ? (totRev / totCost) * 100 : 0;
-    const totRoasColor = totRoasVal >= 150 ? "green" : totRoasVal >= 100 ? "orange" : "red";
+    const totRoasVal  = totCost > 0 ? totRev / totCost : 0;
+    const totRoasColor = totRoasVal >= 1.5 ? "green" : totRoasVal >= 1.0 ? "orange" : "red";
     return { totImpr, totClicks, totConv, totCost, totRev, totProfit, avgCpc, avgCtr, avgConvRate, avgCpa, totRoasVal, totRoasColor };
   }, [filtered]);
 
