@@ -113,8 +113,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No data source configured" }, { status: 503 });
   }
 
+  const bqGroupBy = (groupBy === "date" || groupBy === "campaign" || groupBy === "date,campaign")
+    ? groupBy
+    : ("date" as const);
+
   try {
-    const data = await fetchBQAdsData(dateFrom, dateTo, groupBy, user.id);
+    const data = await fetchBQAdsData(dateFrom, dateTo, bqGroupBy, user.id);
     return NextResponse.json({ data, source: "bigquery" });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "BigQuery error";
