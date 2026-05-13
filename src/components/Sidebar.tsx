@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Session } from "@/lib/auth";
@@ -50,6 +50,17 @@ const nav = [
         ),
       },
       {
+        label: "Invites",
+        href: "/invites",
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+          </svg>
+        ),
+      },
+      {
         label: "User Management",
         href: "/admin",
         icon: (
@@ -75,6 +86,14 @@ interface SidebarProps {
 export default function Sidebar({ mobileOpen, onMobileClose, session, onLogout }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [inviteCount, setInviteCount] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/team/invites")
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (j?.invites) setInviteCount(j.invites.length); })
+      .catch(() => {});
+  }, [pathname]);
 
   const fadeCls = `transition-opacity duration-150 ${collapsed ? "opacity-0 pointer-events-none" : "opacity-100"}`;
 
@@ -134,7 +153,12 @@ export default function Sidebar({ mobileOpen, onMobileClose, session, onLogout }
                     }`}
                   >
                     <span className={`shrink-0 ${active ? "text-blue-600" : "text-gray-400"}`}>{icon}</span>
-                    <span className={`whitespace-nowrap ${fadeCls}`}>{label}</span>
+                    <span className={`whitespace-nowrap flex-1 ${fadeCls}`}>{label}</span>
+                    {href === "/invites" && inviteCount > 0 && (
+                      <span className={`text-[10px] font-bold bg-red-500 text-white rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 ${fadeCls}`}>
+                        {inviteCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
