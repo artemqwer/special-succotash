@@ -289,7 +289,6 @@ export default function AdminPage() {
   const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null);
   const [showInvite, setShowInvite] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const showToast = useCallback((type: "success" | "error", text: string) => {
     setToast({ type, text });
@@ -313,12 +312,6 @@ export default function AdminPage() {
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handler = () => setOpenMenu(null);
-    document.addEventListener("click", handler);
-    return () => document.removeEventListener("click", handler);
-  }, []);
 
   const handleSave = async (id: string, data: Partial<AdminUser>) => {
     const res = await fetch(`/api/admin/users/${id}`, {
@@ -605,26 +598,24 @@ export default function AdminPage() {
                           <p className="text-[13px] font-semibold text-gray-800 whitespace-nowrap">{user.revenueMonthly === 0 ? "—" : `$${user.revenueMonthly}/mo`}</p>
                           <p className="text-[11px] text-gray-400">{user.revenueTotal === 0 ? "" : `$${user.revenueTotal.toLocaleString()} total`}</p>
                         </td>
-                        <td className="px-2 py-3.5 text-right" onClick={e => e.stopPropagation()}>
-                          <div className="relative">
-                            <button onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === user.id ? null : user.id); }}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                        <td className="px-3 py-3.5">
+                          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => setEditUser(user)}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                              title="Edit"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             </button>
-                            {openMenu === user.id && (
-                              <div className="absolute right-0 top-8 bg-white border border-gray-100 rounded-xl shadow-lg z-30 py-1 min-w-[130px]">
-                                <button onClick={() => { setEditUser(user); setOpenMenu(null); }}
-                                  className="w-full text-left px-3.5 py-2 text-[13px] text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                                  Edit
-                                </button>
-                                <button onClick={() => { setDeleteUser(user); setOpenMenu(null); }}
-                                  className="w-full text-left px-3.5 py-2 text-[13px] text-red-500 hover:bg-red-50 flex items-center gap-2">
-                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                                  Delete
-                                </button>
-                              </div>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => setDeleteUser(user)}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition"
+                              title="Delete"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                            </button>
                           </div>
                         </td>
                       </tr>
