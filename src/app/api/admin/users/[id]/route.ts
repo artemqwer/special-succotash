@@ -12,7 +12,8 @@ async function requireAdmin() {
   );
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  if (!user.user_metadata?.is_admin && user.email !== process.env.ADMIN_EMAIL) return null;
+  const isGoogle = user.app_metadata?.provider === "google" || (user.app_metadata?.providers as string[] | undefined)?.includes("google");
+  if (!user.user_metadata?.is_admin && !isGoogle) return null;
   return user;
 }
 

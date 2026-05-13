@@ -608,7 +608,7 @@ export default function AdminPage() {
                         <td className="px-2 py-3.5 text-right" onClick={e => e.stopPropagation()}>
                           <div className="relative">
                             <button onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === user.id ? null : user.id); }}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition opacity-0 group-hover:opacity-100">
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
                             </button>
                             {openMenu === user.id && (
