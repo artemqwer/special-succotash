@@ -44,9 +44,16 @@ export async function GET() {
   const myTeamId = user.user_metadata?.team_id as string | undefined;
   const members: TeamMember[] = [];
 
-  // My members (I am owner)
-  for (const u of all.filter(u => (u.user_metadata?.team_id as string | undefined) === user.id)) {
+  type PendingInvite = { from_id: string };
+
+  // My members (accepted) + pending invitees
+  for (const u of all) {
+    if (u.id === user.id) continue;
     const m = u.user_metadata ?? {};
+    const isAccepted = (m.team_id as string | undefined) === user.id;
+    const isPending = ((m.pending_team_invites as PendingInvite[] | undefined) ?? [])
+      .some(p => p.from_id === user.id);
+    if (!isAccepted && !isPending) continue;
     members.push({
       id: u.id,
       name: (m.full_name as string) || u.email?.split("@")[0] || "Unknown",
