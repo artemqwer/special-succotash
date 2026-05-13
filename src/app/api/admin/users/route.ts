@@ -93,10 +93,12 @@ export async function GET() {
   const { data: { users }, error } = await adminClient().auth.admin.listUsers({ perPage: 1000 });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Only show users belonging to this admin's team (invited by them) + themselves
+  type PendingInvite = { from_id: string };
+  // Show: self + accepted members + pending invitees
   const ownTeam = users.filter(u =>
     u.id === admin.id ||
-    (u.user_metadata?.team_id as string | undefined) === admin.id
+    (u.user_metadata?.team_id as string | undefined) === admin.id ||
+    ((u.user_metadata?.pending_team_invites as PendingInvite[] | undefined) ?? []).some(p => p.from_id === admin.id)
   );
 
   const mapped: AdminUser[] = ownTeam.map(u => {
@@ -147,12 +149,24 @@ export async function POST(req: NextRequest) {
   const existing = all.find(u => u.email?.toLowerCase() === email.toLowerCase());
 
   if (existing) {
-    // Already has an account — just add to team, no email sent
-    const { data: updated, error: updateErr } = await client.auth.admin.updateUserById(existing.id, {
-      user_metadata: { ...existing.user_metadata, team_id: admin.id },
-    });
-    if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
-    return NextResponse.json({ user: updated.user, added: true });
+    // Already has an account — send in-app invite (pending)
+    const pending: { from_id: string; from_name: string; from_email: string; created_at: string }[] =
+      (existing.user_metadata?.pending_team_invites as typeof pending | undefined) ?? [];
+    // Avoid duplicates
+    if (!pending.find(p => p.from_id === admin.id)) {
+      const adminMeta = admin.user_metadata ?? {};
+      pending.push({
+        from_id: admin.id,
+        from_name: (adminMeta.full_name as string | undefined) ?? (adminMeta.name as string | undefined) ?? admin.email ?? "Someone",
+        from_email: admin.email ?? "",
+        created_at: new Date().toISOString(),
+      });
+      const { error: updateErr } = await client.auth.admin.updateUserById(existing.id, {
+        user_metadata: { ...existing.user_metadata, pending_team_invites: pending },
+      });
+      if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, pending: true });
   }
 
   // New user — send email invite

@@ -59,6 +59,8 @@ export default function ProfilePage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [pendingInvites, setPendingInvites] = useState<{ from_id: string; from_name: string; from_email: string }[]>([]);
+  const [respondingInvite, setRespondingInvite] = useState<string | null>(null);
 
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -217,7 +219,27 @@ export default function ProfilePage() {
       .then(r => r.json())
       .then(j => { if (j.members) setTeamMembers(j.members); })
       .catch(() => {});
+    fetch("/api/team/invites")
+      .then(r => r.json())
+      .then(j => { if (j.invites) setPendingInvites(j.invites); })
+      .catch(() => {});
   }, []);
+
+  const handleRespondInvite = async (from_id: string, action: "accept" | "decline") => {
+    setRespondingInvite(from_id);
+    await fetch("/api/team/invites", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from_id, action }),
+    });
+    setPendingInvites(prev => prev.filter(p => p.from_id !== from_id));
+    if (action === "accept") {
+      const res = await fetch("/api/team/members");
+      const j = await res.json();
+      if (j.members) setTeamMembers(j.members);
+    }
+    setRespondingInvite(null);
+  };
 
   const handleInviteTeammate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -245,6 +267,44 @@ export default function ProfilePage() {
     <div className="p-4 sm:p-6 max-w-[700px]">
       <h1 className="text-[22px] font-bold text-gray-900 mb-1">Profile Settings</h1>
       <p className="text-[14px] text-gray-500 mb-6">Manage your personal information and account security</p>
+
+      {/* ── Pending Team Invites ── */}
+      {pendingInvites.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {pendingInvites.map(inv => (
+            <div key={inv.from_id} className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-[13px] font-bold shrink-0">
+                  {inv.from_name.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-gray-800 truncate">
+                    <span className="text-blue-700">{inv.from_name}</span> запрошує вас до своєї команди
+                  </p>
+                  <p className="text-[11px] text-gray-400 truncate">{inv.from_email}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => handleRespondInvite(inv.from_id, "decline")}
+                  disabled={respondingInvite === inv.from_id}
+                  className="text-[13px] font-medium px-3 py-1.5 border border-gray-200 bg-white text-gray-600 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+                >
+                  Відхилити
+                </button>
+                <button
+                  onClick={() => handleRespondInvite(inv.from_id, "accept")}
+                  disabled={respondingInvite === inv.from_id}
+                  className="text-[13px] font-medium px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {respondingInvite === inv.from_id && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                  Прийняти
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── Profile Photo ── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6 mb-4">
