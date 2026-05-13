@@ -141,25 +141,24 @@ export async function POST(req: NextRequest) {
   if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
 
   const client = adminClient();
+
+  // Check if user already exists first
+  const { data: { users: all } } = await client.auth.admin.listUsers({ perPage: 1000 });
+  const existing = all.find(u => u.email?.toLowerCase() === email.toLowerCase());
+
+  if (existing) {
+    // Already has an account — just add to team, no email sent
+    const { data: updated, error: updateErr } = await client.auth.admin.updateUserById(existing.id, {
+      user_metadata: { ...existing.user_metadata, team_id: admin.id },
+    });
+    if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
+    return NextResponse.json({ user: updated.user, added: true });
+  }
+
+  // New user — send email invite
   const { data, error } = await client.auth.admin.inviteUserByEmail(email, {
     data: { plan, status: "Trial", team_id: admin.id },
   });
-
-  if (error) {
-    // User already exists — just add them to this team
-    if (error.message.toLowerCase().includes("already been registered") || error.status === 422) {
-      const { data: { users: all } } = await client.auth.admin.listUsers({ perPage: 1000 });
-      const existing = all.find(u => u.email?.toLowerCase() === email.toLowerCase());
-      if (!existing) return NextResponse.json({ error: error.message }, { status: 500 });
-
-      const { data: updated, error: updateErr } = await client.auth.admin.updateUserById(existing.id, {
-        user_metadata: { ...existing.user_metadata, team_id: admin.id },
-      });
-      if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
-      return NextResponse.json({ user: updated.user, added: true });
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ user: data.user });
 }
