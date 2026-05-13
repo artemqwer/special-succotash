@@ -28,8 +28,10 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Use admin client to get fresh metadata (session JWT may be stale)
+  const { data: { user: fresh } } = await adminClient().auth.admin.getUserById(user.id);
   const invites: PendingInvite[] =
-    (user.user_metadata?.pending_team_invites as PendingInvite[] | undefined) ?? [];
+    (fresh?.user_metadata?.pending_team_invites as PendingInvite[] | undefined) ?? [];
 
   return NextResponse.json({ invites });
 }
