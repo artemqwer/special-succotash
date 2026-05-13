@@ -93,7 +93,13 @@ export async function GET() {
   const { data: { users }, error } = await adminClient().auth.admin.listUsers({ perPage: 1000 });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const mapped: AdminUser[] = users.map(u => {
+  // Only show users belonging to this admin's team (invited by them) + themselves
+  const ownTeam = users.filter(u =>
+    u.id === admin.id ||
+    (u.user_metadata?.team_id as string | undefined) === admin.id
+  );
+
+  const mapped: AdminUser[] = ownTeam.map(u => {
     const m = u.user_metadata ?? {};
     const plan = (m.plan as Plan) || "Starter";
     const status = (m.status as UserStatus) || "Active";
@@ -135,7 +141,7 @@ export async function POST(req: NextRequest) {
   if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
 
   const { data, error } = await adminClient().auth.admin.inviteUserByEmail(email, {
-    data: { plan, status: "Trial" },
+    data: { plan, status: "Trial", team_id: admin.id },
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ user: data.user });
