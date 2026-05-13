@@ -11,6 +11,7 @@ export interface AdminUser {
   name: string;
   initials: string;
   avatarColor: string;
+  avatarUrl: string | null;
   email: string;
   phone: string;
   company: string;
@@ -114,6 +115,7 @@ export async function GET() {
       name,
       initials: makeInitials(name),
       avatarColor: makeAvatarColor(u.id),
+      avatarUrl: (m.avatar_url as string | undefined) ?? (m.picture as string | undefined) ?? null,
       email: u.email ?? "",
       phone: (m.phone as string) ?? "",
       company: (m.company as string) ?? "",

@@ -576,9 +576,14 @@ export default function AdminPage() {
                       <tr key={user.id} className="border-t border-gray-50 hover:bg-blue-50/20 transition group cursor-pointer" onClick={() => setEditUser(user)}>
                         <td className="px-4 sm:px-5 py-3.5 sticky left-0 bg-white group-hover:bg-blue-50/20 transition z-10">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-white text-[12px] sm:text-[13px] font-bold shrink-0" style={{ background: user.avatarColor }}>
-                              {user.initials}
-                            </div>
+                            {user.avatarUrl ? (
+                              <img src={user.avatarUrl} alt={user.name} referrerPolicy="no-referrer"
+                                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full shrink-0 object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-white text-[12px] sm:text-[13px] font-bold shrink-0" style={{ background: user.avatarColor }}>
+                                {user.initials}
+                              </div>
+                            )}
                             <div className="min-w-0">
                               <p className="font-semibold text-gray-800 text-[13px] whitespace-nowrap">{user.name}</p>
                               <p className="text-[11px] text-gray-400 truncate max-w-[140px] sm:max-w-[180px]">{user.email}</p>
