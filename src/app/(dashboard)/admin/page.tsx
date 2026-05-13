@@ -186,12 +186,11 @@ function EditModal({ user, onClose, onSave }: EditModalProps) {
 
 interface InviteModalProps {
   onClose: () => void;
-  onInvite: (email: string, plan: Plan) => Promise<void>;
+  onInvite: (email: string) => Promise<void>;
 }
 
 function InviteModal({ onClose, onInvite }: InviteModalProps) {
   const [email, setEmail] = useState("");
-  const [plan, setPlan] = useState<Plan>("Starter");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -200,7 +199,7 @@ function InviteModal({ onClose, onInvite }: InviteModalProps) {
     setSaving(true);
     setError("");
     try {
-      await onInvite(email.trim(), plan);
+      await onInvite(email.trim());
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to send invite");
@@ -219,24 +218,15 @@ function InviteModal({ onClose, onInvite }: InviteModalProps) {
           </button>
         </div>
 
-        <div className="space-y-3.5">
-          <div>
-            <label className="text-[12px] font-medium text-gray-500 block mb-1">Email Address</label>
-            <input
-              type="email" value={email} onChange={e => setEmail(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleInvite()}
-              placeholder="user@example.com"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-700 outline-none focus:border-blue-400"
-              autoFocus
-            />
-          </div>
-          <div>
-            <label className="text-[12px] font-medium text-gray-500 block mb-1">Plan</label>
-            <select value={plan} onChange={e => setPlan(e.target.value as Plan)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-700 outline-none focus:border-blue-400 bg-white cursor-pointer">
-              {PLANS.map(p => <option key={p}>{p} — ${PLAN_PRICE[p]}/mo</option>)}
-            </select>
-          </div>
+        <div>
+          <label className="text-[12px] font-medium text-gray-500 block mb-1">Email Address</label>
+          <input
+            type="email" value={email} onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleInvite()}
+            placeholder="user@example.com"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-700 outline-none focus:border-blue-400"
+            autoFocus
+          />
         </div>
 
         {error && <p className="text-[12px] text-red-500 mt-3">{error}</p>}
@@ -361,11 +351,11 @@ export default function AdminPage() {
     await loadUsers();
   };
 
-  const handleInvite = async (email: string, plan: Plan) => {
+  const handleInvite = async (email: string) => {
     const res = await fetch("/api/admin/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, plan }),
+      body: JSON.stringify({ email }),
     });
     if (!res.ok) {
       const j = await res.json() as { error?: string };
@@ -557,7 +547,7 @@ export default function AdminPage() {
                   <p className="text-[12px] text-gray-400">Add <code className="bg-gray-100 px-1 rounded">SUPABASE_SERVICE_ROLE_KEY</code> to your .env.local</p>
                 )}
                 {fetchError.includes("Forbidden") && (
-                  <p className="text-[12px] text-gray-400">Add <code className="bg-gray-100 px-1 rounded">ADMIN_EMAIL=your@email.com</code> to your .env.local</p>
+                  <p className="text-[12px] text-gray-400">Admin access requires signing in with Google</p>
                 )}
                 <button onClick={loadUsers} className="text-[12px] text-blue-600 hover:underline mt-1">Try again</button>
               </div>
