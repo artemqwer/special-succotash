@@ -73,7 +73,28 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const windsorKey: string | undefined = user.user_metadata?.windsor_api_key;
+  let windsorKey: string | undefined = user.user_metadata?.windsor_api_key;
+
+  const viewAs = searchParams.get("view_as");
+  if (viewAs && viewAs !== user.id && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const { createClient } = await import("@supabase/supabase-js");
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: { user: target } } = await admin.auth.admin.getUserById(viewAs);
+    if (target) {
+      const targetTeamId = target.user_metadata?.team_id as string | undefined;
+      const myTeamId = user.user_metadata?.team_id as string | undefined;
+      const authorized =
+        targetTeamId === user.id ||
+        myTeamId === viewAs ||
+        (myTeamId && myTeamId === targetTeamId);
+      if (authorized) windsorKey = target.user_metadata?.windsor_api_key as string | undefined;
+    }
+  }
+
   if (!windsorKey) {
     return NextResponse.json({ error: "No data source configured" }, { status: 503 });
   }

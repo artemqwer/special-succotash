@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { isBQConfigured, fetchBQAdsData } from "@/lib/bigquery";
@@ -97,7 +98,26 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const windsorKey: string | undefined = user.user_metadata?.windsor_api_key;
+  const viewAs = searchParams.get("view_as");
+  let windsorKey: string | undefined = user.user_metadata?.windsor_api_key;
+
+  if (viewAs && viewAs !== user.id && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: { user: target } } = await admin.auth.admin.getUserById(viewAs);
+    if (target) {
+      const targetTeamId = target.user_metadata?.team_id as string | undefined;
+      const myTeamId = user.user_metadata?.team_id as string | undefined;
+      const authorized =
+        targetTeamId === user.id ||
+        myTeamId === viewAs ||
+        (myTeamId && myTeamId === targetTeamId);
+      if (authorized) windsorKey = target.user_metadata?.windsor_api_key as string | undefined;
+    }
+  }
 
   if (windsorKey) {
     try {

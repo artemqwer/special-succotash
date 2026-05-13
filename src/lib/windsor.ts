@@ -14,9 +14,11 @@ export type WindsorGroupBy = "date" | "campaign" | "date,campaign";
 export async function fetchWindsorData(
   dateFrom: string,
   dateTo: string,
-  groupBy: WindsorGroupBy = "date"
+  groupBy: WindsorGroupBy = "date",
+  viewAs?: string | null
 ): Promise<{ data: WindsorDataRow[]; error?: string; source?: string }> {
   const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo, group_by: groupBy });
+  if (viewAs) params.set("view_as", viewAs);
   const res = await fetch(`/api/windsor?${params}`);
   const json = await res.json();
 

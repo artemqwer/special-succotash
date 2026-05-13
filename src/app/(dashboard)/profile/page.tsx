@@ -5,6 +5,29 @@ import { createClient } from "@/lib/supabase";
 import { setSession, logoutUser } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
+// ─── Sub-components (must be outside the page function) ──────────────────────
+
+function Msg({ msg }: { msg: { type: "success" | "error"; text: string } | null }) {
+  if (!msg) return null;
+  return (
+    <div className={`mb-4 px-3 py-2.5 rounded-lg text-[13px] flex items-center gap-2 ${msg.type === "success" ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-600"}`}>
+      {msg.type === "success"
+        ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
+      {msg.text}
+    </div>
+  );
+}
+
+function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <button type="button" onClick={onChange}
+      className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${checked ? "bg-blue-600" : "bg-gray-200"}`}>
+      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0"}`} />
+    </button>
+  );
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
@@ -31,6 +54,11 @@ export default function ProfilePage() {
   const [notifEmail, setNotifEmail] = useState(true);
   const [notifWeekly, setNotifWeekly] = useState(false);
   const [notifAlerts, setNotifAlerts] = useState(true);
+
+  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; email: string; avatarColor: string; hasWindsor: boolean; role: "owner" | "member" }[]>([]);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -183,22 +211,35 @@ export default function ProfilePage() {
     router.replace("/login");
   };
 
-  const Msg = ({ msg }: { msg: { type: "success" | "error"; text: string } | null }) =>
-    msg ? (
-      <div className={`mb-4 px-3 py-2.5 rounded-lg text-[13px] flex items-center gap-2 ${msg.type === "success" ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-600"}`}>
-        {msg.type === "success"
-          ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
-        {msg.text}
-      </div>
-    ) : null;
+  // ── Team ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    fetch("/api/team/members")
+      .then(r => r.json())
+      .then(j => { if (j.members) setTeamMembers(j.members); })
+      .catch(() => {});
+  }, []);
 
-  const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
-    <button type="button" onClick={onChange}
-      className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${checked ? "bg-blue-600" : "bg-gray-200"}`}>
-      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0"}`} />
-    </button>
-  );
+  const handleInviteTeammate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    setInviteMsg(null);
+    const res = await fetch("/api/team/invite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: inviteEmail.trim() }),
+    });
+    const j = await res.json() as { ok?: boolean; error?: string };
+    setInviting(false);
+    if (j.ok) {
+      setInviteMsg({ type: "success", text: `Invite sent to ${inviteEmail.trim()}` });
+      setInviteEmail("");
+    } else {
+      setInviteMsg({ type: "error", text: j.error ?? "Failed to send invite" });
+    }
+    setTimeout(() => setInviteMsg(null), 5000);
+  };
+
 
   return (
     <div className="p-4 sm:p-6 max-w-[700px]">
@@ -506,6 +547,62 @@ export default function ProfilePage() {
             </form>
           </div>
         </div>
+      </div>
+
+      {/* ── Team ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6 mb-4">
+        <p className="text-[14px] font-semibold text-gray-800 mb-1">Team</p>
+        <p className="text-[12px] text-gray-400 mb-5">Invite teammates — they will be able to view your ad data and you will see theirs</p>
+
+        {teamMembers.length > 0 && (
+          <div className="mb-5 space-y-1">
+            {teamMembers.map(m => (
+              <div key={m.id} className="flex items-center justify-between gap-3 py-2.5 border-b border-gray-50 last:border-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] font-bold shrink-0"
+                    style={{ background: m.avatarColor }}>
+                    {m.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-medium text-gray-800">{m.name}</p>
+                    <p className="text-[11px] text-gray-400">{m.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {m.role === "owner" && (
+                    <span className="text-[10px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full font-medium">Owner</span>
+                  )}
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${m.hasWindsor ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"}`}>
+                    {m.hasWindsor ? "Connected" : "No data"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <form onSubmit={handleInviteTeammate}>
+          <label className="block text-[12px] font-medium text-gray-500 mb-1.5">Invite by Email</label>
+          <div className="flex gap-2">
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={e => setInviteEmail(e.target.value)}
+              placeholder="teammate@company.com"
+              className="flex-1 py-2 px-3 text-[13px] border border-gray-200 rounded-lg outline-none focus:border-blue-400 text-gray-700 placeholder-gray-300"
+            />
+            <button type="submit" disabled={inviting}
+              className="text-[13px] font-medium px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition flex items-center gap-1.5">
+              {inviting && <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              {inviting ? "Sending…" : "Invite"}
+            </button>
+          </div>
+          {inviteMsg && (
+            <p className={`mt-2 text-[12px] ${inviteMsg.type === "success" ? "text-green-600" : "text-red-500"}`}>
+              {inviteMsg.text}
+            </p>
+          )}
+        </form>
       </div>
 
       {/* ── Danger Zone ── */}

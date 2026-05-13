@@ -96,6 +96,9 @@ export default function GoogleAdsPage() {
   const [dataSource, setDataSource] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; email: string; avatarColor: string }[]>([]);
+  const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
+  const [teamMenuOpen, setTeamMenuOpen] = useState(false);
   const [customEvents, setCustomEvents] = useState<CustomEvent[]>(() => {
     if (typeof window === "undefined") return [];
     try { return JSON.parse(localStorage.getItem("custom_events") ?? "[]"); } catch { return []; }
@@ -150,8 +153,8 @@ export default function GoogleAdsPage() {
       const end = new Date(rangeEnd).toISOString().split("T")[0];
 
       const [campResult, dailyResult] = await Promise.all([
-        fetchWindsorData(start, end, "campaign"),
-        fetchWindsorData(start, end, "date,campaign"),
+        fetchWindsorData(start, end, "campaign", viewAsUserId),
+        fetchWindsorData(start, end, "date,campaign", viewAsUserId),
       ]);
 
       const { data: campData, error: campErr, source: src } = campResult;
@@ -233,7 +236,16 @@ export default function GoogleAdsPage() {
 
     const timer = setTimeout(loadData, 300);
     return () => clearTimeout(timer);
-  }, [rangeStart, rangeEnd]);
+  }, [rangeStart, rangeEnd, viewAsUserId]);
+
+  useEffect(() => {
+    fetch("/api/team/members")
+      .then(r => r.ok ? r.json() : null)
+      .then(json => {
+        if (json?.members) setTeamMembers(json.members);
+      })
+      .catch(() => {});
+  }, []);
 
   const [daysUpToYesterday, setDaysUpToYesterday] = useState<number | string>(30);
 
@@ -879,6 +891,45 @@ export default function GoogleAdsPage() {
             {!isWindsorLoading && !windsorConnected && !windsorError && <span className="text-[10px] text-gray-400 font-semibold">● Not connected</span>}
             {!isWindsorLoading && windsorError && <span className="text-[10px] text-red-500 font-semibold">● Error</span>}
           </div>
+
+          {/* Team switcher */}
+          {teamMembers.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => setTeamMenuOpen(o => !o)}
+                className="flex items-center gap-1.5 text-[13px] text-gray-600 bg-white border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                <span className="max-w-[120px] truncate">
+                  {viewAsUserId ? (teamMembers.find(m => m.id === viewAsUserId)?.name || "Member") : "My data"}
+                </span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${teamMenuOpen ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              {teamMenuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+                  <button
+                    onClick={() => { setViewAsUserId(null); setTeamMenuOpen(false); }}
+                    className={`w-full text-left px-3 py-2 text-[13px] hover:bg-gray-50 flex items-center gap-2 ${!viewAsUserId ? "font-semibold text-blue-600" : "text-gray-700"}`}
+                  >
+                    <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-[10px] font-bold flex items-center justify-center">Me</span>
+                    My data
+                  </button>
+                  {teamMembers.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => { setViewAsUserId(m.id); setTeamMenuOpen(false); }}
+                      className={`w-full text-left px-3 py-2 text-[13px] hover:bg-gray-50 flex items-center gap-2 ${viewAsUserId === m.id ? "font-semibold text-blue-600" : "text-gray-700"}`}
+                    >
+                      <span className={`w-5 h-5 rounded-full ${m.avatarColor} text-white text-[10px] font-bold flex items-center justify-center shrink-0`}>
+                        {(m.name || m.email).slice(0, 2).toUpperCase()}
+                      </span>
+                      <span className="truncate">{m.name || m.email}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Sync button */}
           <div className="flex flex-col items-end gap-0.5">
