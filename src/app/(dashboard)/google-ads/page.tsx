@@ -81,6 +81,13 @@ export default function GoogleAdsPage() {
   const [aiMsgs, setAiMsgs] = useState<AiMessage[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const aiScrollRef = useRef<HTMLDivElement>(null);
+  const isWindsorLoadingRef = useRef(false);
+  const windsorConnectedRef = useRef(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const realKpisRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const realCampaignRowsRef = useRef<any[] | null>(null);
+  const dataSourceRef = useRef<string | null>(null);
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [evtCategory, setEvtCategory] = useState<"Events" | "Ads" | "Website">("Events");
   const [evtType, setEvtType] = useState<string | null>(null);
@@ -368,17 +375,29 @@ export default function GoogleAdsPage() {
     setAiMsgs(prev => [...prev, { id: Date.now(), role: "user", text: msg, time: t, pinned: false }]);
     setAiLoading(true);
     try {
+      // Wait for Windsor data to finish loading (max 6s) so AI gets fresh context
+      if (isWindsorLoadingRef.current) {
+        await new Promise<void>(resolve => {
+          const check = setInterval(() => {
+            if (!isWindsorLoadingRef.current) { clearInterval(check); resolve(); }
+          }, 150);
+          setTimeout(() => { clearInterval(check); resolve(); }, 6000);
+        });
+      }
+
       const dateFrom = new Date(rangeStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
       const dateTo   = new Date(rangeEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      const freshKpis = realKpisRef.current;
+      const freshCampaigns = realCampaignRowsRef.current;
       const context = {
         dateRange: `${dateFrom} – ${dateTo}`,
-        connected: windsorConnected,
-        dataSource,
-        kpis: realKpis ? kpis.map((k, i) => ({ label: k.label, value: realKpis[i]?.value ?? "—", trend: realKpis[i]?.delta ?? "—" })) : null,
-        campaigns: realCampaignRows?.slice(0, 20).map(r => ({
+        connected: windsorConnectedRef.current,
+        dataSource: dataSourceRef.current,
+        kpis: freshKpis ? kpis.map((k, i) => ({ label: k.label, value: freshKpis[i]?.value ?? "—", trend: freshKpis[i]?.delta ?? "—" })) : null,
+        campaigns: freshCampaigns?.slice(0, 20).map((r: Record<string, unknown>) => ({
           name: r.name, type: r.type,
-          cost: `$${(r.cost).toFixed(2)}K`, revenue: `$${(r.revenue).toFixed(2)}K`,
-          roas: r.roas, clicks: r.clicks, conversions: r.conv, cpa: `$${r.cpa.toFixed(2)}`,
+          cost: `$${(r.cost as number).toFixed(2)}K`, revenue: `$${(r.revenue as number).toFixed(2)}K`,
+          roas: r.roas, clicks: r.clicks, conversions: r.conv, cpa: `$${(r.cpa as number).toFixed(2)}`,
         })),
       };
       const history = snapshot.slice(-10).map(m => ({ role: m.role, content: m.text }));
@@ -825,6 +844,13 @@ export default function GoogleAdsPage() {
       { value: profitFmt, ...trend("profit"), spark: sp(d => g(d, "profit")), hoverFmt: (v: number) => v >= 0 ? fmtD(v) : `-${fmtD(-v)}` },
     ];
   }, [realCampaignRows, realBarData, windsorConnected]);
+
+  // Keep refs in sync so sendAiMsg can read latest values after an async wait
+  useEffect(() => { isWindsorLoadingRef.current = isWindsorLoading; }, [isWindsorLoading]);
+  useEffect(() => { windsorConnectedRef.current = windsorConnected; }, [windsorConnected]);
+  useEffect(() => { realKpisRef.current = realKpis; }, [realKpis]);
+  useEffect(() => { realCampaignRowsRef.current = realCampaignRows; }, [realCampaignRows]);
+  useEffect(() => { dataSourceRef.current = dataSource; }, [dataSource]);
 
   const dynSegData = useMemo(() => {
     const rows = selectedRows.length > 0 ? selectedRows : currentRows;

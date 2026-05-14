@@ -136,31 +136,9 @@ export async function POST(req: NextRequest) {
       } catch {
         return NextResponse.json({ error: "Failed to parse date range from AI" }, { status: 500 });
       }
-
-      // Stage 2: continue with tool result so the model also answers the original question
-      const messagesWithResult = [
-        ...messages,
-        choice1.message,
-        {
-          role: "tool",
-          tool_call_id: toolCall.id,
-          content: `Date range changed to ${params.label} (${params.start} to ${params.end}). Now provide a brief analysis or confirmation for the user based on the current data.`,
-        },
-      ];
-
-      const res2 = await groq(apiKey, {
-        model: "llama-3.3-70b-versatile",
-        messages: messagesWithResult,
-        max_tokens: 1024,
-        temperature: 0.4,
-      });
-
-      const text = res2.ok
-        ? ((await res2.json()).choices?.[0]?.message?.content ?? "Done!")
-        : "Done!";
-
+      const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
       return NextResponse.json({
-        text,
+        text: `Вибрано: **${params.label}** (${fmt(params.start)} – ${fmt(params.end)}). Дані завантажуються — запитай мене про цей період!`,
         dateAction: { start: params.start, end: params.end, label: params.label },
       });
     }
