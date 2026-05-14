@@ -10,7 +10,7 @@ import {
   CHART_METRICS, CHART_GROUPBY,
   END_MS, DAY_MS, fmtMs,
   TYPE_TO_GROUPS,
-  ChartMetric, ChartGroupBy, SortDir, SortKey, AdPerfItem, PlItem, AiMessage,
+  ChartMetric, ChartGroupBy, SortDir, SortKey, AdPerfItem, PlItem, AiMessage, DateAction,
 } from "./_data/constants";
 import { generatePeriodData } from "./_data/generators";
 
@@ -389,7 +389,15 @@ export default function GoogleAdsPage() {
       });
       const data = await res.json();
       const t2 = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-      setAiMsgs(prev => [...prev, { id: Date.now() + 1, role: "assistant", text: data.error ? `Error: ${data.error}` : data.text, time: t2, pinned: false }]);
+      if (data.dateAction) {
+        const { start, end } = data.dateAction as DateAction;
+        const startMs = new Date(start).getTime();
+        const endMs = new Date(end).getTime();
+        setRangeStart(startMs);
+        setRangeEnd(endMs);
+        window.dispatchEvent(new CustomEvent("date-range-changed", { detail: { start: startMs, end: endMs } }));
+      }
+      setAiMsgs(prev => [...prev, { id: Date.now() + 1, role: "assistant", text: data.error ? `Error: ${data.error}` : data.text, time: t2, pinned: false, dateAction: data.dateAction }]);
     } catch {
       const t2 = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
       setAiMsgs(prev => [...prev, { id: Date.now() + 1, role: "assistant", text: "Couldn't reach AI. Please try again.", time: t2, pinned: false }]);

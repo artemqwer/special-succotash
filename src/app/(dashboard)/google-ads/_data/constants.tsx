@@ -22,7 +22,8 @@ export type ChartMetric = "Revenue" | "Cost" | "Clicks";
 export type ChartGroupBy = "Campaign" | "Type";
 export type SortDir = "asc" | "desc" | null;
 export type SortKey = keyof (typeof campaignRows)[number];
-export type AiMessage = { id: number; role: "assistant" | "user"; text: string; time: string; suggestions?: string[]; pinned: boolean };
+export type DateAction = { start: string; end: string; label: string };
+export type AiMessage = { id: number; role: "assistant" | "user"; text: string; time: string; suggestions?: string[]; pinned: boolean; dateAction?: DateAction };
 export type AdPerfItem = { date: string; convValue: number; cost: number; profit: number; clicks: number; roas: number; costBar: number; profitBar: number };
 export type PlItem = { date: string; dailyProfit: number; cumulative: number };
 

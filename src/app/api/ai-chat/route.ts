@@ -27,9 +27,27 @@ interface DashboardContext {
   campaigns?: CampaignContext[];
 }
 
-function buildSystemPrompt(ctx: DashboardContext): string {
-  let prompt = `You are DataRocks AI — an expert Google Ads performance analyst embedded in the DataRocks dashboard.
+const SET_DATE_RANGE_TOOL = {
+  type: "function",
+  function: {
+    name: "set_date_range",
+    description: "Change the dashboard date range. Use this when the user asks to select a specific period, year, month, quarter, or any custom date range.",
+    parameters: {
+      type: "object",
+      properties: {
+        start: { type: "string", description: "Start date in YYYY-MM-DD format" },
+        end:   { type: "string", description: "End date in YYYY-MM-DD format" },
+        label: { type: "string", description: "Human-readable label, e.g. '2022', 'Q1 2023', 'January 2024', 'Last 30 days'" },
+      },
+      required: ["start", "end", "label"],
+    },
+  },
+};
 
+function buildSystemPrompt(ctx: DashboardContext): string {
+  const today = new Date().toISOString().split("T")[0];
+  let prompt = `You are DataRocks AI — an expert Google Ads performance analyst embedded in the DataRocks dashboard.
+Today's date: ${today}
 Period: ${ctx.dateRange}
 Data source: ${ctx.connected ? (ctx.dataSource ?? "connected") : "not connected — no real data available"}
 
@@ -55,6 +73,7 @@ Data source: ${ctx.connected ? (ctx.dataSource ?? "connected") : "not connected 
 - Be concise and actionable (max 3-4 short paragraphs or a short bullet list)
 - Always reference actual numbers from the data above
 - If data is not connected, tell the user to connect a data source
+- When the user asks to select/switch/change a date range or period, use the set_date_range tool — do not just describe it
 - Respond in the same language the user writes in`;
 
   return prompt;
@@ -93,6 +112,8 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
       messages,
+      tools: [SET_DATE_RANGE_TOOL],
+      tool_choice: "auto",
       max_tokens: 1024,
       temperature: 0.7,
     }),
@@ -104,7 +125,25 @@ export async function POST(req: NextRequest) {
   }
 
   const data = await res.json();
-  const text: string = data.choices?.[0]?.message?.content ?? "No response received.";
+  const choice = data.choices?.[0];
 
+  // Handle tool call
+  if (choice?.finish_reason === "tool_calls") {
+    const toolCall = choice.message?.tool_calls?.[0];
+    if (toolCall?.function?.name === "set_date_range") {
+      try {
+        const params = JSON.parse(toolCall.function.arguments) as { start: string; end: string; label: string };
+        const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        return NextResponse.json({
+          text: `Done! Switched to **${params.label}** — ${fmt(params.start)} → ${fmt(params.end)}.`,
+          dateAction: { start: params.start, end: params.end, label: params.label },
+        });
+      } catch {
+        return NextResponse.json({ error: "Failed to parse date range from AI" }, { status: 500 });
+      }
+    }
+  }
+
+  const text: string = choice?.message?.content ?? "No response received.";
   return NextResponse.json({ text });
 }

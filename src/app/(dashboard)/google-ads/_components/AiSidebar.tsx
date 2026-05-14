@@ -2,6 +2,23 @@
 
 import React from "react";
 import { AiMessage, AI_METRICS, AI_QUICK, renderAiText } from "../_data/constants";
+import type { DateAction } from "../_data/constants";
+
+function DateActionCard({ action }: { action: DateAction }) {
+  const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return (
+    <div className="mt-2 flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" className="shrink-0">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold text-blue-700">{action.label}</p>
+        <p className="text-[10px] text-blue-500">{fmt(action.start)} – {fmt(action.end)}</p>
+      </div>
+      <span className="ml-auto text-[10px] font-medium text-green-600 bg-green-50 border border-green-100 rounded-full px-2 py-0.5 shrink-0">Applied</span>
+    </div>
+  );
+}
 
 interface AiSidebarProps {
   aiOpen: boolean;
@@ -77,6 +94,7 @@ export default function AiSidebar({
                 {msg.role === "assistant" ? (
                   <>
                     <div className="text-[13px] text-gray-800 space-y-0.5">{renderAiText(msg.text)}</div>
+                    {msg.dateAction && <DateActionCard action={msg.dateAction} />}
                     {msg.suggestions && (
                       <div className="mt-3">
                         <p className="text-[11px] text-gray-400 mb-1.5">💡 You might also ask:</p>
