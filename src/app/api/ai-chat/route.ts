@@ -33,6 +33,23 @@ const SET_DATE_RANGE_TOOL = {
   },
 };
 
+function isDateChangeRequest(msg: string): boolean {
+  const m = msg.toLowerCase();
+  // Year numbers like 2022, 2023
+  if (/\b20[12]\d\b/.test(m)) return true;
+  // Quarter
+  if (/\bq[1-4]\b|квартал/.test(m)) return true;
+  // Month names EN + UA
+  if (/(january|february|march|april|june|july|august|september|october|november|december|січень|лютий|березень|квітень|травень|червень|липень|серпень|вересень|жовтень|листопад|грудень)/.test(m)) return true;
+  // Season names EN + UA
+  if (/(spring|summer|autumn|winter|весн|літ|осін|зим)/.test(m)) return true;
+  // Explicit switch/select + period
+  if (/(switch to|select period|set period|change period|вибери пер|переключ|змін.*пер|покажи за|за.*рік|за.*місяц)/.test(m)) return true;
+  // Last N days/weeks/months
+  if (/(last\s+\d+\s+(day|week|month)|останн[іі]\s+\d+)/.test(m)) return true;
+  return false;
+}
+
 async function groq(apiKey: string, body: object): Promise<Response> {
   return fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -110,12 +127,13 @@ export async function POST(req: NextRequest) {
     { role: "user", content: message },
   ];
 
-  // Stage 1: allow tool call
+  // Only offer the date tool when the message actually looks like a date change request
+  const useTool = isDateChangeRequest(message);
+
   const res1 = await groq(apiKey, {
     model: "llama-3.3-70b-versatile",
     messages,
-    tools: [SET_DATE_RANGE_TOOL],
-    tool_choice: "auto",
+    ...(useTool ? { tools: [SET_DATE_RANGE_TOOL], tool_choice: "auto" } : {}),
     max_tokens: 1024,
     temperature: 0.4,
   });
