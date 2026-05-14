@@ -96,7 +96,7 @@ export default function GoogleAdsPage() {
   const [dataSource, setDataSource] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
-  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; email: string; avatarColor: string }[]>([]);
+  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; email: string; avatarColor: string; isPending: boolean }[]>([]);
   const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
   const [teamMenuOpen, setTeamMenuOpen] = useState(false);
   const [customEvents, setCustomEvents] = useState<CustomEvent[]>(() => {
@@ -914,7 +914,7 @@ export default function GoogleAdsPage() {
                     <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-[10px] font-bold flex items-center justify-center">Me</span>
                     My data
                   </button>
-                  {teamMembers.map(m => (
+                  {teamMembers.filter(m => !m.isPending).map(m => (
                     <button
                       key={m.id}
                       onClick={() => { setViewAsUserId(m.id); setTeamMenuOpen(false); }}

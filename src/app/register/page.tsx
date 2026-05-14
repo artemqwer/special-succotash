@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DataRocksLogo from "@/components/DataRocksLogo";
-import { registerUser, setSession } from "@/lib/auth";
+import { registerUser } from "@/lib/auth";
 
 function isValidEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -84,7 +84,6 @@ export default function RegisterPage() {
 
     // Supabase may require email confirmation — show success message
     setSuccess(true);
-    setSession({ email: email.trim(), name: name.trim() });
     setTimeout(() => router.replace("/google-ads"), 1500);
   };
 

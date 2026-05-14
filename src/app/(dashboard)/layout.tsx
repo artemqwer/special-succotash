@@ -45,7 +45,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const user = supabaseSession.user;
       const name = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "User";
       const avatar = user.user_metadata?.avatar_url ?? user.user_metadata?.picture;
-      setSession({ email: user.email!, name, avatar });
+      const teamId = (user.user_metadata?.team_id as string | undefined) ?? null;
+      setSession({ email: user.email!, name, avatar, teamId });
     });
 
     return () => subscription.unsubscribe();

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { listAllUsers, makeAvatarColor } from "@/lib/supabase-admin";
 
 export interface TeamMember {
   id: string;
@@ -9,15 +9,8 @@ export interface TeamMember {
   email: string;
   avatarColor: string;
   hasWindsor: boolean;
+  isPending: boolean;
   role: "owner" | "member";
-}
-
-const COLORS = ["#4F46E5","#3B82F6","#7C3AED","#2563EB","#0EA5E9","#059669","#F59E0B","#EC4899","#10B981","#EF4444"];
-
-function avatarColor(id: string) {
-  let h = 0;
-  for (const c of id) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
-  return COLORS[Math.abs(h) % COLORS.length];
 }
 
 export async function GET() {
@@ -34,13 +27,7 @@ export async function GET() {
     return NextResponse.json({ members: [] });
   }
 
-  const admin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-
-  const { data: { users: all } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const all = await listAllUsers();
   const myTeamId = user.user_metadata?.team_id as string | undefined;
   const members: TeamMember[] = [];
 
@@ -58,8 +45,9 @@ export async function GET() {
       id: u.id,
       name: (m.full_name as string) || u.email?.split("@")[0] || "Unknown",
       email: u.email ?? "",
-      avatarColor: avatarColor(u.id),
+      avatarColor: makeAvatarColor(u.id),
       hasWindsor: !!(m.windsor_api_key as string | undefined),
+      isPending,
       role: "member",
     });
   }
@@ -73,8 +61,9 @@ export async function GET() {
         id: owner.id,
         name: (m.full_name as string) || owner.email?.split("@")[0] || "Unknown",
         email: owner.email ?? "",
-        avatarColor: avatarColor(owner.id),
+        avatarColor: makeAvatarColor(owner.id),
         hasWindsor: !!(m.windsor_api_key as string | undefined),
+        isPending: false,
         role: "owner",
       });
       for (const u of all.filter(u => u.id !== user.id && (u.user_metadata?.team_id as string | undefined) === myTeamId)) {
@@ -83,8 +72,9 @@ export async function GET() {
           id: u.id,
           name: (m2.full_name as string) || u.email?.split("@")[0] || "Unknown",
           email: u.email ?? "",
-          avatarColor: avatarColor(u.id),
+          avatarColor: makeAvatarColor(u.id),
           hasWindsor: !!(m2.windsor_api_key as string | undefined),
+          isPending: false,
           role: "member",
         });
       }

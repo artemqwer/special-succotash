@@ -141,6 +141,8 @@ export default function Sidebar({ mobileOpen, onMobileClose, session, onLogout }
             <div key={group} className="mb-4">
               <p className={`px-3 mb-1 text-[10px] font-semibold text-gray-400 tracking-widest uppercase whitespace-nowrap ${fadeCls}`}>{group}</p>
               {items.map(({ label, href, icon }) => {
+                // Hide "User Management" for members (users who belong to someone else's team)
+                if (href === "/admin" && session?.teamId) return null;
                 const active = pathname === href;
                 return (
                   <Link
@@ -239,6 +241,7 @@ export default function Sidebar({ mobileOpen, onMobileClose, session, onLogout }
                   <div key={group} className="mb-4">
                     <p className="px-3 mb-1 text-[10px] font-semibold text-gray-400 tracking-widest uppercase">{group}</p>
                     {items.map(({ label, href, icon }) => {
+                      if (href === "/admin" && session?.teamId) return null;
                       const active = pathname === href;
                       return (
                         <Link key={href} href={href} onClick={onMobileClose}

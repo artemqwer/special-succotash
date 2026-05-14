@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DataRocksLogo from "@/components/DataRocksLogo";
-import { getSupabaseSession, loginUser, loginWithGoogle, setSession } from "@/lib/auth";
+import { getSupabaseSession, loginUser, loginWithGoogle } from "@/lib/auth";
 
 function isValidEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -59,7 +59,6 @@ export default function LoginPage() {
       return;
     }
 
-    setSession(result.session);
     router.replace("/google-ads");
   };
 

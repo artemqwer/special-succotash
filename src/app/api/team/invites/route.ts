@@ -1,21 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { adminClient } from "@/lib/supabase-admin";
 
 export interface PendingInvite {
   from_id: string;
   from_name: string;
   from_email: string;
   created_at: string;
-}
-
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
 }
 
 export async function GET() {
@@ -27,6 +19,10 @@ export async function GET() {
   );
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ invites: [] });
+  }
 
   // Use admin client to get fresh metadata (session JWT may be stale)
   const { data: { user: fresh } } = await adminClient().auth.admin.getUserById(user.id);
@@ -53,12 +49,14 @@ export async function PATCH(req: NextRequest) {
   const { from_id, action } = await req.json() as { from_id: string; action: "accept" | "decline" };
   if (!from_id || !action) return NextResponse.json({ error: "Missing from_id or action" }, { status: 400 });
 
+  // Use fresh metadata — JWT cache may be stale after server-side updates
+  const { data: { user: fresh } } = await adminClient().auth.admin.getUserById(user.id);
   const pending: PendingInvite[] =
-    (user.user_metadata?.pending_team_invites as PendingInvite[] | undefined) ?? [];
+    (fresh?.user_metadata?.pending_team_invites as PendingInvite[] | undefined) ?? [];
   const filtered = pending.filter(p => p.from_id !== from_id);
 
   const newMeta: Record<string, unknown> = {
-    ...user.user_metadata,
+    ...fresh?.user_metadata,
     pending_team_invites: filtered,
   };
 

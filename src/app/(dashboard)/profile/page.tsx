@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase";
-import { setSession, logoutUser } from "@/lib/auth";
+import { logoutUser } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
 // ─── Sub-components (must be outside the page function) ──────────────────────
@@ -168,7 +168,6 @@ export default function ProfilePage() {
     if (error) {
       setProfileMsg({ type: "error", text: error.message });
     } else {
-      setSession({ email, name: full_name || email.split("@")[0] });
       setProfileMsg({ type: "success", text: "Profile updated successfully" });
       setTimeout(() => setProfileMsg(null), 3000);
     }

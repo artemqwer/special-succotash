@@ -1,26 +1,7 @@
 import { createClient } from "./supabase";
 
-export type Session = { email: string; name: string; avatar?: string };
+export type Session = { email: string; name: string; avatar?: string; teamId?: string | null };
 
-export function getSession(): Session | null {
-  // Synchronous check via localStorage token presence (used only for SSR-safe quick guard)
-  // Real session is validated async via Supabase in layout
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem("dr_session");
-    return raw ? (JSON.parse(raw) as Session) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function setSession(session: Session) {
-  localStorage.setItem("dr_session", JSON.stringify(session));
-}
-
-export function clearSession() {
-  localStorage.removeItem("dr_session");
-}
 
 export async function registerUser(
   email: string,
@@ -75,7 +56,6 @@ export async function loginWithGoogle(): Promise<void> {
 export async function logoutUser(): Promise<void> {
   const supabase = createClient();
   await supabase.auth.signOut();
-  clearSession();
 }
 
 export async function getSupabaseSession(): Promise<Session | null> {
@@ -85,5 +65,6 @@ export async function getSupabaseSession(): Promise<Session | null> {
   const user = data.session.user;
   const name = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "User";
   const avatar = user.user_metadata?.avatar_url ?? user.user_metadata?.picture;
-  return { email: user.email!, name, avatar };
+  const teamId = (user.user_metadata?.team_id as string | undefined) ?? null;
+  return { email: user.email!, name, avatar, teamId };
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { adminClient, listAllUsers, makeAvatarColor } from "@/lib/supabase-admin";
 
 export type Plan = "Enterprise" | "Business" | "Professional" | "Starter";
 export type UserStatus = "Active" | "Trial" | "Inactive" | "Suspended";
@@ -30,16 +30,9 @@ export interface AdminUser {
 const PLAN_PRICE: Record<Plan, number> = {
   Enterprise: 499, Business: 299, Professional: 199, Starter: 49,
 };
-const COLORS = ["#4F46E5","#3B82F6","#7C3AED","#2563EB","#0EA5E9","#059669","#F59E0B","#EC4899","#10B981","#EF4444"];
 
 function makeInitials(name: string) {
   return name.split(" ").map(w => w[0] ?? "").join("").slice(0, 2).toUpperCase() || "??";
-}
-
-function makeAvatarColor(id: string) {
-  let h = 0;
-  for (const c of id) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
-  return COLORS[Math.abs(h) % COLORS.length];
 }
 
 function parseLoginTime(iso: string | null | undefined): { label: string; mins: number } {
@@ -73,14 +66,6 @@ async function requireAdmin() {
   return user;
 }
 
-function adminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-}
-
 export async function GET() {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -89,11 +74,9 @@ export async function GET() {
     return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY not configured" }, { status: 503 });
   }
 
-  const { data: { users }, error } = await adminClient().auth.admin.listUsers({ perPage: 1000 });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const users = await listAllUsers();
 
   type PendingInvite = { from_id: string };
-  // Show: self + accepted members + pending invitees
   const ownTeam = users.filter(u =>
     u.id === admin.id ||
     (u.user_metadata?.team_id as string | undefined) === admin.id ||
@@ -139,20 +122,20 @@ export async function POST(req: NextRequest) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY not configured" }, { status: 503 });
+  }
+
   const { email, plan = "Starter" } = await req.json() as { email: string; plan?: string };
   if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
 
   const client = adminClient();
-
-  // Check if user already exists first
-  const { data: { users: all } } = await client.auth.admin.listUsers({ perPage: 1000 });
+  const all = await listAllUsers();
   const existing = all.find(u => u.email?.toLowerCase() === email.toLowerCase());
 
   if (existing) {
-    // Already has an account — send in-app invite (pending)
     const pending: { from_id: string; from_name: string; from_email: string; created_at: string }[] =
       (existing.user_metadata?.pending_team_invites as typeof pending | undefined) ?? [];
-    // Avoid duplicates
     if (!pending.find(p => p.from_id === admin.id)) {
       const adminMeta = admin.user_metadata ?? {};
       pending.push({
@@ -169,7 +152,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, pending: true });
   }
 
-  // New user — send email invite
   const { data, error } = await client.auth.admin.inviteUserByEmail(email, {
     data: { plan, status: "Trial", team_id: admin.id },
   });
