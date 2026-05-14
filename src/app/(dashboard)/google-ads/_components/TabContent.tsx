@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart,
   LabelList, ComposedChart, ReferenceLine, CartesianGrid, Line,
@@ -73,6 +73,9 @@ export default function TabContent({
   dynSegData,
   granularity, granularityOpen, onGranularityChange, onGranularityOpenChange,
 }: TabContentProps) {
+  const [legendExpanded, setLegendExpanded] = useState(false);
+  const LEGEND_LIMIT = 8;
+
   return (
     <>
       {/* Chart controls */}
@@ -213,7 +216,7 @@ export default function TabContent({
             </div>
           )}
           <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 justify-center">
-            {chartSeries.map(({ name, color }) => {
+            {(legendExpanded ? chartSeries : chartSeries.slice(0, LEGEND_LIMIT)).map(({ name, color }) => {
               const hidden = hiddenSeries.has(name);
               return (
                 <button
@@ -227,6 +230,14 @@ export default function TabContent({
                 </button>
               );
             })}
+            {chartSeries.length > LEGEND_LIMIT && (
+              <button
+                onClick={() => setLegendExpanded(v => !v)}
+                className="flex items-center gap-1 text-[11px] sm:text-[13px] text-blue-500 hover:text-blue-700 font-medium transition-colors select-none"
+              >
+                {legendExpanded ? "↑ Show less" : `+${chartSeries.length - LEGEND_LIMIT} more...`}
+              </button>
+            )}
           </div>
         </div>
       )}
