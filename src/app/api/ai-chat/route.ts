@@ -43,10 +43,21 @@ async function groq(apiKey: string, body: object): Promise<Response> {
 
 function buildSystemPrompt(ctx: DashboardContext): string {
   const today = new Date().toISOString().split("T")[0];
+  const hasData = ctx.kpis !== null && ctx.kpis !== undefined;
+
+  let dataStatus: string;
+  if (!ctx.connected) {
+    dataStatus = "NOT CONNECTED — user must connect a data source first";
+  } else if (!hasData) {
+    dataStatus = `CONNECTED (${ctx.dataSource ?? "data source"}) but no data found for the selected period ${ctx.dateRange} — the data source likely has no records for this date range`;
+  } else {
+    dataStatus = `connected (${ctx.dataSource ?? "data source"})`;
+  }
+
   let prompt = `You are DataRocks AI — an expert Google Ads performance analyst embedded in the DataRocks dashboard.
 Today's date: ${today}
 Current period: ${ctx.dateRange}
-Data source: ${ctx.connected ? (ctx.dataSource ?? "connected") : "not connected — no real data available"}
+Data source status: ${dataStatus}
 
 `;
 
@@ -66,10 +77,11 @@ Data source: ${ctx.connected ? (ctx.dataSource ?? "connected") : "not connected 
 
   prompt += `RULES:
 - Be concise and actionable (max 3-4 short paragraphs or a short bullet list)
-- Always reference actual numbers from the data above
-- If data is not connected, tell the user to connect a data source
+- Always reference actual numbers from the data above when available
+- If data source is NOT CONNECTED: tell the user to connect a data source
+- If data source is CONNECTED but no data for this period: explain that the source is connected but has no records for this specific date range — suggest trying a different period or syncing data. Do NOT say the source is disconnected
 - Use set_date_range ONLY when the user explicitly asks to change/select/switch the time period — NOT for analysis or recommendations
-- After the date is changed, provide a brief analysis of the data for that period
+- After the date is changed, provide a brief analysis or note about the data availability for that period
 - Respond in the same language the user writes in`;
 
   return prompt;
