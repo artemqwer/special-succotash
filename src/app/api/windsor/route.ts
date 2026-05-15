@@ -13,18 +13,30 @@ export type WindsorGroupBy =
   | "match_type"
   | "device"
   | "network"
-  | "search_term";
+  | "search_term"
+  | "date,ad_group"
+  | "date,keyword"
+  | "date,match_type"
+  | "date,device"
+  | "date,network"
+  | "date,search_term";
 
 const FIELDS_BY_GROUP: Record<WindsorGroupBy, string> = {
-  date:           "date,clicks,impressions,spend,conversions,conversion_value",
-  campaign:       "campaign,clicks,impressions,spend,conversions,conversion_value",
-  "date,campaign":"date,campaign,clicks,impressions,spend,conversions,conversion_value",
-  ad_group:       "ad_group_name,clicks,impressions,spend,conversions,conversion_value",
-  keyword:        "keyword,clicks,impressions,spend,conversions,conversion_value",
-  match_type:     "match_type,clicks,impressions,spend,conversions,conversion_value",
-  device:         "device,clicks,impressions,spend,conversions,conversion_value",
-  network:        "network,clicks,impressions,spend,conversions,conversion_value",
-  search_term:    "search_term,clicks,impressions,spend,conversions,conversion_value",
+  date:               "date,clicks,impressions,spend,conversions,conversion_value",
+  campaign:           "campaign,clicks,impressions,spend,conversions,conversion_value",
+  "date,campaign":    "date,campaign,clicks,impressions,spend,conversions,conversion_value",
+  ad_group:           "ad_group_name,clicks,impressions,spend,conversions,conversion_value",
+  keyword:            "keyword,clicks,impressions,spend,conversions,conversion_value",
+  match_type:         "match_type,clicks,impressions,spend,conversions,conversion_value",
+  device:             "device,clicks,impressions,spend,conversions,conversion_value",
+  network:            "network,clicks,impressions,spend,conversions,conversion_value",
+  search_term:        "search_term,clicks,impressions,spend,conversions,conversion_value",
+  "date,ad_group":    "date,ad_group_name,clicks,impressions,spend,conversions,conversion_value",
+  "date,keyword":     "date,keyword,clicks,impressions,spend,conversions,conversion_value",
+  "date,match_type":  "date,match_type,clicks,impressions,spend,conversions,conversion_value",
+  "date,device":      "date,device,clicks,impressions,spend,conversions,conversion_value",
+  "date,network":     "date,network,clicks,impressions,spend,conversions,conversion_value",
+  "date,search_term": "date,search_term,clicks,impressions,spend,conversions,conversion_value",
 };
 
 function normalizeDimension(r: Record<string, unknown>, groupBy: WindsorGroupBy): string {
@@ -33,16 +45,22 @@ function normalizeDimension(r: Record<string, unknown>, groupBy: WindsorGroupBy)
     case "date,campaign":
       return String(r.campaign ?? r.campaign_name ?? r.campaign__name ?? "Unknown");
     case "ad_group":
+    case "date,ad_group":
       return String(r.ad_group_name ?? r.ad_group ?? "Unknown");
     case "keyword":
+    case "date,keyword":
       return String(r.keyword ?? r.keyword_text ?? "Unknown");
     case "match_type":
+    case "date,match_type":
       return String(r.match_type ?? "Unknown");
     case "device":
+    case "date,device":
       return String(r.device ?? "Unknown");
     case "network":
+    case "date,network":
       return String(r.network ?? "Unknown");
     case "search_term":
+    case "date,search_term":
       return String(r.search_term ?? "Unknown");
     default:
       return String(r.date ?? "Unknown");

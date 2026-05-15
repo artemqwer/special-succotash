@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { fetchWindsorData } from "@/lib/windsor";
+import { useCrossFilter } from "@/lib/store";
 
 // ─── Data imports ─────────────────────────────────────────────────────────────
 import {
@@ -167,6 +168,9 @@ export default function GoogleAdsPage() {
   const [realCampaignRows, setRealCampaignRows] = useState<any[] | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [realBarData, setRealBarData] = useState<any[] | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [crossFilterData, setCrossFilterData] = useState<any[] | null>(null);
+  const { filters } = useCrossFilter();
 
   useEffect(() => {
     const loadData = async () => {
@@ -335,12 +339,13 @@ export default function GoogleAdsPage() {
   const { dates, barData, campaignAvgs, adPerfData, plData } = useMemo(
     () => {
       const { dates } = generatePeriodData(rangeStart, rangeEnd);
-      if (!windsorConnected || !realBarData || realBarData.length === 0) {
+      const effectiveBarData = crossFilterData ?? realBarData;
+      if (!windsorConnected || !effectiveBarData || effectiveBarData.length === 0) {
         return { dates, barData: [], adPerfData: [] as AdPerfItem[], plData: [] as PlItem[], campaignAvgs: [] };
       }
-      const names = Array.from(new Set(realBarData.flatMap((d: Record<string, unknown>) => Object.keys(d).filter(k => k !== 'date' && k !== 'total' && !k.startsWith('_')))));
+      const names = Array.from(new Set(effectiveBarData.flatMap((d: Record<string, unknown>) => Object.keys(d).filter(k => k !== 'date' && k !== 'total' && !k.startsWith('_')))));
 
-      const derivedAdPerfData: AdPerfItem[] = realBarData.map((d: Record<string, unknown>) => {
+      const derivedAdPerfData: AdPerfItem[] = effectiveBarData.map((d: Record<string, unknown>) => {
         const convValue = d.total as number;
         const cost = d.cost as number;
         const profit = d.profit as number;
@@ -353,7 +358,7 @@ export default function GoogleAdsPage() {
         };
       });
 
-      const derivedPlData: PlItem[] = realBarData.map((d: Record<string, unknown>) => ({
+      const derivedPlData: PlItem[] = effectiveBarData.map((d: Record<string, unknown>) => ({
         date: d.date as string,
         dailyProfit: d.profit as number,
         cumulative: 0
@@ -361,17 +366,17 @@ export default function GoogleAdsPage() {
 
       return {
         dates,
-        barData: realBarData,
+        barData: effectiveBarData,
         adPerfData: derivedAdPerfData,
         plData: derivedPlData,
         campaignAvgs: names.map((name, i) => ({
           name,
           color: COLORS[i % COLORS.length],
-          avg: realBarData.reduce((s: number, d: Record<string, unknown>) => s + ((d[name] as number) || 0), 0) / realBarData.length
+          avg: effectiveBarData.reduce((s: number, d: Record<string, unknown>) => s + ((d[name] as number) || 0), 0) / effectiveBarData.length
         })).sort((a, b) => b.avg - a.avg)
       };
     },
-    [rangeStart, rangeEnd, realBarData, windsorConnected]
+    [rangeStart, rangeEnd, realBarData, crossFilterData, windsorConnected]
   );
 
   const openAi = () => {
@@ -763,18 +768,19 @@ export default function GoogleAdsPage() {
 
   const realKpis = useMemo(() => {
     if (!windsorConnected) return null;
-    if (!realCampaignRows || !realBarData || realBarData.length === 0) {
+    const effectiveBarData = crossFilterData ?? realBarData;
+    if (!realCampaignRows || !effectiveBarData || effectiveBarData.length === 0) {
       return kpis.map(k => ({ value: "—", delta: "—", up: true, spark: [] as { v: number; date: string }[], hoverFmt: k.hoverFmt }));
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const g = (d: any, key: string): number => (d[key] as number) || 0;
 
-    const totClicks = realBarData.reduce((s: number, d) => s + g(d, "clicks"), 0);
-    const totConv   = realBarData.reduce((s: number, d) => s + g(d, "conv"), 0);
-    const totRev    = realBarData.reduce((s: number, d) => s + g(d, "total"), 0);
-    const totCost   = realBarData.reduce((s: number, d) => s + g(d, "cost"), 0);
-    const totProfit = realBarData.reduce((s: number, d) => s + g(d, "profit"), 0);
+    const totClicks = effectiveBarData.reduce((s: number, d) => s + g(d, "clicks"), 0);
+    const totConv   = effectiveBarData.reduce((s: number, d) => s + g(d, "conv"), 0);
+    const totRev    = effectiveBarData.reduce((s: number, d) => s + g(d, "total"), 0);
+    const totCost   = effectiveBarData.reduce((s: number, d) => s + g(d, "cost"), 0);
+    const totProfit = effectiveBarData.reduce((s: number, d) => s + g(d, "profit"), 0);
     const convRate  = totClicks > 0 ? totConv / totClicks * 100 : 0;
     const cpa       = totConv  > 0 ? totCost / totConv : 0;
     const roas      = totCost  > 0 ? totRev  / totCost : 0;
@@ -784,26 +790,26 @@ export default function GoogleAdsPage() {
     const fmtD = (v: number) =>
       v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(2)}M` : v >= 1000 ? `$${(v / 1000).toFixed(2)}K` : `$${v.toFixed(2)}`;
 
-    const half = Math.max(1, Math.floor(realBarData.length / 2));
+    const half = Math.max(1, Math.floor(effectiveBarData.length / 2));
 
     const trend = (key: string) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const f = realBarData.slice(0, half).reduce((s, d) => s + g(d, key), 0);
+      const f = effectiveBarData.slice(0, half).reduce((s, d) => s + g(d, key), 0);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const s = realBarData.slice(half).reduce((s, d) => s + g(d, key), 0);
+      const s = effectiveBarData.slice(half).reduce((s, d) => s + g(d, key), 0);
       const pct = f > 0 ? ((s - f) / f) * 100 : 0;
       return { delta: `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`, up: s >= f };
     };
 
     const cvrTrend = (() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fClk = realBarData.slice(0, half).reduce((s, d: any) => s + g(d, "clicks"), 0);
+      const fClk = effectiveBarData.slice(0, half).reduce((s, d: any) => s + g(d, "clicks"), 0);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fCnv = realBarData.slice(0, half).reduce((s, d: any) => s + g(d, "conv"), 0);
+      const fCnv = effectiveBarData.slice(0, half).reduce((s, d: any) => s + g(d, "conv"), 0);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sClk = realBarData.slice(half).reduce((s, d: any) => s + g(d, "clicks"), 0);
+      const sClk = effectiveBarData.slice(half).reduce((s, d: any) => s + g(d, "clicks"), 0);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sCnv = realBarData.slice(half).reduce((s, d: any) => s + g(d, "conv"), 0);
+      const sCnv = effectiveBarData.slice(half).reduce((s, d: any) => s + g(d, "conv"), 0);
       const r1 = fClk > 0 ? fCnv / fClk * 100 : 0;
       const r2 = sClk > 0 ? sCnv / sClk * 100 : 0;
       const pct = r1 > 0 ? ((r2 - r1) / r1) * 100 : 0;
@@ -812,13 +818,13 @@ export default function GoogleAdsPage() {
 
     const cpaTrend = (() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fCost = realBarData.slice(0, half).reduce((s, d: any) => s + g(d, "cost"), 0);
+      const fCost = effectiveBarData.slice(0, half).reduce((s, d: any) => s + g(d, "cost"), 0);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fCnv  = realBarData.slice(0, half).reduce((s, d: any) => s + g(d, "conv"), 0);
+      const fCnv  = effectiveBarData.slice(0, half).reduce((s, d: any) => s + g(d, "conv"), 0);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sCost = realBarData.slice(half).reduce((s, d: any) => s + g(d, "cost"), 0);
+      const sCost = effectiveBarData.slice(half).reduce((s, d: any) => s + g(d, "cost"), 0);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sCnv  = realBarData.slice(half).reduce((s, d: any) => s + g(d, "conv"), 0);
+      const sCnv  = effectiveBarData.slice(half).reduce((s, d: any) => s + g(d, "conv"), 0);
       const c1 = fCnv > 0 ? fCost / fCnv : 0;
       const c2 = sCnv > 0 ? sCost / sCnv : 0;
       const pct = c1 > 0 ? ((c2 - c1) / c1) * 100 : 0;
@@ -827,13 +833,13 @@ export default function GoogleAdsPage() {
 
     const roasTrend = (() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fCost = realBarData.slice(0, half).reduce((s, d: any) => s + g(d, "cost"), 0);
+      const fCost = effectiveBarData.slice(0, half).reduce((s, d: any) => s + g(d, "cost"), 0);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fRev  = realBarData.slice(0, half).reduce((s, d: any) => s + g(d, "total"), 0);
+      const fRev  = effectiveBarData.slice(0, half).reduce((s, d: any) => s + g(d, "total"), 0);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sCost = realBarData.slice(half).reduce((s, d: any) => s + g(d, "cost"), 0);
+      const sCost = effectiveBarData.slice(half).reduce((s, d: any) => s + g(d, "cost"), 0);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sRev  = realBarData.slice(half).reduce((s, d: any) => s + g(d, "total"), 0);
+      const sRev  = effectiveBarData.slice(half).reduce((s, d: any) => s + g(d, "total"), 0);
       const r1 = fCost > 0 ? fRev / fCost : 0;
       const r2 = sCost > 0 ? sRev / sCost : 0;
       const pct = r1 > 0 ? ((r2 - r1) / r1) * 100 : 0;
@@ -843,7 +849,7 @@ export default function GoogleAdsPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sp = (getV: (d: any) => number) =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      realBarData.map((d: any) => ({ v: getV(d), date: d.date as string }));
+      effectiveBarData.map((d: any) => ({ v: getV(d), date: d.date as string }));
 
     const absProfit = Math.abs(totProfit);
     const profitFmt = totProfit >= 0 ? fmtD(totProfit) : `-$${absProfit >= 1_000_000 ? `${(absProfit/1_000_000).toFixed(2)}M` : absProfit >= 1000 ? `${(absProfit/1000).toFixed(2)}K` : absProfit.toFixed(2)}`;
@@ -859,7 +865,42 @@ export default function GoogleAdsPage() {
       { value: `${roas.toFixed(2)}x`, ...roasTrend, spark: sp(d => { const c = g(d, "cost"); return c > 0 ? g(d, "total") / c : 0; }), hoverFmt: (v: number) => `${v.toFixed(2)}x` },
       { value: profitFmt, ...trend("profit"), spark: sp(d => g(d, "profit")), hoverFmt: (v: number) => v >= 0 ? fmtD(v) : `-${fmtD(-v)}` },
     ];
-  }, [realCampaignRows, realBarData, windsorConnected]);
+  }, [realCampaignRows, realBarData, crossFilterData, windsorConnected]);
+
+  // Cross-filter: fetch Windsor data filtered by Extended Analytics selection
+  useEffect(() => {
+    const dimEntries = Object.entries(filters).filter(([k, v]) => k !== "campaign" && v.length > 0);
+    if (!windsorConnected || dimEntries.length === 0) { setCrossFilterData(null); return; }
+    const [dim, values] = dimEntries[0];
+    const groupBy = `date,${dim}`;
+    const dateFrom = fmtMs(rangeStart);
+    const dateTo   = fmtMs(rangeEnd);
+    fetch(`/api/windsor?date_from=${dateFrom}&date_to=${dateTo}&group_by=${encodeURIComponent(groupBy)}`)
+      .then(r => r.json())
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then((json: any) => {
+        if (!json.data) { setCrossFilterData(null); return; }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const filtered = json.data.filter((row: any) => values.includes(row.dimension));
+        const dateMap: Record<string, any> = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
+        for (const row of filtered) {
+          const dt: string = row.date;
+          if (!dt) continue;
+          if (!dateMap[dt]) dateMap[dt] = { date: dt, total: 0, cost: 0, profit: 0, clicks: 0, conv: 0, "Filtered": 0, "_cost_Filtered": 0 };
+          const rev = Number(row.conversion_value) || 0;
+          const cost = Number(row.spend) || 0;
+          dateMap[dt].total += rev;
+          dateMap[dt].cost += cost;
+          dateMap[dt].profit += rev - cost;
+          dateMap[dt].clicks += Number(row.clicks) || 0;
+          dateMap[dt].conv += Number(row.conversions) || 0;
+          dateMap[dt]["Filtered"] += rev;
+          dateMap[dt]["_cost_Filtered"] += cost;
+        }
+        setCrossFilterData(Object.values(dateMap).sort((a, b) => (a.date as string).localeCompare(b.date as string)));
+      })
+      .catch(() => setCrossFilterData(null));
+  }, [filters, rangeStart, rangeEnd, windsorConnected]);
 
   // Keep refs in sync so sendAiMsg can read latest values after an async wait
   useEffect(() => { isWindsorLoadingRef.current = isWindsorLoading; }, [isWindsorLoading]);
