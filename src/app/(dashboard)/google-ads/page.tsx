@@ -873,8 +873,8 @@ export default function GoogleAdsPage() {
     if (!windsorConnected || dimEntries.length === 0) { setCrossFilterData(null); return; }
     const [dim, values] = dimEntries[0];
     const groupBy = `date,${dim}`;
-    const dateFrom = fmtMs(rangeStart);
-    const dateTo   = fmtMs(rangeEnd);
+    const dateFrom = new Date(rangeStart).toISOString().split("T")[0];
+    const dateTo   = new Date(rangeEnd).toISOString().split("T")[0];
     fetch(`/api/windsor?date_from=${dateFrom}&date_to=${dateTo}&group_by=${encodeURIComponent(groupBy)}`)
       .then(r => r.json())
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
