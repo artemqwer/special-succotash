@@ -41,8 +41,20 @@ export default function GoogleAdsPage() {
   const [expandedNameIdx, setExpandedNameIdx] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isPortrait, setIsPortrait] = useState(true);
-  const [rangeStart, setRangeStart] = useState(END_MS - 13 * DAY_MS);
-  const [rangeEnd, setRangeEnd] = useState(END_MS);
+  const [rangeStart, setRangeStart] = useState(() => {
+    if (typeof window !== "undefined") {
+      const s = sessionStorage.getItem("dr_range_start");
+      if (s) return Number(s);
+    }
+    return END_MS - 13 * DAY_MS;
+  });
+  const [rangeEnd, setRangeEnd] = useState(() => {
+    if (typeof window !== "undefined") {
+      const s = sessionStorage.getItem("dr_range_end");
+      if (s) return Number(s);
+    }
+    return END_MS;
+  });
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const openDatePicker = () => {
@@ -57,6 +69,10 @@ export default function GoogleAdsPage() {
   };
   const openDatePickerRef = useRef(openDatePicker);
   useEffect(() => { openDatePickerRef.current = openDatePicker; });
+  useEffect(() => {
+    sessionStorage.setItem("dr_range_start", String(rangeStart));
+    sessionStorage.setItem("dr_range_end", String(rangeEnd));
+  }, [rangeStart, rangeEnd]);
   const [pickerTempStart, setPickerTempStart] = useState<number | null>(null);
   const [pickerTempEnd, setPickerTempEnd] = useState<number | null>(null);
   const [pickerHover, setPickerHover] = useState<number | null>(null);
