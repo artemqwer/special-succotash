@@ -616,22 +616,20 @@ export default function ProfilePage() {
         {teamMembers.length > 0 && (
           <div className="mb-5 space-y-1">
             {teamMembers.map(m => (
-              <div key={m.id} className="flex items-center justify-between gap-3 py-2.5 border-b border-gray-50 last:border-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] font-bold shrink-0"
-                    style={{ background: m.avatarColor }}>
-                    {m.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-medium text-gray-800">{m.name}</p>
-                    <p className="text-[11px] text-gray-400">{m.email}</p>
-                  </div>
+              <div key={m.id} className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] font-bold shrink-0"
+                  style={{ background: m.avatarColor }}>
+                  {m.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-gray-800 truncate">{m.name}</p>
+                  <p className="text-[11px] text-gray-400 truncate">{m.email}</p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
                   {m.role === "owner" && (
-                    <span className="text-[10px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full font-medium">Owner</span>
+                    <span className="text-[10px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">Owner</span>
                   )}
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${m.hasWindsor ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"}`}>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${m.hasWindsor ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"}`}>
                     {m.hasWindsor ? "Connected" : "No data"}
                   </span>
                 </div>
@@ -648,10 +646,10 @@ export default function ProfilePage() {
               value={inviteEmail}
               onChange={e => setInviteEmail(e.target.value)}
               placeholder="teammate@company.com"
-              className="flex-1 py-2 px-3 text-[13px] border border-gray-200 rounded-lg outline-none focus:border-blue-400 text-gray-700 placeholder-gray-300"
+              className="flex-1 min-w-0 py-2 px-3 text-[13px] border border-gray-200 rounded-lg outline-none focus:border-blue-400 text-gray-700 placeholder-gray-300"
             />
             <button type="submit" disabled={inviting}
-              className="text-[13px] font-medium px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition flex items-center gap-1.5">
+              className="shrink-0 text-[13px] font-medium px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition flex items-center gap-1.5">
               {inviting && <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               {inviting ? "Sending…" : "Invite"}
             </button>
